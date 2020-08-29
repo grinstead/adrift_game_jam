@@ -7,7 +7,7 @@ import {
 import { GameLoop } from "./webgames/GameLoop.js";
 import { SpriteSet } from "./sprites.js";
 
-const PIXELS_PER_METER = 360;
+const PIXELS_PER_METER = 180;
 const ROOM_DEPTH = 2; // meters
 
 async function onLoad() {
@@ -71,10 +71,11 @@ async function onLoad() {
   const program = new Program({ gl, projection: "projection" });
   program.attach(vShader, fShader).link();
 
+  // the division by 2 is because the textures are designed for retina
   const floorDims = {
-    w: 5000 / PIXELS_PER_METER,
-    h: 34 / PIXELS_PER_METER,
-    d: 175 / PIXELS_PER_METER,
+    w: 5000 / PIXELS_PER_METER / 2,
+    h: 34 / PIXELS_PER_METER / 2,
+    d: 175 / PIXELS_PER_METER / 2,
     boundary: 175 / 209,
   };
 
@@ -87,10 +88,10 @@ async function onLoad() {
     {
       // prettier-ignore
       "main": [[
-        1280/PIXELS_PER_METER, floorDims.d/2, 0, 1, 0,
-        1280/PIXELS_PER_METER, floorDims.d/2, 328/PIXELS_PER_METER, 1, 1,
+        floorDims.w, floorDims.d/2, 0, 1, 0,
+        floorDims.w, floorDims.d/2, 1280/PIXELS_PER_METER/2, 1, 1,
         0, floorDims.d/2, 0, 0, 0,
-        0, floorDims.d/2, 328/PIXELS_PER_METER, 0, 1,
+        0, floorDims.d/2, 1280/PIXELS_PER_METER/2, 0, 1,
       ]],
     }
   );
@@ -151,10 +152,18 @@ async function onLoad() {
     -1,   -1,   0, 1,
   ]);
 
+  let startTime = Date.now();
+
   function renderStep(gl, program) {
     program.stack.pushAbsolute(projection);
 
-    program.stack.pushTranslation(0, 0, 0.5);
+    const timeDiff = (Date.now() - startTime) / 1000;
+
+    program.stack.pushTranslation(
+      Math.sin(timeDiff / 4) - 1,
+      0,
+      floorDims.d - floorDims.h
+    );
     wall.bindTo(program);
     wall.renderSpriteDatumPrebound("main", 0);
 

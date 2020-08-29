@@ -12,4 +12,5 @@ canvas {
   width: 1280px;
   height: 640px;
   background-color: #0f0f1f;
+  cursor: none;
 }
