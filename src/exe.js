@@ -71,40 +71,40 @@ async function onLoad() {
   const program = new Program({ gl, projection: "projection" });
   program.attach(vShader, fShader).link();
 
+  const [wallTex, floorTex] = await Promise.all([
+    loadTextureFromImgUrl({
+      gl,
+      src: "assets/Background Wall.png",
+      name: "wall",
+    }),
+    loadTextureFromImgUrl({
+      gl,
+      src: "assets/Floor 2.png",
+      name: "floor",
+    }),
+  ]);
+
   // the division by 2 is because the textures are designed for retina
   const floorDims = {
-    w: 5000 / PIXELS_PER_METER / 2,
+    w: floorTex.w / PIXELS_PER_METER / 2,
     h: 34 / PIXELS_PER_METER / 2,
     d: 175 / PIXELS_PER_METER / 2,
     boundary: 175 / 209,
   };
 
-  const wall = new SpriteSet(
-    await loadTextureFromImgUrl({
-      gl,
-      src: "assets/Background Wall.png",
-      name: "wall",
-    }),
-    {
-      // prettier-ignore
-      "main": [[
-        floorDims.w, floorDims.d/2, 0, 1, 0,
-        floorDims.w, floorDims.d/2, 1280/PIXELS_PER_METER/2, 1, 1,
+  const wall = new SpriteSet(wallTex, {
+    // prettier-ignore
+    "main": [[
+        wallTex.w / PIXELS_PER_METER / 2, floorDims.d/2, 0, 1, 0,
+        wallTex.w / PIXELS_PER_METER / 2, floorDims.d/2, wallTex.h/PIXELS_PER_METER/2, 1, 1,
         0, floorDims.d/2, 0, 0, 0,
-        0, floorDims.d/2, 1280/PIXELS_PER_METER/2, 0, 1,
+        0, floorDims.d/2, wallTex.h/PIXELS_PER_METER/2, 0, 1,
       ]],
-    }
-  );
+  });
 
-  const floor = new SpriteSet(
-    await loadTextureFromImgUrl({
-      gl,
-      src: "assets/Floor 2.png",
-      name: "floor",
-    }),
-    {
-      // prettier-ignore
-      "main": [[
+  const floor = new SpriteSet(floorTex, {
+    // prettier-ignore
+    "main": [[
         floorDims.w, -floorDims.d/2, -floorDims.h, 1,                  1,
                   0, -floorDims.d/2, -floorDims.h, 0,                  1,
         floorDims.w, -floorDims.d/2,            0, 1, floorDims.boundary,
@@ -112,8 +112,7 @@ async function onLoad() {
         floorDims.w,  floorDims.d/2,            0, 1,                  0,
                   0,  floorDims.d/2,            0, 0,                  0,
       ]],
-    }
-  );
+  });
 
   const fadeTexture = loadTextureFromRawBitmap({
     name: "fade",
