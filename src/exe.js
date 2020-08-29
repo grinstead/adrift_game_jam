@@ -68,21 +68,21 @@ async function onLoad() {
   const program = new Program({ gl, projection: "projection" });
   program.attach(vShader, fShader).link();
 
-  // const basicTexture = await loadTextureFromImgUrl({
-  //   gl,
-  //   src: "assets/marblol2.PNG",
-  //   name: "pretend wall",
-  // });
+  const basicTexture = await loadTextureFromImgUrl({
+    gl,
+    src: "assets/marblol2.PNG",
+    name: "pretend wall",
+  });
 
-  // const wall = new SpriteSet(basicTexture, {
-  //   // prettier-ignore
-  //   "main": [[
-  //     1, 0, 0, 1, 0,
-  //     1, 0, 1, 1, 1,
-  //     0, 0, 0, 0, 0,
-  //     0, 0, 1, 0, 1,
-  //   ]],
-  // });
+  const wall = new SpriteSet(basicTexture, {
+    // prettier-ignore
+    "main": [[
+      1, 0, 0, 1, 0,
+      1, 0, 1, 1, 1,
+      0, 0, 0, 0, 0,
+      0, 0, 1, 0, 1,
+    ]],
+  });
 
   const fadeTexture = loadTextureFromRawBitmap({
     name: "fade",
@@ -123,7 +123,6 @@ async function onLoad() {
 
   function renderStep(gl, program) {
     program.stack.pushAbsolute(projection);
-    console.log(fade.data);
     fade.bindTo(program);
     fade.renderSpriteDatumPrebound("white", 0);
     program.stack.pushTranslation(
@@ -131,7 +130,8 @@ async function onLoad() {
       0,
       20 - (mouseY + 16) / 32
     );
-    fade.renderSpriteDatumPrebound("main", 0);
+    wall.bindTo(program);
+    wall.renderSpriteDatumPrebound("main", 0);
   }
 
   function logicStep() {

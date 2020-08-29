@@ -328,8 +328,6 @@ function doAnimationFrame(program) {
     }
   }
 
-  console.log(u, a);
-
   try {
     var jobs = program._jobs;
     for (var i = 0; i < jobs.length; jobs++) {
@@ -397,6 +395,7 @@ export function loadTextureFromImgUrl(options) {
     image.onerror = () => {
       reject(new Error(`failed to load ${options.src}`));
     };
+    image.mode = "no-cors";
     image.src = options.src;
   }).then((img) => {
     const width = img.naturalWidth;
