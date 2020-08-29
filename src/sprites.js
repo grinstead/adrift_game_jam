@@ -76,6 +76,7 @@ export class SpriteSet {
         );
       }
 
+      const tuplesPerStep = stepLength / 5;
       for (let i = 0; i < sequenceLength; i++) {
         const tuples = sequence[i];
         if (tuples.length !== stepLength) {
@@ -84,11 +85,12 @@ export class SpriteSet {
           );
         }
 
-        offsets.push(numTuples++);
+        offsets.push(numTuples);
         allData.push.apply(allData, tuples);
+        numTuples += tuplesPerStep;
       }
 
-      internalData[name] = makeDatum(this, name, offsets, stepLength / 5);
+      internalData[name] = makeDatum(this, name, offsets, tuplesPerStep);
     }
 
     this._rawData = new Float32Array(allData);
@@ -133,12 +135,11 @@ export class SpriteSet {
    * Renders a datum to the screen
    * @param {string} datumName - Must be a key on the `.data` object
    */
-  renderSpriteDatum(program, datumName, index) {
+  renderSpriteDatumPrebound(datumName, index) {
     if (!this.data.hasOwnProperty(datumName)) {
       throw new Error(`Can not render unknown "${datumName}"`);
     }
 
-    this.bindTo(program);
     const datum = this.data[datumName];
     const gl = this._tex.gl;
     gl.drawArrays(gl.TRIANGLE_STRIP, datum._offsets[index], datum.nPoints);

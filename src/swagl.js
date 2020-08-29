@@ -32,21 +32,29 @@ const LocationType = {
  * @property {LocationType} type
  */
 class Location {
-  constructor(name, type) {
-    var regexResult;
+  constructor(type, prefix, name) {
+    this.name = name;
+    this.glName = `${prefix}${name}`;
+
     switch (type) {
       case "uniform":
-        regexResult = /^u_(.+)/.exec(name);
-        this.name = regexResult ? regexResult[1] : name;
-        this.glName = name;
         this.type = LocationType.UNIFORM;
+        if (prefix !== "u_") {
+          throw new Error(
+            `uniform field "${this.glName}" invalid, must start with u_`
+          );
+        }
         break;
-      case "attribute":
-        regexResult = /^a_(.+)/.exec(name);
-        this.name = regexResult ? regexResult[1] : name;
-        this.glName = name;
+      case "in":
         this.type = LocationType.ATTRIBUTE;
+        if (prefix !== "a_") {
+          throw new Error(
+            `in field "${this.glName}" invalid, must start with a_`
+          );
+        }
         break;
+      default:
+        throw new Error("Impossible");
     }
   }
 }
@@ -57,9 +65,9 @@ function findLocations(code) {
     let name, declaration;
 
     // Check for uniform declaration
-    declaration = /^\s*(uniform|attribute)\s+\w*\s*(\w*);/.exec(line);
+    declaration = /^\s*(in|uniform)\s(?:\w+\s)*([ua]_)(\w+);/.exec(line);
     if (declaration) {
-      locs.push(new Location(declaration[2], declaration[1]));
+      locs.push(new Location(declaration[1], declaration[2], declaration[3]));
     }
   });
   return locs;
@@ -156,7 +164,7 @@ class MatrixStack {
 /**
  * Class wrapping a WebGL Shader
  * @readonly @property {string} name - The name of the Shader, provided in the constructor for debugging purposes
- * @readonly @property {WebGLRenderingContext} gl - The WebGL context this shader is attached to
+ * @readonly @property {WebGL2RenderingContext} gl - The WebGL context this shader is attached to
  * @readonly @property {ShaderType} type - The type of the shader
  */
 export class Shader {
@@ -165,7 +173,7 @@ export class Shader {
    *
    * @param {Object} options - The named arguments
    * @param {string} options.name - The name of the shader (for debugging)
-   * @param {WebGLRenderingContext} options.gl - The rendering context this shader applies to
+   * @param {WebGL2RenderingContext} options.gl - The rendering context this shader applies to
    * @param {ShaderType} options.type - The type of the shader
    * @param {string} code - The webgl shader code, the variable names matter a lot
    */
@@ -272,7 +280,7 @@ export class Program {
   /**
    * Schedules the "job" (a render function) to run on the next animation frame.
    * Multiple calls to this function will be batched and called in order.
-   * @param {function(WebGLRenderingContext,Program):void} job - the code to run
+   * @param {function(WebGL2RenderingContext,Program):void} job - the code to run
    */
   runInFrame(job) {
     this._jobs.push(job);
@@ -311,13 +319,16 @@ function doAnimationFrame(program) {
   program.u = u;
   program.a = a;
 
-  if (program.projection) {
-    if (program.projection in program.u) {
-      program.stack = new MatrixStack(gl, program.u[program.projection]);
+  const projection = program.projection;
+  if (projection) {
+    if (projection in program.u) {
+      program.stack = new MatrixStack(gl, program.u[projection]);
     } else {
-      throw new Error(`No anchor point ${program.projection} in ${this}`);
+      throw new Error(`No anchor point "${projection}" in program`);
     }
   }
+
+  console.log(u, a);
 
   try {
     var jobs = program._jobs;
@@ -325,8 +336,8 @@ function doAnimationFrame(program) {
       jobs[i](gl, program);
     }
   } finally {
-    program.u = undefined;
-    program.a = undefined;
+    program.u = {};
+    program.a = {};
     program.stack = null;
     if (program._jobs.length === 1) {
       program._jobs = []; // optimizing the common case
@@ -343,23 +354,23 @@ function doAnimationFrame(program) {
 /**
  * Wraps a WebGL texture.
  * @property {string} name - A name for debugging
- * @property {WebGLRenderingContext} gl - The context this texture is attached to
+ * @property {WebGL2RenderingContext} gl - The context this texture is attached to
  * @property {number} w - the width of the texture (in pixels)
  * @property {number} h - the height of the texture (in pixels)
  */
 export class Texture {
-  constructor(img, options) {
-    const gl = (this.gl = options.gl);
-    this.name = options.name;
+  constructor(gl, name, width, height, loadTexture) {
+    this.gl = gl;
+    this.name = name;
+    this.w = width;
+    this.h = height;
 
     const texture = (this._glTex = gl.createTexture());
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    loadTexture(gl);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.bindTexture(gl.TEXTURE_2D, null);
-    this.w = img.naturalWidth;
-    this.h = img.naturalHeight;
   }
 
   bindTexture() {
@@ -369,22 +380,68 @@ export class Texture {
   passSize(anchor) {
     this.gl.uniform2f(anchor, this.w, this.h);
   }
+}
 
-  /**
-   * Loads a texture from the internet
-   * @param {Object} options
-   * @param {string} options.src - The url of the image (must be on the same domain)
-   * @param {string} options.name - The name of the resultant Texture (for debugging)
-   * @param {WebGLRenderingContext} options.gl
-   * @returns {Promise<Texture>} The loaded texture
-   */
-  static loadFromUrl(options) {
-    return new Promise((resolve) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.src = options.src;
-    }).then((img) => {
-      return new Texture(img, options);
+/**
+ * Loads a texture from the internet
+ * @param {Object} options
+ * @param {string} options.src - The url of the image (must be on the same domain)
+ * @param {string} options.name - The name of the resultant Texture (for debugging)
+ * @param {WebGL2RenderingContext} options.gl
+ * @returns {Promise<Texture>} The loaded texture
+ */
+export function loadTextureFromImgUrl(options) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => void resolve(image);
+    image.onerror = () => {
+      reject(new Error(`failed to load ${options.src}`));
+    };
+    image.src = options.src;
+  }).then((img) => {
+    const width = img.naturalWidth;
+    const height = img.naturalWidth;
+
+    return new Texture(options.gl, options.name, width, height, (gl) => {
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        width,
+        height,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        img
+      );
     });
-  }
+  });
+}
+
+/**
+ *
+ * @param {Object} options
+ * @param {Uint8Array} options.bmp
+ * @param {string} options.name
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {WebGL2RenderingContext} options.gl
+ * @returns {Texture}
+ */
+export function loadTextureFromRawBitmap(options) {
+  const { width, height } = options;
+  return new Texture(options.gl, options.name, width, height, (gl) => {
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      width,
+      height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      options.bmp,
+      0
+    );
+  });
 }
