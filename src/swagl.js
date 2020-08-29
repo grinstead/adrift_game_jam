@@ -283,7 +283,9 @@ export class Program {
    * @param {function(WebGL2RenderingContext,Program):void} job - the code to run
    */
   runInFrame(job) {
-    this._jobs.push(job);
+    if (!this._jobs.includes(job)) {
+      this._jobs.push(job);
+    }
 
     if (!this._isScheduled) {
       requestAnimationFrame(this._doAnimationFrame);
@@ -399,7 +401,7 @@ export function loadTextureFromImgUrl(options) {
     image.src = options.src;
   }).then((img) => {
     const width = img.naturalWidth;
-    const height = img.naturalWidth;
+    const height = img.naturalHeight;
 
     return new Texture(options.gl, options.name, width, height, (gl) => {
       gl.texImage2D(

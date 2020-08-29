@@ -7,6 +7,9 @@ import {
 import { GameLoop } from "./webgames/GameLoop.js";
 import { SpriteSet } from "./sprites.js";
 
+const PIXELS_PER_METER = 360;
+const ROOM_DEPTH = 2; // meters
+
 async function onLoad() {
   const fpsNode = document.getElementById("fps");
   const canvas = document.getElementById("canvas");
@@ -68,37 +71,64 @@ async function onLoad() {
   const program = new Program({ gl, projection: "projection" });
   program.attach(vShader, fShader).link();
 
-  const basicTexture = await loadTextureFromImgUrl({
-    gl,
-    src: "assets/marblol2.PNG",
-    name: "pretend wall",
-  });
+  const floorDims = {
+    w: 5000 / PIXELS_PER_METER,
+    h: 34 / PIXELS_PER_METER,
+    d: 175 / PIXELS_PER_METER,
+    boundary: 175 / 209,
+  };
 
-  const wall = new SpriteSet(basicTexture, {
-    // prettier-ignore
-    "main": [[
-      1, 0, 0, 1, 0,
-      1, 0, 1, 1, 1,
-      0, 0, 0, 0, 0,
-      0, 0, 1, 0, 1,
-    ]],
-  });
+  const wall = new SpriteSet(
+    await loadTextureFromImgUrl({
+      gl,
+      src: "assets/Background Wall.png",
+      name: "wall",
+    }),
+    {
+      // prettier-ignore
+      "main": [[
+        1280/PIXELS_PER_METER, floorDims.d/2, 0, 1, 0,
+        1280/PIXELS_PER_METER, floorDims.d/2, 328/PIXELS_PER_METER, 1, 1,
+        0, floorDims.d/2, 0, 0, 0,
+        0, floorDims.d/2, 328/PIXELS_PER_METER, 0, 1,
+      ]],
+    }
+  );
+
+  const floor = new SpriteSet(
+    await loadTextureFromImgUrl({
+      gl,
+      src: "assets/Floor 2.png",
+      name: "floor",
+    }),
+    {
+      // prettier-ignore
+      "main": [[
+        floorDims.w, -floorDims.d/2, -floorDims.h, 1,                  1,
+                  0, -floorDims.d/2, -floorDims.h, 0,                  1,
+        floorDims.w, -floorDims.d/2,            0, 1, floorDims.boundary,
+                  0, -floorDims.d/2,            0, 0, floorDims.boundary,
+        floorDims.w,  floorDims.d/2,            0, 1,                  0,
+                  0,  floorDims.d/2,            0, 0,                  0,
+      ]],
+    }
+  );
 
   const fadeTexture = loadTextureFromRawBitmap({
     name: "fade",
-    width: 32,
-    height: 32,
+    width: PIXELS_PER_METER,
+    height: PIXELS_PER_METER,
     gl,
-    bmp: makeQuadraticDropoff(32, 32, 3),
+    bmp: makeQuadraticDropoff(PIXELS_PER_METER, PIXELS_PER_METER, 2),
   });
 
   const fade = new SpriteSet(fadeTexture, {
     // prettier-ignore
     "main": [[
-      1, 0, 0, 1, 0,
-      1, 0, 1, 1, 1,
-      0, 0, 0, 0, 0,
-      0, 0, 1, 0, 1,
+       .5, 0, -.5, 1, 0,
+       .5, 0,  .5, 1, 1,
+      -.5, 0, -.5, 0, 0,
+      -.5, 0,  .5, 0, 1,
     ]],
     // prettier-ignore
     "white": [[
@@ -115,23 +145,30 @@ async function onLoad() {
   // makes the viewport 40m wide
   // prettier-ignore
   const projection = new Float32Array([
-    2/40, 0,    0, 0,
-    0,    0,    0, 0,
-    0,    2/20, 0, 0,
+    2 * PIXELS_PER_METER / width, 0,    0, 0,
+    0,    2 * PIXELS_PER_METER / height,    0, 0,
+    0,    2 * PIXELS_PER_METER / height, 0, 0,
     -1,   -1,   0, 1,
   ]);
 
   function renderStep(gl, program) {
     program.stack.pushAbsolute(projection);
-    fade.bindTo(program);
-    fade.renderSpriteDatumPrebound("white", 0);
-    program.stack.pushTranslation(
-      (mouseX - 16) / 32,
-      0,
-      20 - (mouseY + 16) / 32
-    );
+
+    program.stack.pushTranslation(0, 0, 0.5);
     wall.bindTo(program);
     wall.renderSpriteDatumPrebound("main", 0);
+
+    floor.bindTo(program);
+    floor.renderSpriteDatumPrebound("main", 0);
+    program.stack.pop();
+
+    fade.bindTo(program);
+    program.stack.pushTranslation(
+      mouseX / PIXELS_PER_METER,
+      0,
+      (height - mouseY) / PIXELS_PER_METER
+    );
+    fade.renderSpriteDatumPrebound("main", 0);
   }
 
   function logicStep() {
