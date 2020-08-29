@@ -1,7 +1,8 @@
 import { Program, Shader, Texture } from "./swagl.js";
 import { GameLoop } from "./webgames/GameLoop.js";
+import { SpriteSet } from "./sprites.js";
 
-function onLoad() {
+async function onLoad() {
   const fpsNode = document.getElementById("fps");
   const canvas = document.getElementById("canvas");
   const computedStyle = window.getComputedStyle(canvas);
@@ -14,9 +15,6 @@ function onLoad() {
     canvas.width = ratio * width;
     canvas.height = ratio * height;
   }
-
-  width /= 1.5;
-  height /= 1.5;
 
   const gl = canvas.getContext("webgl", { antialias: false });
   gl.enable(gl.DEPTH_TEST);
@@ -62,18 +60,58 @@ function onLoad() {
   const program = new Program({ gl, projection: "projection" });
   program.attach(vShader, fShader).link();
 
+  const basicTexture = await Texture.loadFromUrl({
+    gl,
+    src: "assets/marblol2.PNG",
+    name: "pretend wall",
+  });
+
+  const wall = new SpriteSet(basicTexture, {
+    // prettier-ignore
+    "main": [[
+      1, 0, 0, 1, 0,
+      1, 0, 1, 1, 1,
+      0, 0, 0, 0, 0,
+      0, 0, 1, 0, 1,
+    ]],
+  });
+
+  let mouseX = 0;
+  let mouseY = 0;
+
+  // makes the viewport 40m wide
+  // prettier-ignore
+  const projection = new Float32Array([
+    2/40, 0,    0, 0,
+    0,    0,    0, 0,
+    0,    2/25, 0, 0,
+    -1,   -1,   0, 1,
+  ]);
+
+  function renderStep(gl, program) {
+    program.stack.pushAbsolute(projection);
+    program.stack.pushTranslation(
+      (mouseX - 16) / 32,
+      0,
+      25 - (mouseY + 16) / 32
+    );
+    wall.renderSpriteDatum(program, "main", 0);
+  }
+
   function logicStep() {
-    console.log("hi");
     fpsNode.innerHTML = `fps=${Math.round(loop.avgFps())}/${loop.fps}`;
+
+    program.runInFrame(renderStep);
   }
 
   const loop = new GameLoop();
   loop.onLoop = logicStep;
-  //   loop.start(4);
+  loop.start(60);
 
-  console.log("yoy oyou");
+  canvas.onmousemove = (event) => {
+    mouseX = event.offsetX;
+    mouseY = event.offsetY;
+  };
 }
-
-function render(gl, program) {}
 
 window.onload = onLoad;

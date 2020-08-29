@@ -209,6 +209,11 @@ export class Shader {
 // Program
 ////////////////////////////////////////////////////////////////////////////////
 
+/**
+ * Wraps a WebGL Program. It understands all the entry points.
+ * @property {Object.<string, number>} u
+ * @property {Object.<string, number>} a
+ */
 export class Program {
   constructor(options) {
     this.name = options.name;
@@ -221,13 +226,13 @@ export class Program {
     this._glProgram = gl.createProgram();
 
     this._shaders = [];
-    this.u = undefined;
-    this.a = undefined;
+    this.u = {};
+    this.a = {};
     this.stack = null;
 
     this._isScheduled = false;
     this._jobs = [];
-    this._doAnimationFrame = () => doAnimationFrame(this);
+    this._doAnimationFrame = () => void doAnimationFrame(this);
   }
 
   /**
@@ -269,11 +274,11 @@ export class Program {
    * Multiple calls to this function will be batched and called in order.
    * @param {function(WebGLRenderingContext,Program):void} job - the code to run
    */
-  run(job) {
+  runInFrame(job) {
     this._jobs.push(job);
 
     if (!this._isScheduled) {
-      window.requestAnimationFrame(this._doAnimationFrame);
+      requestAnimationFrame(this._doAnimationFrame);
     }
   }
 }
@@ -335,9 +340,15 @@ function doAnimationFrame(program) {
 // Textures
 ////////////////////////////////////////////////////////////////////////////////
 
+/**
+ * Wraps a WebGL texture.
+ * @property {string} name - A name for debugging
+ * @property {WebGLRenderingContext} gl - The context this texture is attached to
+ * @property {number} w - the width of the texture (in pixels)
+ * @property {number} h - the height of the texture (in pixels)
+ */
 export class Texture {
   constructor(img, options) {
-    this._img = img;
     const gl = (this.gl = options.gl);
     this.name = options.name;
 
@@ -351,7 +362,7 @@ export class Texture {
     this.h = img.naturalHeight;
   }
 
-  bind() {
+  bindTexture() {
     this.gl.bindTexture(this.gl.TEXTURE_2D, this._glTex);
   }
 
@@ -359,7 +370,15 @@ export class Texture {
     this.gl.uniform2f(anchor, this.w, this.h);
   }
 
-  load(options) {
+  /**
+   * Loads a texture from the internet
+   * @param {Object} options
+   * @param {string} options.src - The url of the image (must be on the same domain)
+   * @param {string} options.name - The name of the resultant Texture (for debugging)
+   * @param {WebGLRenderingContext} options.gl
+   * @returns {Promise<Texture>} The loaded texture
+   */
+  static loadFromUrl(options) {
     return new Promise((resolve) => {
       const image = new Image();
       image.onload = () => resolve(image);
