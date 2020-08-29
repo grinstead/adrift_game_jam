@@ -162,7 +162,7 @@ async function onLoad() {
     program.stack.pushTranslation(
       Math.sin(timeDiff / 4) - 1,
       0,
-      floorDims.d - floorDims.h
+      floorDims.d / 2 + floorDims.h
     );
     wall.bindTo(program);
     wall.renderSpriteDatumPrebound("main", 0);
