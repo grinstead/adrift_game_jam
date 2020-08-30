@@ -27,6 +27,8 @@ async function onLoad() {
   const gl = canvas.getContext("webgl2", { antialias: false, alpha: false });
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LEQUAL);
 
   const vShader = new Shader(
     { gl, type: "vertex" },
@@ -37,12 +39,15 @@ async function onLoad() {
 
     uniform mat4 u_projection;
 
-    out highp vec2 v_texturePosition;
+    out vec2 v_texturePosition;
 
     void main() {
         vec4 position = u_projection * vec4(a_position, 1);
+        float variance = 1.f / (position.z + 1.f);
 
-        gl_Position = position / position.w;
+        vec4 result = vec4(position.x, position.y * variance, -.5f * (position.z - 1.f) * variance, variance);
+        gl_Position = result;
+
         v_texturePosition = a_texturePosition;
     }
 `
@@ -55,7 +60,7 @@ async function onLoad() {
 
     uniform sampler2D u_texture;
 
-    in highp vec2 v_texturePosition;
+    in vec2 v_texturePosition;
     out vec4 output_color;
 
     void main() {
@@ -95,22 +100,22 @@ async function onLoad() {
   const wall = new SpriteSet(wallTex, {
     // prettier-ignore
     "main": [[
-        wallTex.w / PIXELS_PER_METER / 2, floorDims.d/2, 0, 1, 0,
-        wallTex.w / PIXELS_PER_METER / 2, floorDims.d/2, wallTex.h/PIXELS_PER_METER/2, 1, 1,
-        0, floorDims.d/2, 0, 0, 0,
-        0, floorDims.d/2, wallTex.h/PIXELS_PER_METER/2, 0, 1,
+        wallTex.w / PIXELS_PER_METER / 2, -floorDims.d/2, 0, 1, 0,
+        wallTex.w / PIXELS_PER_METER / 2, -floorDims.d/2, wallTex.h/PIXELS_PER_METER/2, 1, 1,
+        0, -floorDims.d/2, 0, 0, 0,
+        0, -floorDims.d/2, wallTex.h/PIXELS_PER_METER/2, 0, 1,
       ]],
   });
 
   const floor = new SpriteSet(floorTex, {
     // prettier-ignore
     "main": [[
-        floorDims.w, -floorDims.d/2, -floorDims.h, 1,                  1,
-                  0, -floorDims.d/2, -floorDims.h, 0,                  1,
-        floorDims.w, -floorDims.d/2,            0, 1, floorDims.boundary,
-                  0, -floorDims.d/2,            0, 0, floorDims.boundary,
-        floorDims.w,  floorDims.d/2,            0, 1,                  0,
-                  0,  floorDims.d/2,            0, 0,                  0,
+        floorDims.w,  floorDims.d/2, -floorDims.h, 1,                  1,
+                  0,  floorDims.d/2, -floorDims.h, 0,                  1,
+        floorDims.w,  floorDims.d/2,            0, 1, floorDims.boundary,
+                  0,  floorDims.d/2,            0, 0, floorDims.boundary,
+        floorDims.w, -floorDims.d/2,            0, 1,                  0,
+                  0, -floorDims.d/2,            0, 0,                  0,
       ]],
   });
 
@@ -146,7 +151,7 @@ async function onLoad() {
   // prettier-ignore
   const projection = new Float32Array([
     2 * PIXELS_PER_METER / width, 0,    0, 0,
-    0,    2 * PIXELS_PER_METER / height,    0, 0,
+    0,    -2 * PIXELS_PER_METER / height, 1/4, 0,
     0,    2 * PIXELS_PER_METER / height, 0, 0,
     -1,   -1,   0, 1,
   ]);
@@ -159,7 +164,7 @@ async function onLoad() {
     const timeDiff = (Date.now() - startTime) / 1000;
 
     program.stack.pushTranslation(
-      Math.sin(timeDiff / 4) - 1,
+      Math.sin(timeDiff / 4) - 1.5,
       0,
       floorDims.d / 2 + floorDims.h
     );
