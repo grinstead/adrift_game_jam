@@ -8,6 +8,7 @@ import { GameLoop } from "./webgames/GameLoop.js";
 import { SpriteSet } from "./sprites.js";
 
 const PIXELS_PER_METER = 180;
+const TEX_PIXELS_PER_METER = 2 * PIXELS_PER_METER;
 const ROOM_DEPTH = 2; // meters
 
 async function onLoad() {
@@ -76,7 +77,7 @@ async function onLoad() {
   const program = new Program({ gl, projection: "projection" });
   program.attach(vShader, fShader).link();
 
-  const [wallTex, floorTex] = await Promise.all([
+  const [wallTex, floorTex, charTex] = await Promise.all([
     loadTextureFromImgUrl({
       gl,
       src: "assets/Background Wall.png",
@@ -87,23 +88,28 @@ async function onLoad() {
       src: "assets/Floor 2.png",
       name: "floor",
     }),
+    loadTextureFromImgUrl({
+      gl,
+      src: "assets/Hero Breathing0001.png",
+      name: "idle",
+    }),
   ]);
 
   // the division by 2 is because the textures are designed for retina
   const floorDims = {
-    w: floorTex.w / PIXELS_PER_METER / 2,
-    h: 34 / PIXELS_PER_METER / 2,
-    d: 175 / PIXELS_PER_METER / 2,
+    w: floorTex.w / TEX_PIXELS_PER_METER,
+    h: 34 / TEX_PIXELS_PER_METER,
+    d: 175 / TEX_PIXELS_PER_METER,
     boundary: 175 / 209,
   };
 
   const wall = new SpriteSet(wallTex, {
     // prettier-ignore
     "main": [[
-        wallTex.w / PIXELS_PER_METER / 2, -floorDims.d/2, 0, 1, 0,
-        wallTex.w / PIXELS_PER_METER / 2, -floorDims.d/2, wallTex.h/PIXELS_PER_METER/2, 1, 1,
-        0, -floorDims.d/2, 0, 0, 0,
-        0, -floorDims.d/2, wallTex.h/PIXELS_PER_METER/2, 0, 1,
+        wallTex.w / TEX_PIXELS_PER_METER, -floorDims.d/2, wallTex.h/TEX_PIXELS_PER_METER, 1, 0,
+        wallTex.w / TEX_PIXELS_PER_METER, -floorDims.d/2, 0, 1, 1,
+        0, -floorDims.d/2, wallTex.h/TEX_PIXELS_PER_METER, 0, 0,
+        0, -floorDims.d/2, 0, 0, 1,
       ]],
   });
 
@@ -117,6 +123,16 @@ async function onLoad() {
         floorDims.w, -floorDims.d/2,            0, 1,                  0,
                   0, -floorDims.d/2,            0, 0,                  0,
       ]],
+  });
+
+  const charSprite = new SpriteSet(charTex, {
+    // prettier-ignore
+    "idle": [[
+      charTex.w / TEX_PIXELS_PER_METER, 0, charTex.h/TEX_PIXELS_PER_METER, 1, 0,
+      charTex.w / TEX_PIXELS_PER_METER, 0, 0, 1, 1,
+      0, 0, charTex.h/TEX_PIXELS_PER_METER, 0, 0,
+      0, 0, 0, 0, 1,
+    ]],
   });
 
   const fadeTexture = loadTextureFromRawBitmap({
@@ -173,6 +189,11 @@ async function onLoad() {
 
     floor.bindTo(program);
     floor.renderSpriteDatumPrebound("main", 0);
+
+    program.stack.pushTranslation(4, 0, 0);
+    charSprite.bindTo(program);
+    charSprite.renderSpriteDatumPrebound("idle", 0);
+    program.stack.pop();
     program.stack.pop();
 
     fade.bindTo(program);
