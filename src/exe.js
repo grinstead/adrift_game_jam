@@ -135,13 +135,13 @@ async function onLoad() {
     ]],
   });
 
-  const fadeWidth = 128;
+  const fadeWidth = 32;
   const fadeTexture = loadTextureFromRawBitmap({
     name: "fade",
-    width: 128,
-    height: 128,
+    width: fadeWidth,
+    height: fadeWidth,
     gl,
-    bmp: makeQuadraticDropoff(128, 128, 0.01),
+    bmp: makeQuadraticDropoff(fadeWidth, fadeWidth, 0.01),
   });
 
   const fade = new SpriteSet(fadeTexture, {
@@ -166,17 +166,52 @@ async function onLoad() {
     -1,   -1,   0, 1,
   ]);
 
+  const particles = [];
+
   let startTime = Date.now();
   let lastLoopRun = Date.now();
+  let lastTimeDiff = 0;
+
+  const charX = 4;
+  const spawnHertz = 10;
 
   function renderStep(gl, program) {
     const newTime = Date.now();
-    fpsNode.innerHTML = `fps=${Math.round(1000 / (newTime - lastLoopRun))}`;
+    const stepSize = (newTime - lastLoopRun) / 1000;
     lastLoopRun = newTime;
+    fpsNode.innerHTML = `fps=${Math.round(1 / stepSize)}`;
 
     program.stack.pushAbsolute(projection);
 
-    const timeDiff = (Date.now() - startTime) / 1000;
+    const timeDiff = (newTime - startTime) / 1000;
+
+    const toSpawn =
+      Math.floor(spawnHertz * timeDiff) - Math.floor(spawnHertz * lastTimeDiff);
+    for (let i = 0; i < toSpawn; i++) {
+      const random = Math.random() - 0.5;
+      const angle = (random * Math.PI) / 4 + Math.PI / 2;
+      const speed = Math.random() * 2 + 1; // measured in meters per second
+
+      const x = charX + 285 / TEX_PIXELS_PER_METER;
+      const z = (charTex.h - 110) / TEX_PIXELS_PER_METER;
+      const dz = speed * Math.sin(angle);
+      const dx = speed * Math.cos(angle);
+
+      if (particles.length > 100) {
+        particles.shift();
+      }
+
+      particles.push({
+        x,
+        y: 0,
+        z,
+        dx,
+        dy: 0.1 * Math.sin(2 * Math.PI * Math.random()),
+        dz,
+      });
+    }
+
+    lastTimeDiff = timeDiff;
 
     program.stack.pushTranslation(
       Math.sin(timeDiff / 4) - 1.5,
@@ -189,10 +224,26 @@ async function onLoad() {
     floor.bindTo(program);
     floor.renderSpriteDatumPrebound("main", 0);
 
-    program.stack.pushTranslation(4, 0, 0);
+    program.stack.pushTranslation(charX, 0, 0);
     charSprite.bindTo(program);
     charSprite.renderSpriteDatumPrebound("idle", 0);
     program.stack.pop();
+
+    fade.bindTo(program);
+    particles.forEach((particle) => {
+      if (particle.z >= 0) {
+        particle.dz -= 9.8 * stepSize;
+
+        particle.x += particle.dx * stepSize;
+        particle.y += particle.dy * stepSize;
+        particle.z += particle.dz * stepSize;
+
+        program.stack.pushTranslation(particle.x, particle.y, particle.z);
+        fade.renderSpriteDatumPrebound("main", 0);
+        program.stack.pop();
+      }
+    });
+
     program.stack.pop();
 
     fade.bindTo(program);
