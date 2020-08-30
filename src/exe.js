@@ -46,7 +46,7 @@ async function onLoad() {
         vec4 position = u_projection * vec4(a_position, 1);
         float variance = 1.f / (position.z + 1.f);
 
-        vec4 result = vec4(position.x, position.y * variance, -.5f * (position.z - 1.f) * variance, variance);
+        vec4 result = vec4(position.x, position.y * variance, -.5f * (position.z - 1.f) * variance, position.w * variance);
         gl_Position = result;
 
         v_texturePosition = a_texturePosition;
@@ -215,6 +215,16 @@ async function onLoad() {
   const charX = 4;
   const spawnHertz = 10;
 
+  const shipLength = 100;
+  const wave1 = (isFar) => {
+    const time = lastTimeDiff + (isFar ? 170 : 0);
+    return Math.sin((Math.PI * time) / 8) / 4;
+  };
+  const wave2 = (isFar) => {
+    const time = lastTimeDiff + (isFar ? 130 : 0);
+    return Math.sin((Math.PI * time) / 3) / 4;
+  };
+
   function renderStep(gl, program) {
     const newTime = Date.now();
     const stepSize = (newTime - lastLoopRun) / 1000;
@@ -242,6 +252,7 @@ async function onLoad() {
       }
 
       particles.push({
+        dead: false,
         x,
         y: 0,
         z,
@@ -253,11 +264,17 @@ async function onLoad() {
 
     lastTimeDiff = timeDiff;
 
-    program.stack.pushTranslation(
-      Math.sin(timeDiff / 4) - 1.5,
-      0,
-      floorDims.d / 2 + floorDims.h
-    );
+    // program.stack.pushYRotation(Math.sin(timeDiff / 4) / 4);
+
+    // set the camera
+    program.stack.pushTranslation(-1.5, 0, floorDims.d / 2 + floorDims.h + 0.5);
+
+    // rock the boat
+    const bowY = wave1(false) + wave2(false);
+    const sternY = wave1(true) + wave2(true);
+    program.stack.pushYRotation(Math.asin((bowY - sternY) / shipLength));
+    program.stack.pushTranslation(0, 0, (bowY + sternY) / 2);
+
     wall.bindTo(program);
     wall.renderSpriteDatumPrebound("main", 0);
 
@@ -271,7 +288,7 @@ async function onLoad() {
 
     fade.bindTo(program);
     particles.forEach((particle) => {
-      if (particle.z >= 0) {
+      if (!particle.dead) {
         particle.dz -= 9.8 * stepSize;
 
         particle.x += particle.dx * stepSize;
@@ -282,7 +299,7 @@ async function onLoad() {
           particle.z = -particle.z;
           particle.dz *= -0.25;
         } else if (particle.z < 0.01 && Math.abs(particle.dz) < 0.1) {
-          particle.z = -1;
+          particle.dead = true;
         }
 
         program.stack.pushTranslation(particle.x, particle.y, particle.z);
@@ -291,6 +308,8 @@ async function onLoad() {
       }
     });
 
+    program.stack.pop();
+    program.stack.pop();
     program.stack.pop();
 
     fade.bindTo(program);

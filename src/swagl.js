@@ -141,7 +141,7 @@ class MatrixStack {
 
   pushTranslation(x, y, z = 0) {
     const stack = this._stack;
-    const A = stack[stack.length - 1] || identityMat;
+    const A = stack.length ? stack[stack.length - 1] : identityMat;
     this.pushAbsolute(
       // prettier-ignore
       new Float32Array([
@@ -152,6 +152,20 @@ class MatrixStack {
         x * A[1] + y * A[5] + z * A[9] + A[13],
         x * A[2] + y * A[6] + z * A[10] + A[14],
         x * A[3] + y * A[7] + z * A[11] + A[15],
+      ])
+    );
+  }
+
+  pushYRotation(angle) {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    this.push(
+      // prettier-ignore
+      new Float32Array([
+         cos, 0,  sin, 0,
+           0, 1,    0, 0,
+        -sin, 0,  cos, 0,
+           0, 0,    0, 1,
       ])
     );
   }
