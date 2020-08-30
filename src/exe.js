@@ -90,7 +90,7 @@ async function onLoad() {
     }),
     loadTextureFromImgUrl({
       gl,
-      src: "assets/Hero Breathing0001.png",
+      src: "assets/Hero Breathing.png",
       name: "idle",
     }),
   ]);
@@ -125,14 +125,54 @@ async function onLoad() {
       ]],
   });
 
+  const charW = 294;
+  const charH = 434;
+
+  const charWInM = charW / TEX_PIXELS_PER_METER;
+  const charHInM = charH / TEX_PIXELS_PER_METER;
+  const charWInPercent = charW / charTex.w;
+  const charHInPercent = charH / charTex.h;
+
   const charSprite = new SpriteSet(charTex, {
     // prettier-ignore
-    "idle": [[
-      charTex.w / TEX_PIXELS_PER_METER, 0, charTex.h/TEX_PIXELS_PER_METER, 1, 0,
-      charTex.w / TEX_PIXELS_PER_METER, 0, 0, 1, 1,
-      0, 0, charTex.h/TEX_PIXELS_PER_METER, 0, 0,
-      0, 0, 0, 0, 1,
-    ]],
+    "idle": [
+      flatSprite({
+        x: charWInM / 2,
+        width: charWInM,
+        height: charHInM,
+        texStartX: 0,
+        texEndX: charWInPercent,
+        texStartY: 0,
+        texEndY: charHInPercent,
+      }),
+      flatSprite({
+        x: charWInM / 2,
+        width: charWInM,
+        height: charHInM,
+        texStartX: charWInPercent,
+        texEndX: 2 * charWInPercent,
+        texStartY: 0,
+        texEndY: charHInPercent,
+      }),
+      flatSprite({
+        x: charWInM / 2,
+        width: charWInM,
+        height: charHInM,
+        texStartX: 2 * charWInPercent,
+        texEndX: 3 * charWInPercent,
+        texStartY: 0,
+        texEndY: charHInPercent,
+      }),
+      flatSprite({
+        x: charWInM / 2,
+        width: charWInM,
+        height: charHInM,
+        texStartX: 0,
+        texEndX: charWInPercent,
+        texStartY: charHInPercent,
+        texEndY: 2 * charHInPercent,
+      }),
+    ],
   });
 
   const fadeWidth = 32;
@@ -192,8 +232,8 @@ async function onLoad() {
       const angle = (random * Math.PI) / 4 + Math.PI / 2;
       const speed = Math.random() * 2 + 1; // measured in meters per second
 
-      const x = charX + 285 / TEX_PIXELS_PER_METER;
-      const z = (charTex.h - 110) / TEX_PIXELS_PER_METER;
+      const x = charX - charWInM / 2 + 282 / TEX_PIXELS_PER_METER;
+      const z = (charH - 108) / TEX_PIXELS_PER_METER;
       const dz = speed * Math.sin(angle);
       const dx = speed * Math.cos(angle);
 
@@ -226,7 +266,7 @@ async function onLoad() {
 
     program.stack.pushTranslation(charX, 0, 0);
     charSprite.bindTo(program);
-    charSprite.renderSpriteDatumPrebound("idle", 0);
+    charSprite.renderSpriteDatumPrebound("idle", Math.floor(4 * timeDiff) % 4);
     program.stack.pop();
 
     fade.bindTo(program);
@@ -237,6 +277,13 @@ async function onLoad() {
         particle.x += particle.dx * stepSize;
         particle.y += particle.dy * stepSize;
         particle.z += particle.dz * stepSize;
+
+        if (particle.z < 0) {
+          particle.z = -particle.z;
+          particle.dz *= -0.25;
+        } else if (particle.z < 0.01 && Math.abs(particle.dz) < 0.1) {
+          particle.z = -1;
+        }
 
         program.stack.pushTranslation(particle.x, particle.y, particle.z);
         fade.renderSpriteDatumPrebound("main", 0);
@@ -317,6 +364,26 @@ function makeQuadraticDropoff(width, height, brightRadius) {
   }
 
   return bitmap;
+}
+
+function flatSprite({
+  x = 0,
+  y = 0,
+  z = 0,
+  width,
+  height,
+  texStartX,
+  texStartY,
+  texEndX,
+  texEndY,
+}) {
+  // prettier-ignore
+  return [
+    width - x, y,         -z,   texEndX,   texEndY,
+           -x, y,         -z, texStartX,   texEndY,
+    width - x, y, height - z,   texEndX, texStartY,
+           -x, y, height - z, texStartX, texStartY,
+  ];
 }
 
 window.onload = onLoad;
