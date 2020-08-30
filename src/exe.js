@@ -135,28 +135,22 @@ async function onLoad() {
     ]],
   });
 
+  const fadeWidth = 128;
   const fadeTexture = loadTextureFromRawBitmap({
     name: "fade",
-    width: PIXELS_PER_METER,
-    height: PIXELS_PER_METER,
+    width: 128,
+    height: 128,
     gl,
-    bmp: makeQuadraticDropoff(PIXELS_PER_METER, PIXELS_PER_METER, 2),
+    bmp: makeQuadraticDropoff(128, 128, 0.01),
   });
 
   const fade = new SpriteSet(fadeTexture, {
     // prettier-ignore
     "main": [[
-       .5, 0, -.5, 1, 0,
-       .5, 0,  .5, 1, 1,
-      -.5, 0, -.5, 0, 0,
-      -.5, 0,  .5, 0, 1,
-    ]],
-    // prettier-ignore
-    "white": [[
-      40, 0, 0, .5, .5,
-      40, 0, 20, .5, .5,
-      0, 0, 0, .5, .5,
-      0, 0, 20, .5, .5,
+       .5 * fadeWidth / TEX_PIXELS_PER_METER, 0, -.5 * fadeWidth / TEX_PIXELS_PER_METER, 1, 0,
+       .5 * fadeWidth / TEX_PIXELS_PER_METER, 0,  .5 * fadeWidth / TEX_PIXELS_PER_METER, 1, 1,
+      -.5 * fadeWidth / TEX_PIXELS_PER_METER, 0, -.5 * fadeWidth / TEX_PIXELS_PER_METER, 0, 0,
+      -.5 * fadeWidth / TEX_PIXELS_PER_METER, 0,  .5 * fadeWidth / TEX_PIXELS_PER_METER, 0, 1,
     ]],
   });
 
@@ -173,8 +167,13 @@ async function onLoad() {
   ]);
 
   let startTime = Date.now();
+  let lastLoopRun = Date.now();
 
   function renderStep(gl, program) {
+    const newTime = Date.now();
+    fpsNode.innerHTML = `fps=${Math.round(1000 / (newTime - lastLoopRun))}`;
+    lastLoopRun = newTime;
+
     program.stack.pushAbsolute(projection);
 
     const timeDiff = (Date.now() - startTime) / 1000;
@@ -203,17 +202,19 @@ async function onLoad() {
       (height - mouseY) / PIXELS_PER_METER
     );
     fade.renderSpriteDatumPrebound("main", 0);
-  }
-
-  function logicStep() {
-    fpsNode.innerHTML = `fps=${Math.round(loop.avgFps())}/${loop.fps}`;
 
     program.runInFrame(renderStep);
   }
 
-  const loop = new GameLoop();
-  loop.onLoop = logicStep;
-  loop.start(60);
+  program.runInFrame(renderStep);
+
+  // function logicStep() {
+  //   program.runInFrame(renderStep);
+  // }
+
+  // const loop = new GameLoop();
+  // loop.onLoop = logicStep;
+  // loop.start(60);
   // setTimeout(logicStep, 0);
 
   canvas.onmousemove = (event) => {
@@ -225,18 +226,25 @@ async function onLoad() {
 function makeQuadraticDropoff(width, height, brightRadius) {
   const bitmap = new Uint8Array(4 * width * height);
 
+  const getDistanceSquared = (pixelDx, pixelDy) => {
+    const dx = pixelDx / TEX_PIXELS_PER_METER;
+    const dy = pixelDy / TEX_PIXELS_PER_METER;
+    return dx * dx + dy * dy;
+  };
+
   const middleX = width / 2;
   const middleY = height / 2;
+
   const brightRadiusSquared = brightRadius * brightRadius;
-  const edgeValue = Math.min(width * width, height * height) / 4;
+  const edgeValue = Math.min(
+    getDistanceSquared(middleX, 0),
+    getDistanceSquared(middleY, 0)
+  );
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const offset = 4 * (y * width + x);
-
-      const dx = x - middleX;
-      const dy = y - middleY;
-      const distanceSquared = dx * dx + dy * dy;
+      const distanceSquared = getDistanceSquared(x - middleX, y - middleY);
 
       if (distanceSquared <= brightRadiusSquared) {
         bitmap[offset + 0] = 255;
@@ -244,7 +252,7 @@ function makeQuadraticDropoff(width, height, brightRadius) {
         bitmap[offset + 2] = 255;
         bitmap[offset + 3] = 255;
       } else {
-        const concentration = brightRadiusSquared / distanceSquared;
+        const concentration = Math.sqrt(brightRadiusSquared / distanceSquared);
 
         const primary = Math.floor(256 * concentration);
         const secondary = Math.floor(256 * concentration * concentration);

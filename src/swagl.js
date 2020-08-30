@@ -332,6 +332,7 @@ function doAnimationFrame(program) {
 
   try {
     var jobs = program._jobs;
+    program._jobs = [];
     for (var i = 0; i < jobs.length; jobs++) {
       jobs[i](gl, program);
     }
@@ -339,11 +340,6 @@ function doAnimationFrame(program) {
     program.u = {};
     program.a = {};
     program.stack = null;
-    if (program._jobs.length === 1) {
-      program._jobs = []; // optimizing the common case
-    } else {
-      program._jobs.pop();
-    }
   }
 }
 
