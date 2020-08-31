@@ -26,7 +26,7 @@ async function onLoad() {
   let width = parseInt(computedStyle.getPropertyValue("width"), 10);
   let height = parseInt(computedStyle.getPropertyValue("height"), 10);
 
-  const ratio = window.devicePixelRatio || 1;
+  const ratio = 1; // window.devicePixelRatio || 1;
   canvas.width = ratio * width;
   canvas.height = ratio * height;
 
@@ -91,7 +91,7 @@ async function onLoad() {
       }),
       loadTextureFromImgUrl({
         gl,
-        src: "assets/Floor 2.png",
+        src: "assets/new floor Floor.png",
         name: "floor",
       }),
       loadTextureFromImgUrl({
@@ -114,10 +114,11 @@ async function onLoad() {
 
   // the division by 2 is because the textures are designed for retina
   const floorDims = {
+    top: 52 / floorTex.h,
     w: floorTex.w / TEX_PIXELS_PER_METER,
-    h: 34 / TEX_PIXELS_PER_METER,
-    d: 175 / TEX_PIXELS_PER_METER,
-    boundary: 175 / 209,
+    h: (256 - 218) / TEX_PIXELS_PER_METER,
+    d: (218 - 52) / TEX_PIXELS_PER_METER,
+    boundary: 218 / floorTex.h,
   };
 
   const wall = new SpriteSet(wallTex, {
@@ -137,8 +138,8 @@ async function onLoad() {
                   0,  floorDims.d/2, -floorDims.h, 0,                  1,
         floorDims.w,  floorDims.d/2,            0, 1, floorDims.boundary,
                   0,  floorDims.d/2,            0, 0, floorDims.boundary,
-        floorDims.w, -floorDims.d/2,            0, 1,                  0,
-                  0, -floorDims.d/2,            0, 0,                  0,
+        floorDims.w, -floorDims.d/2,            0, 1,      floorDims.top,
+                  0, -floorDims.d/2,            0, 0,      floorDims.top,
       ]],
   });
 
