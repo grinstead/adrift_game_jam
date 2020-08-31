@@ -142,7 +142,12 @@ export class SpriteSet {
 
     const datum = this.data[datumName];
     const gl = this._tex.gl;
-    gl.drawArrays(gl.TRIANGLE_STRIP, datum._offsets[index], datum.nPoints);
+    const offsets = datum._offsets;
+    gl.drawArrays(
+      gl.TRIANGLE_STRIP,
+      offsets[index % offsets.length],
+      datum.nPoints
+    );
   }
 }
 

@@ -169,6 +169,12 @@ class MatrixStack {
       ])
     );
   }
+
+  // mirrorAxes(axes) {
+  //   const mirrorX = axes.indexOf("x") !== -1;
+  //   const mirrorY = axes.indexOf("x") !== -1;
+  //   const mirrorZ = axes.indexOf("z") !== -1;
+  // }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

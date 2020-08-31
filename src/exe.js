@@ -6,6 +6,7 @@ import {
 } from "./swagl.js";
 import { GameLoop } from "./webgames/GameLoop.js";
 import { SpriteSet, Sprite } from "./sprites.js";
+import { InputManager } from "./webgames/Input.js";
 
 const PIXELS_PER_METER = 180;
 const TEX_PIXELS_PER_METER = 2 * PIXELS_PER_METER;
@@ -15,6 +16,10 @@ async function onLoad() {
   const fpsNode = document.getElementById("fps");
   const canvas = document.getElementById("canvas");
   const computedStyle = window.getComputedStyle(canvas);
+
+  const input = new InputManager(document.body);
+  input.setKeysForAction("left", ["a", "ArrowLeft"]);
+  input.setKeysForAction("right", ["d", "ArrowRight"]);
 
   let width = parseInt(computedStyle.getPropertyValue("width"), 10);
   let height = parseInt(computedStyle.getPropertyValue("height"), 10);
@@ -75,28 +80,35 @@ async function onLoad() {
   const program = new Program({ gl, projection: "projection" });
   program.attach(vShader, fShader).link();
 
-  const [wallTex, floorTex, charTex, enemyTex] = await Promise.all([
-    loadTextureFromImgUrl({
-      gl,
-      src: "assets/Back Wall.png",
-      name: "wall",
-    }),
-    loadTextureFromImgUrl({
-      gl,
-      src: "assets/Floor 2.png",
-      name: "floor",
-    }),
-    loadTextureFromImgUrl({
-      gl,
-      src: "assets/Hero Breathing.png",
-      name: "idle",
-    }),
-    loadTextureFromImgUrl({
-      gl,
-      src: "assets/Enemy.png",
-      name: "enemy",
-    }),
-  ]);
+  const [wallTex, floorTex, charTex, enemyTex, charWalkTex] = await Promise.all(
+    [
+      loadTextureFromImgUrl({
+        gl,
+        src: "assets/Back Wall.png",
+        name: "wall",
+      }),
+      loadTextureFromImgUrl({
+        gl,
+        src: "assets/Floor 2.png",
+        name: "floor",
+      }),
+      loadTextureFromImgUrl({
+        gl,
+        src: "assets/Hero Breathing.png",
+        name: "idle",
+      }),
+      loadTextureFromImgUrl({
+        gl,
+        src: "assets/Enemy.png",
+        name: "enemy",
+      }),
+      loadTextureFromImgUrl({
+        gl,
+        src: "assets/Hero Walking 2.png",
+        name: "walk",
+      }),
+    ]
+  );
 
   // the division by 2 is because the textures are designed for retina
   const floorDims = {
@@ -133,17 +145,27 @@ async function onLoad() {
 
   const charWInM = charW / TEX_PIXELS_PER_METER;
 
-  const numCharIdleFrames = 16;
   const charSprite = new SpriteSet(charTex, {
     // prettier-ignore
-    "idle": spriteSheet({
-      x: charWInM / 2,
-      width: charW / TEX_PIXELS_PER_METER,
-      height: charH / TEX_PIXELS_PER_METER,
-      texWidth: charW / charTex.w,
-      texHeight: charH / charTex.h,
+    "idle": characterSpriteSheet({
+      xPercent: .5,
+      widthInPixels: charW,
+      heightInPixels: charH,
+      texture: charTex,
       numPerRow: 6,
-      count: numCharIdleFrames
+      count: 16
+    }),
+  });
+
+  const charWalkSprite = new SpriteSet(charWalkTex, {
+    // prettier-ignore
+    "walk": characterSpriteSheet({
+      xPercent: .5,
+      widthInPixels: 322,
+      heightInPixels: 442,
+      texture: charWalkTex,
+      numPerRow: 3,
+      count: 8
     }),
   });
 
@@ -200,7 +222,8 @@ async function onLoad() {
   let lastLoopRun = Date.now();
   let lastTimeDiff = 0;
 
-  const charX = 4;
+  let charX = 4;
+  let charDx = 0;
   const spawnHertz = 10;
 
   const shipLength = 100;
@@ -222,6 +245,17 @@ async function onLoad() {
     program.stack.pushAbsolute(projection);
 
     const timeDiff = (newTime - startTime) / 1000;
+
+    // calculate the boat rocking
+    const bowY = wave1(false) + wave2(false);
+    const sternY = wave1(true) + wave2(true);
+    const shipAngle = Math.asin((bowY - sternY) / shipLength);
+    const normalZ = Math.cos(shipAngle);
+    const normalX = Math.sin(shipAngle);
+
+    // move character
+    charDx = 1 * stepSize * input.getSignOfAction("left", "right");
+    charX += charDx;
 
     const toSpawn =
       Math.floor(spawnHertz * timeDiff) - Math.floor(spawnHertz * lastTimeDiff);
@@ -250,38 +284,7 @@ async function onLoad() {
       });
     }
 
-    lastTimeDiff = timeDiff;
-
-    // program.stack.pushYRotation(Math.sin(timeDiff / 4) / 4);
-
-    // set the camera
-    program.stack.pushTranslation(-1.5, 0, floorDims.d / 2 + floorDims.h + 0.5);
-
-    // rock the boat
-    const bowY = wave1(false) + wave2(false);
-    const sternY = wave1(true) + wave2(true);
-    const shipAngle = Math.asin((bowY - sternY) / shipLength);
-    program.stack.pushYRotation(shipAngle);
-    program.stack.pushTranslation(0, 0, (bowY + sternY) / 2);
-
-    const normalZ = Math.cos(shipAngle);
-    const normalX = Math.sin(shipAngle);
-
-    wall.bindTo(program);
-    wall.renderSpriteDatumPrebound("main", 0);
-
-    floor.bindTo(program);
-    floor.renderSpriteDatumPrebound("main", 0);
-
-    program.stack.pushTranslation(charX, 0, 0);
-    charSprite.bindTo(program);
-    charSprite.renderSpriteDatumPrebound(
-      "idle",
-      Math.floor(12 * timeDiff) % numCharIdleFrames
-    );
-    program.stack.pop();
-
-    fade.bindTo(program);
+    // move all the particles
     particles.forEach((particle) => {
       if (!particle.dead) {
         particle.dz -= normalZ * 9.8 * stepSize;
@@ -297,7 +300,42 @@ async function onLoad() {
         } else if (particle.z < 0.01 && Math.abs(particle.dz) < 0.1) {
           particle.dead = true;
         }
+      }
+    });
 
+    lastTimeDiff = timeDiff;
+
+    // program.stack.pushYRotation(Math.sin(timeDiff / 4) / 4);
+
+    // set the camera
+    program.stack.pushTranslation(-1.5, 0, floorDims.d / 2 + floorDims.h + 0.5);
+
+    // rock the boat
+    program.stack.pushYRotation(shipAngle);
+    program.stack.pushTranslation(0, 0, (bowY + sternY) / 2);
+
+    wall.bindTo(program);
+    wall.renderSpriteDatumPrebound("main", 0);
+
+    floor.bindTo(program);
+    floor.renderSpriteDatumPrebound("main", 0);
+
+    program.stack.pushTranslation(charX, 0, 0);
+    if (charDx === 0) {
+      charSprite.bindTo(program);
+      charSprite.renderSpriteDatumPrebound("idle", Math.floor(12 * timeDiff));
+    } else {
+      charWalkSprite.bindTo(program);
+      charWalkSprite.renderSpriteDatumPrebound(
+        "walk",
+        Math.floor(12 * timeDiff)
+      );
+    }
+    program.stack.pop();
+
+    fade.bindTo(program);
+    particles.forEach((particle) => {
+      if (!particle.dead) {
         program.stack.pushTranslation(particle.x, particle.y, particle.z);
         fade.renderSpriteDatumPrebound("main", 0);
         program.stack.pop();
@@ -384,6 +422,32 @@ function makeQuadraticDropoff(width, height, brightRadius) {
   }
 
   return bitmap;
+}
+
+function characterSpriteSheet({
+  xPercent = 0,
+  yInM = 0,
+  zPercent = 0,
+  widthInPixels,
+  heightInPixels,
+  texture,
+  numPerRow,
+  count,
+}) {
+  const width = widthInPixels / TEX_PIXELS_PER_METER;
+  const height = heightInPixels / TEX_PIXELS_PER_METER;
+
+  return spriteSheet({
+    x: xPercent * width,
+    y: yInM,
+    z: zPercent * height,
+    width,
+    height,
+    texWidth: widthInPixels / texture.w,
+    texHeight: heightInPixels / texture.h,
+    numPerRow,
+    count,
+  });
 }
 
 function spriteSheet({
