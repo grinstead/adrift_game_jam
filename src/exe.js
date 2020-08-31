@@ -5,7 +5,7 @@ import {
   loadTextureFromRawBitmap,
 } from "./swagl.js";
 import { GameLoop } from "./webgames/GameLoop.js";
-import { SpriteSet } from "./sprites.js";
+import { SpriteSet, Sprite } from "./sprites.js";
 
 const PIXELS_PER_METER = 180;
 const TEX_PIXELS_PER_METER = 2 * PIXELS_PER_METER;
@@ -75,7 +75,7 @@ async function onLoad() {
   const program = new Program({ gl, projection: "projection" });
   program.attach(vShader, fShader).link();
 
-  const [wallTex, floorTex, charTex] = await Promise.all([
+  const [wallTex, floorTex, charTex, enemyTex] = await Promise.all([
     loadTextureFromImgUrl({
       gl,
       src: "assets/Back Wall.png",
@@ -90,6 +90,11 @@ async function onLoad() {
       gl,
       src: "assets/Hero Breathing.png",
       name: "idle",
+    }),
+    loadTextureFromImgUrl({
+      gl,
+      src: "assets/Enemy.png",
+      name: "enemy",
     }),
   ]);
 
@@ -127,31 +132,19 @@ async function onLoad() {
   const charH = 434;
 
   const charWInM = charW / TEX_PIXELS_PER_METER;
-  const charHInM = charH / TEX_PIXELS_PER_METER;
-  const charWInPercent = charW / charTex.w;
-  const charHInPercent = charH / charTex.h;
 
   const numCharIdleFrames = 16;
-  const charSpritePositions = [];
-  for (let i = 0; i < numCharIdleFrames; i++) {
-    const y = Math.floor(i / 6);
-    const x = i % 6;
-    charSpritePositions.push(
-      flatSprite({
-        x: charWInM / 2,
-        width: charWInM,
-        height: charHInM,
-        texStartX: x * charWInPercent,
-        texEndX: (x + 1) * charWInPercent,
-        texStartY: y * charHInPercent,
-        texEndY: (y + 1) * charHInPercent,
-      })
-    );
-  }
-
   const charSprite = new SpriteSet(charTex, {
     // prettier-ignore
-    "idle": charSpritePositions,
+    "idle": spriteSheet({
+      x: charWInM / 2,
+      width: charW / TEX_PIXELS_PER_METER,
+      height: charH / TEX_PIXELS_PER_METER,
+      texWidth: charW / charTex.w,
+      texHeight: charH / charTex.h,
+      numPerRow: 6,
+      count: numCharIdleFrames
+    }),
   });
 
   const fadeWidth = 32;
@@ -161,6 +154,22 @@ async function onLoad() {
     height: fadeWidth,
     gl,
     bmp: makeQuadraticDropoff(fadeWidth, fadeWidth, 0.01),
+  });
+
+  const enemyRInPixels = 54;
+  const enemyIdleFrames = 6;
+  const enemyR = enemyRInPixels / TEX_PIXELS_PER_METER;
+  const enemySprite = new SpriteSet(enemyTex, {
+    // prettier-ignore
+    "blink": spriteSheet({
+      x: enemyR,
+      width: 2 * enemyR,
+      height: 2 * enemyR,
+      texWidth: 2 * enemyRInPixels / enemyTex.w,
+      texHeight: 2 * enemyRInPixels / enemyTex.h,
+      numPerRow: 2,
+      count: enemyIdleFrames
+    }),
   });
 
   const fade = new SpriteSet(fadeTexture, {
@@ -299,13 +308,18 @@ async function onLoad() {
     program.stack.pop();
     program.stack.pop();
 
-    fade.bindTo(program);
     program.stack.pushTranslation(
       mouseX / PIXELS_PER_METER,
       0,
       (height - mouseY) / PIXELS_PER_METER
     );
-    fade.renderSpriteDatumPrebound("main", 0);
+
+    const maybeFrame = Math.floor(8 * timeDiff) % (enemyIdleFrames + 8 * 4);
+    enemySprite.bindTo(program);
+    enemySprite.renderSpriteDatumPrebound(
+      "blink",
+      maybeFrame < enemyIdleFrames ? maybeFrame : 0
+    );
 
     program.runInFrame(renderStep);
   }
@@ -370,6 +384,38 @@ function makeQuadraticDropoff(width, height, brightRadius) {
   }
 
   return bitmap;
+}
+
+function spriteSheet({
+  x = 0,
+  y = 0,
+  z = 0,
+  width,
+  height,
+  texWidth,
+  texHeight,
+  numPerRow,
+  count,
+}) {
+  const result = [];
+  for (let i = 0; i < count; i++) {
+    const row = Math.floor(i / numPerRow);
+    const col = i % numPerRow;
+    result.push(
+      flatSprite({
+        x,
+        y,
+        z,
+        width,
+        height,
+        texStartX: col * texWidth,
+        texEndX: (col + 1) * texWidth,
+        texStartY: row * texHeight,
+        texEndY: (row + 1) * texHeight,
+      })
+    );
+  }
+  return result;
 }
 
 function flatSprite({
