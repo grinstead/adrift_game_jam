@@ -257,10 +257,6 @@ export class Program {
     this.u = {};
     this.a = {};
     this.stack = null;
-
-    this._isScheduled = false;
-    this._jobs = [];
-    this._doAnimationFrame = () => void doAnimationFrame(this);
   }
 
   /**
@@ -296,24 +292,9 @@ export class Program {
 
     return this;
   }
-
-  /**
-   * Schedules the "job" (a render function) to run on the next animation frame.
-   * Multiple calls to this function will be batched and called in order.
-   * @param {function(WebGL2RenderingContext,Program):void} job - the code to run
-   */
-  runInFrame(job) {
-    if (!this._jobs.includes(job)) {
-      this._jobs.push(job);
-    }
-
-    if (!this._isScheduled) {
-      requestAnimationFrame(this._doAnimationFrame);
-    }
-  }
 }
 
-function doAnimationFrame(program) {
+export function doAnimationFrame(program, code) {
   var gl = program.gl;
   var glProgram = program._glProgram;
   gl.useProgram(glProgram);
@@ -351,11 +332,7 @@ function doAnimationFrame(program) {
   }
 
   try {
-    var jobs = program._jobs;
-    program._jobs = [];
-    for (var i = 0; i < jobs.length; jobs++) {
-      jobs[i](gl, program);
-    }
+    code(gl, program);
   } finally {
     program.u = {};
     program.a = {};

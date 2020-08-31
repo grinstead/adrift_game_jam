@@ -3,10 +3,12 @@ import {
   Shader,
   loadTextureFromImgUrl,
   loadTextureFromRawBitmap,
+  doAnimationFrame,
 } from "./swagl.js";
 import { GameLoop } from "./webgames/GameLoop.js";
 import { SpriteSet, Sprite } from "./sprites.js";
 import { InputManager } from "./webgames/Input.js";
+import { Lighting } from "./lighting.js";
 
 const PIXELS_PER_METER = 180;
 const TEX_PIXELS_PER_METER = 2 * PIXELS_PER_METER;
@@ -53,8 +55,7 @@ async function onLoad() {
         gl_Position = result;
 
         v_texturePosition = a_texturePosition;
-    }
-`
+    }`
   );
 
   const fShader = new Shader(
@@ -73,12 +74,13 @@ async function onLoad() {
             discard;
         }
         output_color = color;
-    }
-`
+    }`
   );
 
   const program = new Program({ gl, projection: "projection" });
   program.attach(vShader, fShader).link();
+
+  const lighting = new Lighting(gl);
 
   const [wallTex, floorTex, charTex, enemyTex, charWalkTex] = await Promise.all(
     [
@@ -94,7 +96,7 @@ async function onLoad() {
       }),
       loadTextureFromImgUrl({
         gl,
-        src: "assets/Hero Breathing.png",
+        src: "assets/Hero Breathing with axe.png",
         name: "idle",
       }),
       loadTextureFromImgUrl({
@@ -140,28 +142,30 @@ async function onLoad() {
       ]],
   });
 
-  const charW = 296;
+  const charW = 405;
   const charH = 434;
+  const charCenter = 220 / charW;
 
   const charWInM = charW / TEX_PIXELS_PER_METER;
+  const flareX = (387 / charW - charCenter) * charWInM;
 
   const charSprite = new SpriteSet(charTex, {
     // prettier-ignore
     "right": characterSpriteSheet({
-      xPercent: .5,
+      xPercent: charCenter,
       widthInPixels: charW,
       heightInPixels: charH,
       texture: charTex,
-      numPerRow: 6,
+      numPerRow: 5,
       count: 16
     }),
     // prettier-ignore
     "left": characterSpriteSheet({
-      xPercent: .5,
+      xPercent: 1 - charCenter,
       widthInPixels: charW,
       heightInPixels: charH,
       texture: charTex,
-      numPerRow: 6,
+      numPerRow: 5,
       count: 16,
       reverseX: true,
     }),
@@ -257,7 +261,7 @@ async function onLoad() {
     return Math.sin((Math.PI * time) / 3) / 8;
   };
 
-  function renderStep(gl, program) {
+  function renderMain(gl, program) {
     const newTime = Date.now();
     const stepSize = (newTime - lastLoopRun) / 1000;
     lastLoopRun = newTime;
@@ -288,9 +292,7 @@ async function onLoad() {
       const angle = (random * Math.PI) / 4 + Math.PI / 2;
       const speed = Math.random() * 2 + 1; // measured in meters per second
 
-      const x =
-        charX +
-        (282 / TEX_PIXELS_PER_METER - charWInM / 2) * (charFacingLeft ? -1 : 1);
+      const x = charX + flareX * (charFacingLeft ? -1 : 1);
       const z = (charH - 108) / TEX_PIXELS_PER_METER;
       const dz = speed * Math.sin(angle);
       const dx = speed * Math.cos(angle);
@@ -387,11 +389,14 @@ async function onLoad() {
       "blink",
       maybeFrame < enemyIdleFrames ? maybeFrame : 0
     );
-
-    program.runInFrame(renderStep);
   }
 
-  program.runInFrame(renderStep);
+  function renderStep() {
+    doAnimationFrame(program, renderMain);
+    requestAnimationFrame(renderStep);
+  }
+
+  requestAnimationFrame(renderStep);
 
   // function logicStep() {
   //   program.runInFrame(renderStep);
