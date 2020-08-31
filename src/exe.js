@@ -20,10 +20,8 @@ async function onLoad() {
   let height = parseInt(computedStyle.getPropertyValue("height"), 10);
 
   const ratio = window.devicePixelRatio || 1;
-  if (ratio !== 1) {
-    canvas.width = ratio * width;
-    canvas.height = ratio * height;
-  }
+  canvas.width = ratio * width;
+  canvas.height = ratio * height;
 
   const gl = canvas.getContext("webgl2", { antialias: false, alpha: false });
   gl.enable(gl.BLEND);
@@ -80,7 +78,7 @@ async function onLoad() {
   const [wallTex, floorTex, charTex] = await Promise.all([
     loadTextureFromImgUrl({
       gl,
-      src: "assets/Background Wall.png",
+      src: "assets/Back Wall.png",
       name: "wall",
     }),
     loadTextureFromImgUrl({
@@ -125,7 +123,7 @@ async function onLoad() {
       ]],
   });
 
-  const charW = 294;
+  const charW = 296;
   const charH = 434;
 
   const charWInM = charW / TEX_PIXELS_PER_METER;
@@ -133,46 +131,27 @@ async function onLoad() {
   const charWInPercent = charW / charTex.w;
   const charHInPercent = charH / charTex.h;
 
+  const numCharIdleFrames = 16;
+  const charSpritePositions = [];
+  for (let i = 0; i < numCharIdleFrames; i++) {
+    const y = Math.floor(i / 6);
+    const x = i % 6;
+    charSpritePositions.push(
+      flatSprite({
+        x: charWInM / 2,
+        width: charWInM,
+        height: charHInM,
+        texStartX: x * charWInPercent,
+        texEndX: (x + 1) * charWInPercent,
+        texStartY: y * charHInPercent,
+        texEndY: (y + 1) * charHInPercent,
+      })
+    );
+  }
+
   const charSprite = new SpriteSet(charTex, {
     // prettier-ignore
-    "idle": [
-      flatSprite({
-        x: charWInM / 2,
-        width: charWInM,
-        height: charHInM,
-        texStartX: 0,
-        texEndX: charWInPercent,
-        texStartY: 0,
-        texEndY: charHInPercent,
-      }),
-      flatSprite({
-        x: charWInM / 2,
-        width: charWInM,
-        height: charHInM,
-        texStartX: charWInPercent,
-        texEndX: 2 * charWInPercent,
-        texStartY: 0,
-        texEndY: charHInPercent,
-      }),
-      flatSprite({
-        x: charWInM / 2,
-        width: charWInM,
-        height: charHInM,
-        texStartX: 2 * charWInPercent,
-        texEndX: 3 * charWInPercent,
-        texStartY: 0,
-        texEndY: charHInPercent,
-      }),
-      flatSprite({
-        x: charWInM / 2,
-        width: charWInM,
-        height: charHInM,
-        texStartX: 0,
-        texEndX: charWInPercent,
-        texStartY: charHInPercent,
-        texEndY: 2 * charHInPercent,
-      }),
-    ],
+    "idle": charSpritePositions,
   });
 
   const fadeWidth = 32;
@@ -218,11 +197,11 @@ async function onLoad() {
   const shipLength = 100;
   const wave1 = (isFar) => {
     const time = lastTimeDiff + (isFar ? 170 : 0);
-    return Math.sin((Math.PI * time) / 8) / 4;
+    return Math.sin((Math.PI * time) / 8) / 2;
   };
   const wave2 = (isFar) => {
     const time = lastTimeDiff + (isFar ? 130 : 0);
-    return Math.sin((Math.PI * time) / 3) / 4;
+    return Math.sin((Math.PI * time) / 3) / 8;
   };
 
   function renderStep(gl, program) {
@@ -272,8 +251,12 @@ async function onLoad() {
     // rock the boat
     const bowY = wave1(false) + wave2(false);
     const sternY = wave1(true) + wave2(true);
-    program.stack.pushYRotation(Math.asin((bowY - sternY) / shipLength));
+    const shipAngle = Math.asin((bowY - sternY) / shipLength);
+    program.stack.pushYRotation(shipAngle);
     program.stack.pushTranslation(0, 0, (bowY + sternY) / 2);
+
+    const normalZ = Math.cos(shipAngle);
+    const normalX = Math.sin(shipAngle);
 
     wall.bindTo(program);
     wall.renderSpriteDatumPrebound("main", 0);
@@ -283,13 +266,17 @@ async function onLoad() {
 
     program.stack.pushTranslation(charX, 0, 0);
     charSprite.bindTo(program);
-    charSprite.renderSpriteDatumPrebound("idle", Math.floor(4 * timeDiff) % 4);
+    charSprite.renderSpriteDatumPrebound(
+      "idle",
+      Math.floor(12 * timeDiff) % numCharIdleFrames
+    );
     program.stack.pop();
 
     fade.bindTo(program);
     particles.forEach((particle) => {
       if (!particle.dead) {
-        particle.dz -= 9.8 * stepSize;
+        particle.dz -= normalZ * 9.8 * stepSize;
+        particle.dx -= normalX * 9.8 * stepSize;
 
         particle.x += particle.dx * stepSize;
         particle.y += particle.dy * stepSize;
