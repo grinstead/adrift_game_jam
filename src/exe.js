@@ -147,7 +147,7 @@ async function onLoad() {
 
   const charSprite = new SpriteSet(charTex, {
     // prettier-ignore
-    "idle": characterSpriteSheet({
+    "right": characterSpriteSheet({
       xPercent: .5,
       widthInPixels: charW,
       heightInPixels: charH,
@@ -155,17 +155,37 @@ async function onLoad() {
       numPerRow: 6,
       count: 16
     }),
+    // prettier-ignore
+    "left": characterSpriteSheet({
+      xPercent: .5,
+      widthInPixels: charW,
+      heightInPixels: charH,
+      texture: charTex,
+      numPerRow: 6,
+      count: 16,
+      reverseX: true,
+    }),
   });
 
   const charWalkSprite = new SpriteSet(charWalkTex, {
     // prettier-ignore
-    "walk": characterSpriteSheet({
+    "right": characterSpriteSheet({
       xPercent: .5,
       widthInPixels: 322,
       heightInPixels: 442,
       texture: charWalkTex,
       numPerRow: 3,
       count: 8
+    }),
+    // prettier-ignore
+    "left": characterSpriteSheet({
+      xPercent: .5,
+      widthInPixels: 322,
+      heightInPixels: 442,
+      texture: charWalkTex,
+      numPerRow: 3,
+      count: 8,
+      reverseX: true,
     }),
   });
 
@@ -224,6 +244,7 @@ async function onLoad() {
 
   let charX = 4;
   let charDx = 0;
+  let charFacingLeft = false;
   const spawnHertz = 10;
 
   const shipLength = 100;
@@ -254,8 +275,11 @@ async function onLoad() {
     const normalX = Math.sin(shipAngle);
 
     // move character
-    charDx = 1 * stepSize * input.getSignOfAction("left", "right");
-    charX += charDx;
+    charDx = 1.2 * stepSize * input.getSignOfAction("left", "right");
+    if (charDx !== 0) {
+      charX += charDx;
+      charFacingLeft = charDx < 0;
+    }
 
     const toSpawn =
       Math.floor(spawnHertz * timeDiff) - Math.floor(spawnHertz * lastTimeDiff);
@@ -264,7 +288,9 @@ async function onLoad() {
       const angle = (random * Math.PI) / 4 + Math.PI / 2;
       const speed = Math.random() * 2 + 1; // measured in meters per second
 
-      const x = charX - charWInM / 2 + 282 / TEX_PIXELS_PER_METER;
+      const x =
+        charX +
+        (282 / TEX_PIXELS_PER_METER - charWInM / 2) * (charFacingLeft ? -1 : 1);
       const z = (charH - 108) / TEX_PIXELS_PER_METER;
       const dz = speed * Math.sin(angle);
       const dx = speed * Math.cos(angle);
@@ -323,12 +349,15 @@ async function onLoad() {
     program.stack.pushTranslation(charX, 0, 0);
     if (charDx === 0) {
       charSprite.bindTo(program);
-      charSprite.renderSpriteDatumPrebound("idle", Math.floor(12 * timeDiff));
+      charSprite.renderSpriteDatumPrebound(
+        charFacingLeft ? "left" : "right",
+        Math.floor(12 * timeDiff)
+      );
     } else {
       charWalkSprite.bindTo(program);
       charWalkSprite.renderSpriteDatumPrebound(
-        "walk",
-        Math.floor(12 * timeDiff)
+        charFacingLeft ? "left" : "right",
+        Math.floor(8 * timeDiff)
       );
     }
     program.stack.pop();
@@ -433,6 +462,7 @@ function characterSpriteSheet({
   texture,
   numPerRow,
   count,
+  reverseX = false,
 }) {
   const width = widthInPixels / TEX_PIXELS_PER_METER;
   const height = heightInPixels / TEX_PIXELS_PER_METER;
@@ -447,6 +477,7 @@ function characterSpriteSheet({
     texHeight: heightInPixels / texture.h,
     numPerRow,
     count,
+    reverseX,
   });
 }
 
@@ -460,6 +491,7 @@ function spriteSheet({
   texHeight,
   numPerRow,
   count,
+  reverseX = false,
 }) {
   const result = [];
   for (let i = 0; i < count; i++) {
@@ -476,6 +508,7 @@ function spriteSheet({
         texEndX: (col + 1) * texWidth,
         texStartY: row * texHeight,
         texEndY: (row + 1) * texHeight,
+        reverseX,
       })
     );
   }
@@ -492,13 +525,22 @@ function flatSprite({
   texStartY,
   texEndX,
   texEndY,
+  reverseX = false,
 }) {
+  let startX, endX;
+  if (!reverseX) {
+    startX = texStartX;
+    endX = texEndX;
+  } else {
+    startX = texEndX;
+    endX = texStartX;
+  }
   // prettier-ignore
   return [
-    width - x, y,         -z,   texEndX,   texEndY,
-           -x, y,         -z, texStartX,   texEndY,
-    width - x, y, height - z,   texEndX, texStartY,
-           -x, y, height - z, texStartX, texStartY,
+    width - x, y,         -z,   endX,   texEndY,
+           -x, y,         -z, startX,   texEndY,
+    width - x, y, height - z,   endX, texStartY,
+           -x, y, height - z, startX, texStartY,
   ];
 }
 
