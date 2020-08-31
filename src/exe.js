@@ -27,12 +27,14 @@ async function onLoad() {
   let height = parseInt(computedStyle.getPropertyValue("height"), 10);
 
   const ratio = 1; // window.devicePixelRatio || 1;
-  canvas.width = ratio * width;
-  canvas.height = ratio * height;
+  const canvasWidth = ratio * width;
+  const canvasHeight = ratio * height;
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
 
   const gl = canvas.getContext("webgl2", { antialias: false, alpha: false });
-  gl.enable(gl.BLEND);
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  // gl.enable(gl.BLEND);
+  // gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
 
@@ -229,6 +231,20 @@ async function onLoad() {
     ]],
   });
 
+  const lightingSprite = new SpriteSet(lighting.lightingTex(), {
+    // prettier-ignore
+    "main": [
+      flatSprite({
+        width: 2,
+        height: 1,
+        texStartX: 0,
+        texStartY: 0,
+        texEndX: 1,
+        texEndY: 1,
+      }),
+    ],
+  });
+
   let mouseX = 0;
   let mouseY = 0;
 
@@ -245,7 +261,7 @@ async function onLoad() {
 
   let startTime = Date.now();
   let lastLoopRun = Date.now();
-  let lastTimeDiff = 0;
+  let timeDiff = 0;
 
   let charX = 4;
   let charDx = 0;
@@ -254,30 +270,30 @@ async function onLoad() {
 
   const shipLength = 100;
   const wave1 = (isFar) => {
-    const time = lastTimeDiff + (isFar ? 170 : 0);
+    const time = timeDiff + (isFar ? 170 : 0);
     return Math.sin((Math.PI * time) / 8) / 2;
   };
   const wave2 = (isFar) => {
-    const time = lastTimeDiff + (isFar ? 130 : 0);
+    const time = timeDiff + (isFar ? 130 : 0);
     return Math.sin((Math.PI * time) / 3) / 8;
   };
 
-  function renderMain(gl, program) {
+  let shipAngle, normalX, normalZ, shipDz;
+  function movePieces() {
     const newTime = Date.now();
     const stepSize = (newTime - lastLoopRun) / 1000;
     lastLoopRun = newTime;
     fpsNode.innerHTML = `fps=${Math.round(1 / stepSize)}`;
 
-    program.stack.pushAbsolute(projection);
-
-    const timeDiff = (newTime - startTime) / 1000;
+    const newTimeDiff = (newTime - startTime) / 1000;
 
     // calculate the boat rocking
     const bowY = wave1(false) + wave2(false);
     const sternY = wave1(true) + wave2(true);
-    const shipAngle = Math.asin((bowY - sternY) / shipLength);
-    const normalZ = Math.cos(shipAngle);
-    const normalX = Math.sin(shipAngle);
+    shipAngle = Math.asin((bowY - sternY) / shipLength);
+    normalZ = Math.cos(shipAngle);
+    normalX = Math.sin(shipAngle);
+    shipDz = (bowY + sternY) / 2;
 
     // move character
     charDx = 1.2 * stepSize * input.getSignOfAction("left", "right");
@@ -287,7 +303,7 @@ async function onLoad() {
     }
 
     const toSpawn =
-      Math.floor(spawnHertz * timeDiff) - Math.floor(spawnHertz * lastTimeDiff);
+      Math.floor(spawnHertz * newTimeDiff) - Math.floor(spawnHertz * timeDiff);
     for (let i = 0; i < toSpawn; i++) {
       const random = Math.random() - 0.5;
       const angle = (random * Math.PI) / 4 + Math.PI / 2;
@@ -333,16 +349,23 @@ async function onLoad() {
       }
     });
 
-    lastTimeDiff = timeDiff;
+    timeDiff = newTimeDiff;
+  }
 
-    // program.stack.pushYRotation(Math.sin(timeDiff / 4) / 4);
+  function renderMain(gl, program) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, canvasWidth, canvasHeight);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    program.stack.pushAbsolute(projection);
 
     // set the camera
     program.stack.pushTranslation(-1.5, 0, floorDims.d / 2 + floorDims.h + 0.5);
 
     // rock the boat
     program.stack.pushYRotation(shipAngle);
-    program.stack.pushTranslation(0, 0, (bowY + sternY) / 2);
+    program.stack.pushTranslation(0, 0, shipDz);
 
     wall.bindTo(program);
     wall.renderSpriteDatumPrebound("main", 0);
@@ -391,9 +414,14 @@ async function onLoad() {
       "blink",
       maybeFrame < enemyIdleFrames ? maybeFrame : 0
     );
+
+    // lightingSprite.bindTo(program);
+    // lightingSprite.renderSpriteDatumPrebound("main", 0);
   }
 
   function renderStep() {
+    movePieces();
+    lighting.renderLighting();
     doAnimationFrame(program, renderMain);
     requestAnimationFrame(renderStep);
   }

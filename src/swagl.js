@@ -352,18 +352,12 @@ export function doAnimationFrame(program, code) {
  * @property {number} h - the height of the texture (in pixels)
  */
 export class Texture {
-  constructor(gl, name, width, height, loadTexture) {
+  constructor(gl, name, width, height, createTexture) {
     this.gl = gl;
     this.name = name;
     this.w = width;
     this.h = height;
-
-    const texture = (this._glTex = gl.createTexture());
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    loadTexture(gl);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.bindTexture(gl.TEXTURE_2D, null);
+    this._glTex = createTexture(gl);
   }
 
   bindTexture() {
@@ -396,19 +390,25 @@ export function loadTextureFromImgUrl(options) {
     const width = img.naturalWidth;
     const height = img.naturalHeight;
 
-    return new Texture(options.gl, options.name, width, height, (gl) => {
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGBA,
-        width,
-        height,
-        0,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        img
-      );
-    });
+    return new Texture(
+      options.gl,
+      options.name,
+      width,
+      height,
+      createStandardTexture((gl) => {
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          width,
+          height,
+          0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          img
+        );
+      })
+    );
   });
 }
 
@@ -424,18 +424,59 @@ export function loadTextureFromImgUrl(options) {
  */
 export function loadTextureFromRawBitmap(options) {
   const { width, height } = options;
-  return new Texture(options.gl, options.name, width, height, (gl) => {
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      width,
-      height,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      options.bmp,
-      0
-    );
-  });
+  return new Texture(
+    options.gl,
+    options.name,
+    width,
+    height,
+    createStandardTexture((gl) => {
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        width,
+        height,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        options.bmp,
+        0
+      );
+    })
+  );
+}
+
+/**
+ *
+ * @param {Object} options
+ * @param {WebGLTexture} options.tex
+ * @param {string} options.name
+ * @param {number} options.width
+ * @param {number} options.height
+ * @param {WebGL2RenderingContext} options.gl
+ * @returns {Texture}
+ */
+export function wrapPremadeTexture(options) {
+  return new Texture(
+    options.gl,
+    options.name,
+    options.width,
+    options.height,
+    () => options.tex
+  );
+}
+
+function createStandardTexture(loader) {
+  return (gl) => {
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    loader(gl);
+    // set the filtering so we don't need mips
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    return texture;
+  };
 }
