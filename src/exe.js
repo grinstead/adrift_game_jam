@@ -106,7 +106,7 @@ async function onLoad() {
       }),
       loadTextureFromImgUrl({
         gl,
-        src: "assets/Hero Walking 2.png",
+        src: "assets/Hero Walking with axe.png",
         name: "walk",
       }),
     ]
@@ -175,20 +175,20 @@ async function onLoad() {
   const charWalkSprite = new SpriteSet(charWalkTex, {
     // prettier-ignore
     "right": characterSpriteSheet({
-      xPercent: .5,
-      widthInPixels: 322,
+      xPercent: 258 / 424,
+      widthInPixels: 424,
       heightInPixels: 442,
       texture: charWalkTex,
-      numPerRow: 3,
+      numPerRow: 2,
       count: 8
     }),
     // prettier-ignore
     "left": characterSpriteSheet({
-      xPercent: .5,
-      widthInPixels: 322,
+      xPercent: 1 - 258 / 424,
+      widthInPixels: 424,
       heightInPixels: 442,
       texture: charWalkTex,
-      numPerRow: 3,
+      numPerRow: 2,
       count: 8,
       reverseX: true,
     }),
@@ -293,7 +293,8 @@ async function onLoad() {
       const angle = (random * Math.PI) / 4 + Math.PI / 2;
       const speed = Math.random() * 2 + 1; // measured in meters per second
 
-      const x = charX + flareX * (charFacingLeft ? -1 : 1);
+      const x =
+        charX + (flareX - (charDx ? 0.05 : 0)) * (charFacingLeft ? -1 : 1);
       const z = (charH - 108) / TEX_PIXELS_PER_METER;
       const dz = speed * Math.sin(angle);
       const dx = speed * Math.cos(angle);
