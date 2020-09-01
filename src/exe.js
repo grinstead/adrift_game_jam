@@ -10,9 +10,11 @@ import { SpriteSet, Sprite } from "./sprites.js";
 import { InputManager } from "./webgames/Input.js";
 import { Lighting } from "./lighting.js";
 
+const TEX_PIXEL_PER_PIXEL = 2;
 const PIXELS_PER_METER = 180;
-const TEX_PIXELS_PER_METER = 2 * PIXELS_PER_METER;
-const ROOM_DEPTH = 2; // meters
+const TEX_PIXELS_PER_METER = TEX_PIXEL_PER_PIXEL * PIXELS_PER_METER;
+
+const ROOM_DEPTH_RADIUS = 166 / TEX_PIXELS_PER_METER / 2;
 
 async function onLoad() {
   const fpsNode = document.getElementById("fps");
@@ -22,6 +24,7 @@ async function onLoad() {
   const input = new InputManager(document.body);
   input.setKeysForAction("left", ["a", "ArrowLeft"]);
   input.setKeysForAction("right", ["d", "ArrowRight"]);
+  input.setKeysForAction("showLights", ["l"]);
 
   let width = parseInt(computedStyle.getPropertyValue("width"), 10);
   let height = parseInt(computedStyle.getPropertyValue("height"), 10);
@@ -31,6 +34,14 @@ async function onLoad() {
   const canvasHeight = ratio * height;
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
+
+  // prettier-ignore
+  const projection = new Float32Array([
+    2 * PIXELS_PER_METER / width, 0,    0, 0,
+    0,    -2 * PIXELS_PER_METER / height, 1/4, 0,
+    0,    2 * PIXELS_PER_METER / height, 0, 0,
+    -1,   -1,   0, 1,
+  ]);
 
   const gl = canvas.getContext("webgl2", { antialias: false, alpha: false });
   // gl.enable(gl.BLEND);
@@ -47,6 +58,7 @@ async function onLoad() {
 
     uniform mat4 u_projection;
 
+    out vec4 v_clipSpace;
     out vec2 v_texturePosition;
 
     void main() {
@@ -55,7 +67,8 @@ async function onLoad() {
 
         vec4 result = vec4(position.x, position.y * variance, -.5f * (position.z - 1.f) * variance, position.w * variance);
         gl_Position = result;
-
+        
+        v_clipSpace = result;
         v_texturePosition = a_texturePosition;
     }`
   );
@@ -66,12 +79,17 @@ async function onLoad() {
     precision mediump float;
 
     uniform sampler2D u_texture;
+    uniform sampler2D u_lighting;
 
     in vec2 v_texturePosition;
+    in vec4 v_clipSpace;
     out vec4 output_color;
 
     void main() {
+        vec4 clipSpace = vec4(.5f * (v_clipSpace.x + 1.f), -.5f * (v_clipSpace.y - 1.f), v_clipSpace.z, v_clipSpace.w);
+
         vec4 color = texture(u_texture, v_texturePosition.st);
+        color *= texture(u_lighting, clipSpace.xy);
         if (color.a == 0.0) {
             discard;
         }
@@ -82,7 +100,12 @@ async function onLoad() {
   const program = new Program({ gl, projection: "projection" });
   program.attach(vShader, fShader).link();
 
-  const lighting = new Lighting(gl);
+  const lighting = new Lighting(
+    gl,
+    canvasWidth,
+    canvasHeight,
+    TEX_PIXELS_PER_METER
+  );
 
   const [wallTex, floorTex, charTex, enemyTex, charWalkTex] = await Promise.all(
     [
@@ -196,15 +219,6 @@ async function onLoad() {
     }),
   });
 
-  const fadeWidth = 32;
-  const fadeTexture = loadTextureFromRawBitmap({
-    name: "fade",
-    width: fadeWidth,
-    height: fadeWidth,
-    gl,
-    bmp: makeQuadraticDropoff(fadeWidth, fadeWidth, 0.01),
-  });
-
   const enemyRInPixels = 54;
   const enemyIdleFrames = 6;
   const enemyR = enemyRInPixels / TEX_PIXELS_PER_METER;
@@ -221,16 +235,6 @@ async function onLoad() {
     }),
   });
 
-  const fade = new SpriteSet(fadeTexture, {
-    // prettier-ignore
-    "main": [[
-       .5 * fadeWidth / TEX_PIXELS_PER_METER, 0, -.5 * fadeWidth / TEX_PIXELS_PER_METER, 1, 0,
-       .5 * fadeWidth / TEX_PIXELS_PER_METER, 0,  .5 * fadeWidth / TEX_PIXELS_PER_METER, 1, 1,
-      -.5 * fadeWidth / TEX_PIXELS_PER_METER, 0, -.5 * fadeWidth / TEX_PIXELS_PER_METER, 0, 0,
-      -.5 * fadeWidth / TEX_PIXELS_PER_METER, 0,  .5 * fadeWidth / TEX_PIXELS_PER_METER, 0, 1,
-    ]],
-  });
-
   const lightingSprite = new SpriteSet(lighting.lightingTex(), {
     // prettier-ignore
     "main": [
@@ -245,17 +249,10 @@ async function onLoad() {
     ],
   });
 
+  const sparkSprite = makeSparkSprite(gl);
+
   let mouseX = 0;
   let mouseY = 0;
-
-  // makes the viewport 40m wide
-  // prettier-ignore
-  const projection = new Float32Array([
-    2 * PIXELS_PER_METER / width, 0,    0, 0,
-    0,    -2 * PIXELS_PER_METER / height, 1/4, 0,
-    0,    2 * PIXELS_PER_METER / height, 0, 0,
-    -1,   -1,   0, 1,
-  ]);
 
   const particles = [];
 
@@ -266,7 +263,7 @@ async function onLoad() {
   let charX = 4;
   let charDx = 0;
   let charFacingLeft = false;
-  const spawnHertz = 10;
+  const spawnHertz = 48;
 
   const shipLength = 100;
   const wave1 = (isFar) => {
@@ -316,7 +313,7 @@ async function onLoad() {
       const dx = speed * Math.cos(angle);
 
       if (particles.length > 100) {
-        particles.shift();
+        particles.pop();
       }
 
       particles.push({
@@ -327,37 +324,46 @@ async function onLoad() {
         dx,
         dy: 0.1 * Math.sin(2 * Math.PI * Math.random()),
         dz,
+        startTime: newTimeDiff,
+        deathTime: newTimeDiff + 1.5,
+        bounces: 0,
       });
     }
 
     // move all the particles
     particles.forEach((particle) => {
-      if (!particle.dead) {
-        particle.dz -= normalZ * 9.8 * stepSize;
+      const declaredDead = particle.dead;
+      if (!declaredDead && newTimeDiff < particle.deathTime) {
+        let dz = particle.dz - normalZ * 9.8 * stepSize;
+        particle.dz = dz;
         particle.dx -= normalX * 9.8 * stepSize;
 
         particle.x += particle.dx * stepSize;
         particle.y += particle.dy * stepSize;
         particle.z += particle.dz * stepSize;
 
+        const y = particle.y;
+        if (y < -ROOM_DEPTH_RADIUS || y > ROOM_DEPTH_RADIUS) {
+          const reflectAgainst = y > 0 ? ROOM_DEPTH_RADIUS : -ROOM_DEPTH_RADIUS;
+          particle.y = reflectAgainst + (reflectAgainst - y);
+          particle.dy = -particle.dy;
+        }
+
         if (particle.z < 0) {
           particle.z = -particle.z;
-          particle.dz *= -0.25;
-        } else if (particle.z < 0.01 && Math.abs(particle.dz) < 0.1) {
-          particle.dead = true;
+          particle.dz = dz > -0.01 ? 0 : -0.25 * dz;
         }
+      } else if (!declaredDead) {
+        particle.dead = true;
       }
     });
+
+    particles.sort(sortParticles);
 
     timeDiff = newTimeDiff;
   }
 
-  function renderMain(gl, program) {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0, 0, canvasWidth, canvasHeight);
-    gl.clearColor(0, 0, 0, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
+  function renderInCamera(gl, program, subcode) {
     program.stack.pushAbsolute(projection);
 
     // set the camera
@@ -367,6 +373,14 @@ async function onLoad() {
     program.stack.pushYRotation(shipAngle);
     program.stack.pushTranslation(0, 0, shipDz);
 
+    subcode(gl, program);
+
+    program.stack.pop();
+    program.stack.pop();
+    program.stack.pop();
+  }
+
+  function renderInSceneContent(gl, program) {
     wall.bindTo(program);
     wall.renderSpriteDatumPrebound("main", 0);
 
@@ -389,18 +403,37 @@ async function onLoad() {
     }
     program.stack.pop();
 
-    fade.bindTo(program);
+    sparkSprite.bindTo(program);
     particles.forEach((particle) => {
       if (!particle.dead) {
         program.stack.pushTranslation(particle.x, particle.y, particle.z);
-        fade.renderSpriteDatumPrebound("main", 0);
+        program.stack.pushYRotation(
+          Math.PI + Math.atan(particle.dz / particle.dx)
+        );
+
+        sparkSprite.renderSpriteDatumPrebound(
+          "fading",
+          Math.floor(4 * (timeDiff - particle.startTime))
+        );
+        program.stack.pop();
         program.stack.pop();
       }
     });
+  }
 
-    program.stack.pop();
-    program.stack.pop();
-    program.stack.pop();
+  function renderMain(gl, program) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, canvasWidth, canvasHeight);
+    gl.disable(gl.BLEND);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    gl.activeTexture(gl.TEXTURE1);
+    lighting.lightingTex().bindTexture();
+    gl.uniform1i(program.u["lighting"], 1);
+    gl.activeTexture(gl.TEXTURE0);
+
+    renderInCamera(gl, program, renderInSceneContent);
 
     program.stack.pushTranslation(
       mouseX / PIXELS_PER_METER,
@@ -414,14 +447,16 @@ async function onLoad() {
       "blink",
       maybeFrame < enemyIdleFrames ? maybeFrame : 0
     );
-
-    // lightingSprite.bindTo(program);
-    // lightingSprite.renderSpriteDatumPrebound("main", 0);
   }
 
   function renderStep() {
     movePieces();
-    lighting.renderLighting();
+    lighting.renderLighting({
+      renderInCamera,
+      timeDiff,
+      particles,
+      lightsOn: input.isPressed("showLights"),
+    });
     doAnimationFrame(program, renderMain);
     requestAnimationFrame(renderStep);
   }
@@ -441,51 +476,6 @@ async function onLoad() {
     mouseX = event.offsetX;
     mouseY = event.offsetY;
   };
-}
-
-function makeQuadraticDropoff(width, height, brightRadius) {
-  const bitmap = new Uint8Array(4 * width * height);
-
-  const getDistanceSquared = (pixelDx, pixelDy) => {
-    const dx = pixelDx / TEX_PIXELS_PER_METER;
-    const dy = pixelDy / TEX_PIXELS_PER_METER;
-    return dx * dx + dy * dy;
-  };
-
-  const middleX = width / 2;
-  const middleY = height / 2;
-
-  const brightRadiusSquared = brightRadius * brightRadius;
-  const edgeValue = Math.min(
-    getDistanceSquared(middleX, 0),
-    getDistanceSquared(middleY, 0)
-  );
-
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const offset = 4 * (y * width + x);
-      const distanceSquared = getDistanceSquared(x - middleX, y - middleY);
-
-      if (distanceSquared <= brightRadiusSquared) {
-        bitmap[offset + 0] = 255;
-        bitmap[offset + 1] = 255;
-        bitmap[offset + 2] = 255;
-        bitmap[offset + 3] = 255;
-      } else {
-        const concentration = Math.sqrt(brightRadiusSquared / distanceSquared);
-
-        const primary = Math.floor(256 * concentration);
-        const secondary = Math.floor(256 * concentration * concentration);
-
-        bitmap[offset + 0] = 255;
-        bitmap[offset + 1] = secondary;
-        bitmap[offset + 2] = secondary;
-        bitmap[offset + 3] = distanceSquared >= edgeValue ? 0 : primary;
-      }
-    }
-  }
-
-  return bitmap;
 }
 
 function characterSpriteSheet({
@@ -577,6 +567,66 @@ function flatSprite({
     width - x, y, height - z,   endX, texStartY,
            -x, y, height - z, startX, texStartY,
   ];
+}
+
+// makes a fading sprite for sparks
+function makeSparkSprite(gl) {
+  const FADE_STEPS = 16;
+  const FADE_COEFFICIENT = 1 / FADE_STEPS / FADE_STEPS;
+
+  const colorVal = (dropIndex) => {
+    return Math.max(
+      0,
+      Math.min(
+        255,
+        Math.round(256 * (1 - FADE_COEFFICIENT * dropIndex * dropIndex))
+      )
+    );
+  };
+
+  const bmp = [];
+  for (let repeatedRow = 0; repeatedRow < TEX_PIXEL_PER_PIXEL; repeatedRow++) {
+    for (let i = 0; i < FADE_STEPS; i++) {
+      for (let pixel = 0; pixel < 2; pixel++) {
+        const a = colorVal(i + pixel);
+        const b = colorVal(i + pixel + 1);
+        for (
+          let repeatedCol = 0;
+          repeatedCol < TEX_PIXEL_PER_PIXEL;
+          repeatedCol++
+        ) {
+          // a pixel with red and alpha set high, and blue and green set lower
+          bmp.push(a, b, b, a);
+        }
+      }
+    }
+  }
+
+  const tex = loadTextureFromRawBitmap({
+    name: "spark",
+    width: 2 * FADE_STEPS * TEX_PIXEL_PER_PIXEL,
+    height: TEX_PIXEL_PER_PIXEL,
+    gl,
+    bmp: new Uint8Array(bmp),
+  });
+
+  return new SpriteSet(tex, {
+    // prettier-ignore
+    "fading": spriteSheet({
+      x: 1 / PIXELS_PER_METER,
+      width: .04,
+      height: 2 / PIXELS_PER_METER,
+      texWidth: 1 / FADE_STEPS,
+      texHeight: 1,
+      numPerRow: FADE_STEPS,
+      count: FADE_STEPS,
+    }),
+  });
+}
+
+// dead particles to the back, otherwise sort by depth so that alpha blending could ideally work
+function sortParticles(a, b) {
+  return a.dead ? (b.dead ? 0 : 1) : b.dead ? -1 : a.y - b.y;
 }
 
 window.onload = onLoad;

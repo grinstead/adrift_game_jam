@@ -367,6 +367,10 @@ export class Texture {
   passSize(anchor) {
     this.gl.uniform2f(anchor, this.w, this.h);
   }
+
+  rawTexture() {
+    return this._glTex;
+  }
 }
 
 /**
