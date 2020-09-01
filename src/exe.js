@@ -303,7 +303,8 @@ void main() {
     shipDz = (bowY + sternY) / 2;
 
     // move character
-    charDx = 1.2 * stepSize * input.getSignOfAction("left", "right");
+    const charSpeedX = 1.2 * input.getSignOfAction("left", "right");
+    charDx = charSpeedX * stepSize;
     if (charDx !== 0) {
       charX += charDx;
       charFacingLeft = charDx < 0;
@@ -313,14 +314,14 @@ void main() {
       Math.floor(spawnHertz * newTimeDiff) - Math.floor(spawnHertz * timeDiff);
     for (let i = 0; i < toSpawn; i++) {
       const random = Math.random() - 0.5;
-      const angle = (random * Math.PI) / 4 + Math.PI / 2;
-      const speed = Math.random() * 2 + 1; // measured in meters per second
+      const angle = random * (Math.PI / 4) + Math.PI / 2;
+      const speed = Math.random() * 2 + 1.4; // measured in meters per second
 
       const x =
         charX + (flareX - (charDx ? 0.05 : 0)) * (charFacingLeft ? -1 : 1);
-      const z = (charH - 108) / TEX_PIXELS_PER_METER;
+      const z = (charH - 106) / TEX_PIXELS_PER_METER;
       const dz = speed * Math.sin(angle);
-      const dx = speed * Math.cos(angle);
+      const dx = speed * Math.cos(angle) + charSpeedX;
 
       if (particles.length > 100) {
         particles.pop();

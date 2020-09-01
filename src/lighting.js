@@ -50,7 +50,7 @@ out vec4 output_color;
 void main() {
     vec4 color = texture(u_texture, v_texturePosition.st);
     color.a -= u_threshold;
-    if (color.a <= 0.f) {
+    if (color.a <= u_threshold) {
         discard;
     }
     output_color = color;
@@ -75,6 +75,7 @@ void main() {
     );
     // set the filtering so we don't need mips
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
@@ -174,10 +175,7 @@ function renderLightingToTexture(gl, program, lighting, scene) {
           (time - startTime) / (particle.deathTime - startTime);
 
         // set the circle to fade out
-        gl.uniform1f(
-          thresholder,
-          percentPassed * percentPassed * percentPassed
-        );
+        gl.uniform1f(thresholder, 0.5 * percentPassed * percentPassed);
 
         program.stack.pushTranslation(particle.x, particle.y, particle.z);
         fade.renderSpriteDatumPrebound("main", 0);
@@ -227,4 +225,8 @@ function makeQuadraticDropoff(width, height, brightRadius, texPixelsPerMeter) {
   }
 
   return bitmap;
+}
+
+function makeCircleSprite(radiusInPixels, texPixelsPerMeter) {
+  const bitmap = new Uint8Array(4 * radiusInPixels * radiusInPixels);
 }
