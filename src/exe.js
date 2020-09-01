@@ -9,12 +9,12 @@ import { GameLoop } from "./webgames/GameLoop.js";
 import { SpriteSet, Sprite } from "./sprites.js";
 import { InputManager } from "./webgames/Input.js";
 import { Lighting } from "./lighting.js";
-
-const TEX_PIXEL_PER_PIXEL = 2;
-const PIXELS_PER_METER = 180;
-const TEX_PIXELS_PER_METER = TEX_PIXEL_PER_PIXEL * PIXELS_PER_METER;
-
-const ROOM_DEPTH_RADIUS = 166 / TEX_PIXELS_PER_METER / 2;
+import {
+  TEX_PIXEL_PER_PIXEL,
+  PIXELS_PER_METER,
+  TEX_PIXELS_PER_METER,
+  ROOM_DEPTH_RADIUS,
+} from "./SpriteData.js";
 
 async function onLoad() {
   const fpsNode = document.getElementById("fps");
