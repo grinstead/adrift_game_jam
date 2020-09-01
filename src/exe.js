@@ -16,6 +16,17 @@ import {
   ROOM_DEPTH_RADIUS,
 } from "./SpriteData.js";
 
+const ATTACK_ORIGIN_X = 284;
+const ATTACK_WIDTH = 644;
+const ATTACK_HEIGHT = 565;
+const FLARE_DURING_ATTACK = [
+  { x1: 422, y1: 285, x2: 415, y2: 353 },
+  { x1: 936, y1: 367, x2: 868, y2: 380 },
+  { x1: 1507, y1: 311, x2: 1469, y2: 318 },
+  { x1: 162, y1: 948, x2: 206, y2: 943 },
+  { x1: 1025, y1: 934, x2: 976, y2: 962 },
+];
+
 async function onLoad() {
   const fpsNode = document.getElementById("fps");
   const canvas = document.getElementById("canvas");
@@ -25,6 +36,7 @@ async function onLoad() {
   input.setKeysForAction("left", ["a", "ArrowLeft"]);
   input.setKeysForAction("right", ["d", "ArrowRight"]);
   input.setKeysForAction("showLights", ["l"]);
+  input.setKeysForAction("attack", ["f", " "]);
 
   let width = parseInt(computedStyle.getPropertyValue("width"), 10);
   let height = parseInt(computedStyle.getPropertyValue("height"), 10);
@@ -114,35 +126,45 @@ void main() {
     TEX_PIXELS_PER_METER
   );
 
-  const [wallTex, floorTex, charTex, enemyTex, charWalkTex] = await Promise.all(
-    [
-      loadTextureFromImgUrl({
-        gl,
-        src: "assets/Back Wall.png",
-        name: "wall",
-      }),
-      loadTextureFromImgUrl({
-        gl,
-        src: "assets/new floor Floor.png",
-        name: "floor",
-      }),
-      loadTextureFromImgUrl({
-        gl,
-        src: "assets/Hero Breathing with axe.png",
-        name: "idle",
-      }),
-      loadTextureFromImgUrl({
-        gl,
-        src: "assets/Enemy.png",
-        name: "enemy",
-      }),
-      loadTextureFromImgUrl({
-        gl,
-        src: "assets/Hero Walking with axe.png",
-        name: "walk",
-      }),
-    ]
-  );
+  const [
+    wallTex,
+    floorTex,
+    charTex,
+    enemyTex,
+    charWalkTex,
+    charAxeTex,
+  ] = await Promise.all([
+    loadTextureFromImgUrl({
+      gl,
+      src: "assets/Back Wall.png",
+      name: "wall",
+    }),
+    loadTextureFromImgUrl({
+      gl,
+      src: "assets/new floor Floor.png",
+      name: "floor",
+    }),
+    loadTextureFromImgUrl({
+      gl,
+      src: "assets/Hero Breathing with axe.png",
+      name: "idle",
+    }),
+    loadTextureFromImgUrl({
+      gl,
+      src: "assets/Enemy.png",
+      name: "enemy",
+    }),
+    loadTextureFromImgUrl({
+      gl,
+      src: "assets/Hero Walking with axe.png",
+      name: "walk",
+    }),
+    loadTextureFromImgUrl({
+      gl,
+      src: "assets/Axe Chop.png",
+      name: "attack",
+    }),
+  ]);
 
   // the division by 2 is because the textures are designed for retina
   const floorDims = {
@@ -226,6 +248,28 @@ void main() {
     }),
   });
 
+  const charAxeSprite = new SpriteSet(charAxeTex, {
+    // prettier-ignore
+    "right": characterSpriteSheet({
+      xPercent: ATTACK_ORIGIN_X / ATTACK_WIDTH,
+      widthInPixels: ATTACK_WIDTH,
+      heightInPixels: ATTACK_HEIGHT,
+      texture: charAxeTex,
+      numPerRow: 3,
+      count: 5,
+    }),
+    // prettier-ignore
+    "left": characterSpriteSheet({
+      xPercent: 1 - ATTACK_ORIGIN_X / ATTACK_WIDTH,
+      widthInPixels: ATTACK_WIDTH,
+      heightInPixels: ATTACK_HEIGHT,
+      texture: charAxeTex,
+      numPerRow: 3,
+      count: 5,
+      reverseX: true,
+    }),
+  });
+
   const enemyRInPixels = 54;
   const enemyIdleFrames = 6;
   const enemyR = enemyRInPixels / TEX_PIXELS_PER_METER;
@@ -273,6 +317,10 @@ void main() {
   let charFacingLeft = false;
   const spawnHertz = 48;
 
+  let charFrameStart = 0;
+  let activeCharSprite = charSprite;
+  let charFps = 12;
+
   const shipLength = 100;
   const wave1 = (isFar) => {
     const time = timeDiff + (isFar ? 170 : 0);
@@ -302,24 +350,70 @@ void main() {
     normalX = Math.sin(shipAngle);
     shipDz = (bowY + sternY) / 2;
 
-    // move character
-    const charSpeedX = 1.2 * input.getSignOfAction("left", "right");
-    charDx = charSpeedX * stepSize;
-    if (charDx !== 0) {
-      charX += charDx;
-      charFacingLeft = charDx < 0;
+    let charSpeedX = 0;
+    if (
+      activeCharSprite === charAxeSprite &&
+      newTimeDiff - charFrameStart < 5 / charFps
+    ) {
+      // do nothing
+    } else if (input.isPressed("attack")) {
+      activeCharSprite = charAxeSprite;
+      charFrameStart = newTimeDiff;
+      charFps = 12;
+    } else {
+      // move character
+      charSpeedX = 1.2 * input.getSignOfAction("left", "right");
+      charDx = charSpeedX * stepSize;
+      if (charDx !== 0) {
+        charX += charDx;
+        charFacingLeft = charDx < 0;
+        if (activeCharSprite !== charWalkSprite) {
+          activeCharSprite = charWalkSprite;
+          charFrameStart = newTimeDiff;
+          charFps = 8;
+        }
+      } else if (activeCharSprite !== charSprite) {
+        activeCharSprite = charSprite;
+        charFrameStart = newTimeDiff;
+        charFps = 12;
+      }
     }
 
     const toSpawn =
       Math.floor(spawnHertz * newTimeDiff) - Math.floor(spawnHertz * timeDiff);
     for (let i = 0; i < toSpawn; i++) {
+      let x =
+        charX + (flareX - (charDx ? 0.05 : 0)) * (charFacingLeft ? -1 : 1);
+      let dy = 0.1 * Math.sin(2 * Math.PI * Math.random());
+      let z = (charH - 106) / TEX_PIXELS_PER_METER;
+
+      let baseAngle = Math.PI / 2;
+      if (activeCharSprite === charAxeSprite) {
+        let charFrame = Math.floor(charFps * (newTimeDiff - charFrameStart));
+        const frameOriginPixelX =
+          ATTACK_WIDTH * (charFrame % 3) + ATTACK_ORIGIN_X;
+        const dataForFrame = FLARE_DURING_ATTACK[charFrame];
+        x =
+          charX +
+          ((dataForFrame.x1 - frameOriginPixelX) * (charFacingLeft ? -1 : 1)) /
+            TEX_PIXELS_PER_METER;
+        dy = -Math.abs(dy);
+        z =
+          (ATTACK_HEIGHT -
+            (dataForFrame.y1 - ATTACK_HEIGHT * Math.floor(charFrame / 3))) /
+          TEX_PIXELS_PER_METER;
+        const denom =
+          (dataForFrame.x2 - dataForFrame.x1) * (charFacingLeft ? -1 : 1);
+        baseAngle = Math.atan((dataForFrame.y1 - dataForFrame.y2) / denom);
+        if (denom > 0) {
+          baseAngle += Math.PI;
+        }
+      }
+
       const random = Math.random() - 0.5;
-      const angle = random * (Math.PI / 4) + Math.PI / 2;
+      const angle = random * (Math.PI / 4) + baseAngle;
       const speed = Math.random() * 2 + 1.4; // measured in meters per second
 
-      const x =
-        charX + (flareX - (charDx ? 0.05 : 0)) * (charFacingLeft ? -1 : 1);
-      const z = (charH - 106) / TEX_PIXELS_PER_METER;
       const dz = speed * Math.sin(angle);
       const dx = speed * Math.cos(angle) + charSpeedX;
 
@@ -333,7 +427,7 @@ void main() {
         y: 0,
         z,
         dx,
-        dy: 0.1 * Math.sin(2 * Math.PI * Math.random()),
+        dy,
         dz,
         startTime: newTimeDiff,
         deathTime: newTimeDiff + 1.5,
@@ -412,19 +506,11 @@ void main() {
     floor.renderSpriteDatumPrebound("main", 0);
 
     program.stack.pushTranslation(charX, 0, 0);
-    if (charDx === 0) {
-      charSprite.bindTo(program);
-      charSprite.renderSpriteDatumPrebound(
-        charFacingLeft ? "left" : "right",
-        Math.floor(12 * timeDiff)
-      );
-    } else {
-      charWalkSprite.bindTo(program);
-      charWalkSprite.renderSpriteDatumPrebound(
-        charFacingLeft ? "left" : "right",
-        Math.floor(8 * timeDiff)
-      );
-    }
+    activeCharSprite.bindTo(program);
+    activeCharSprite.renderSpriteDatumPrebound(
+      charFacingLeft ? "left" : "right",
+      Math.floor(charFps * (timeDiff - charFrameStart))
+    );
     program.stack.pop();
 
     sparkSprite.bindTo(program);
