@@ -29,7 +29,10 @@ out vec2 v_texturePosition;
 
 void main() {
     vec4 position = u_projection * vec4(a_position, 1);
-    gl_Position = vec4(position.x, -position.y, position.z, position.w);
+    float variance = 1.f / (position.z + 1.f);
+
+    vec4 result = vec4(position.x, -position.y * variance, -.5f * (position.z - 1.f) * variance, position.w * variance);
+    gl_Position = result;
     v_texturePosition = a_texturePosition;
 }`
     );
@@ -46,10 +49,11 @@ out vec4 output_color;
 
 void main() {
     vec4 color = texture(u_texture, v_texturePosition.st);
-    if (color.a == 0.f || color.x <= u_threshold) {
+    color.a -= u_threshold;
+    if (color.a <= 0.f) {
         discard;
     }
-    output_color = vec4(color.xyz, 1);
+    output_color = color;
 }`
     );
 
@@ -150,9 +154,9 @@ void main() {
  */
 function renderLightingToTexture(gl, program, lighting, scene) {
   if (scene.lightsOn) {
-    gl.clearColor(1, 1, 1, 1);
+    gl.clearColor(0, 0, 0, 1);
   } else {
-    gl.clearColor(0.2, 0.2, 0.2, 1);
+    gl.clearColor(0, 0, 0, 0.2);
   }
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -170,7 +174,10 @@ function renderLightingToTexture(gl, program, lighting, scene) {
           (time - startTime) / (particle.deathTime - startTime);
 
         // set the circle to fade out
-        gl.uniform1f(thresholder, percentPassed * percentPassed);
+        gl.uniform1f(
+          thresholder,
+          percentPassed * percentPassed * percentPassed
+        );
 
         program.stack.pushTranslation(particle.x, particle.y, particle.z);
         fade.renderSpriteDatumPrebound("main", 0);
@@ -201,24 +208,21 @@ function makeQuadraticDropoff(width, height, brightRadius, texPixelsPerMeter) {
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const offset = 4 * (y * width + x);
+
       const distanceSquared = getDistanceSquared(x - middleX, y - middleY);
+      const percentageFromEdge = 1 - Math.sqrt(distanceSquared / edgeValue);
+      const brightAdd = distanceSquared <= brightRadiusSquared ? 5 : 0;
 
-      if (distanceSquared <= brightRadiusSquared) {
-        bitmap[offset + 0] = 255;
-        bitmap[offset + 1] = 255;
-        bitmap[offset + 2] = 255;
-        bitmap[offset + 3] = 255;
-      } else {
-        const concentration = Math.sqrt(brightRadiusSquared / distanceSquared);
+      const primary = Math.max(
+        Math.round(255 * percentageFromEdge * percentageFromEdge),
+        0
+      );
 
-        const primary = Math.floor(256 * concentration);
-        const secondary = Math.floor(256 * concentration * concentration);
-
-        bitmap[offset + 0] = primary;
-        bitmap[offset + 1] = secondary;
-        bitmap[offset + 2] = secondary;
-        bitmap[offset + 3] = distanceSquared >= edgeValue ? 0 : 255;
-      }
+      bitmap[offset + 0] =
+        brightAdd + Math.max(Math.round(20 * percentageFromEdge), 0);
+      bitmap[offset + 1] = brightAdd;
+      bitmap[offset + 2] = brightAdd;
+      bitmap[offset + 3] = primary;
     }
   }
 
