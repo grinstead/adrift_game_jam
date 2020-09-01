@@ -54,49 +54,60 @@ async function onLoad() {
   const vShader = new Shader(
     { gl, type: "vertex" },
     `#version 300 es
+in vec3 a_position;
+in vec2 a_texturePosition;
 
-    in vec3 a_position;
-    in vec2 a_texturePosition;
+uniform mat4 u_projection;
 
-    uniform mat4 u_projection;
+out vec4 v_clipSpace;
+out vec2 v_texturePosition;
 
-    out vec4 v_clipSpace;
-    out vec2 v_texturePosition;
+void main() {
+    vec4 position = u_projection * vec4(a_position, 1);
+    float variance = 1.f / (position.z + 1.f);
 
-    void main() {
-        vec4 position = u_projection * vec4(a_position, 1);
-        float variance = 1.f / (position.z + 1.f);
-
-        vec4 result = vec4(position.x, position.y * variance, -.5f * (position.z - 1.f) * variance, position.w * variance);
-        gl_Position = result;
-        
-        v_clipSpace = result;
-        v_texturePosition = a_texturePosition;
-    }`
+    vec4 result = vec4(position.x, position.y * variance, -.5f * (position.z - 1.f) * variance, position.w * variance);
+    gl_Position = result;
+    
+    v_clipSpace = result;
+    v_texturePosition = a_texturePosition;
+}`
   );
 
   const fShader = new Shader(
     { gl, type: "fragment" },
     `#version 300 es
-    precision mediump float;
+precision mediump float;
 
-    uniform sampler2D u_texture;
-    uniform sampler2D u_lighting;
+uniform sampler2D u_texture;
+uniform sampler2D u_lighting;
 
-    in vec2 v_texturePosition;
-    in vec4 v_clipSpace;
-    out vec4 output_color;
+in vec2 v_texturePosition;
+in vec4 v_clipSpace;
+out vec4 output_color;
 
-    void main() {
-        vec4 clipSpace = vec4(.5f * (v_clipSpace.x + 1.f), -.5f * (v_clipSpace.y - 1.f), v_clipSpace.z, v_clipSpace.w);
+// All components are in the range [0…1], including hue.
+vec3 rgb2hsv(vec3 c)
+{
+    vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+    vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+    vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
 
-        vec4 color = texture(u_texture, v_texturePosition.st);
-        color *= texture(u_lighting, clipSpace.xy);
-        if (color.a == 0.0) {
-            discard;
-        }
-        output_color = color;
-    }`
+    float d = q.x - min(q.w, q.y);
+    float e = 1.0e-10;
+    return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+void main() {
+    vec4 clipSpace = vec4(.5f * (v_clipSpace.x + 1.f), -.5f * (v_clipSpace.y - 1.f), v_clipSpace.z, v_clipSpace.w);
+
+    vec4 color = texture(u_texture, v_texturePosition.st);
+    color *= texture(u_lighting, clipSpace.xy);
+    if (color.a == 0.0) {
+        discard;
+    }
+    output_color = color;
+}`
   );
 
   const program = new Program({ gl, projection: "projection" });
@@ -328,17 +339,24 @@ async function onLoad() {
         dz,
         startTime: newTimeDiff,
         deathTime: newTimeDiff + 1.5,
-        bounces: 0,
+        onFloor: false,
       });
     }
 
     // move all the particles
+    const friction = 1 - 0.8 * stepSize;
     particles.forEach((particle) => {
       const declaredDead = particle.dead;
       if (!declaredDead && newTimeDiff < particle.deathTime) {
-        let dz = particle.dz - normalZ * 9.8 * stepSize;
-        particle.dz = dz;
-        particle.dx -= normalX * 9.8 * stepSize;
+        let dz = particle.dz;
+        if (particle.onFloor) {
+          particle.dx *= friction;
+          particle.dy *= friction;
+        } else {
+          dz -= normalZ * 9.8 * stepSize;
+          particle.dx -= normalX * 9.8 * stepSize;
+          particle.dz = dz;
+        }
 
         particle.x += particle.dx * stepSize;
         particle.y += particle.dy * stepSize;
@@ -352,8 +370,14 @@ async function onLoad() {
         }
 
         if (particle.z < 0) {
-          particle.z = -particle.z;
-          particle.dz = dz > -0.01 ? 0 : -0.25 * dz;
+          if (dz > -0.01) {
+            particle.z = PIXELS_PER_METER;
+            particle.dz = 0;
+            particle.onFloor = true;
+          } else {
+            particle.z = -particle.z;
+            particle.dz = -0.25 * dz;
+          }
         }
       } else if (!declaredDead) {
         particle.dead = true;
@@ -415,7 +439,7 @@ async function onLoad() {
 
         sparkSprite.renderSpriteDatumPrebound(
           "fading",
-          Math.floor(4 * (timeDiff - particle.startTime))
+          Math.floor(12 * (timeDiff - particle.startTime))
         );
         program.stack.pop();
         program.stack.pop();
@@ -577,7 +601,8 @@ function flatSprite({
 
 // makes a fading sprite for sparks
 function makeSparkSprite(gl) {
-  const FADE_STEPS = 16;
+  const FADE_STEPS = 18;
+  const TAIL_LEAD = 6; // the tail is 8 this many frames ahead
   const FADE_COEFFICIENT = 1 / FADE_STEPS / FADE_STEPS;
 
   const colorVal = (dropIndex) => {
@@ -594,15 +619,27 @@ function makeSparkSprite(gl) {
   for (let repeatedRow = 0; repeatedRow < TEX_PIXEL_PER_PIXEL; repeatedRow++) {
     for (let i = 0; i < FADE_STEPS; i++) {
       for (let pixel = 0; pixel < 2; pixel++) {
-        const a = colorVal(i + pixel);
-        const b = colorVal(i + pixel + 1);
+        let r, gb, alpha;
+
+        const pseudoframe = i + pixel * TAIL_LEAD;
+        if (pseudoframe < FADE_STEPS) {
+          r = 255;
+          gb = colorVal(pseudoframe);
+          alpha = 255;
+        } else {
+          r = 0;
+          gb = 0;
+          alpha = 0;
+        }
+
+        const a = colorVal(i + pixel * TAIL_LEAD);
+        const b = colorVal(i + pixel * TAIL_LEAD + 1);
         for (
           let repeatedCol = 0;
           repeatedCol < TEX_PIXEL_PER_PIXEL;
           repeatedCol++
         ) {
-          // a pixel with red and alpha set high, and blue and green set lower
-          bmp.push(a, b, b, a);
+          bmp.push(r, gb, gb, alpha);
         }
       }
     }
