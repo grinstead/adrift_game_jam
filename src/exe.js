@@ -295,9 +295,8 @@ void main() {
     const stepSize = (newTime - lastLoopRun) / 1000;
     lastLoopRun = newTime;
 
-    const fps = Math.round(1 / stepSize);
-    avgFps = fps / 16 + (15 / 16) * avgFps;
-    fpsNode.innerHTML = `fps=${avgFps}`;
+    avgFps = 1 / stepSize / 16 + (15 / 16) * avgFps;
+    fpsNode.innerHTML = `fps=${Math.round(avgFps)}`;
 
     const newTimeDiff = (newTime - startTime) / 1000;
 
@@ -438,7 +437,8 @@ void main() {
       if (!particle.dead) {
         program.stack.pushTranslation(particle.x, particle.y, particle.z);
         program.stack.pushYRotation(
-          Math.PI + Math.atan(particle.dz / particle.dx)
+          (particle.dx >= 0 ? Math.PI : 0) +
+            Math.atan(particle.dz / particle.dx)
         );
 
         sparkSprite.renderSpriteDatumPrebound(
