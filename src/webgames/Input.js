@@ -4,7 +4,7 @@
 
 /**
  * Keeps track of the IO events to that element, specifically keyboard and mouse events.
- * @property {Map<number, } _presses - Maps key-codes to the time when the button is pressed (if it is currently held down) or undefined if the button is not held.
+ * @property {Map<number, Object>} _presses - Maps key-codes to a bunch of info
  */
 export class InputManager {
   /**
@@ -55,7 +55,37 @@ export class InputManager {
   isPressed(action) {
     const keys = this._actionToKeys.get(action);
     const presses = this._presses;
-    return !!keys && keys.some((key) => presses.get(key));
+    return (
+      !!keys &&
+      !!keys.some((key) => {
+        const obj = presses.get(key);
+        if (obj) {
+          obj.danglingCount = 0;
+          return obj.heldSince != null;
+        } else {
+          return false;
+        }
+      })
+    );
+  }
+
+  numPresses(action) {
+    const keys = this._actionToKeys.get(action);
+    if (keys) {
+      const presses = this._presses;
+      return keys.reduce((count, key) => {
+        const obj = presses.get(key);
+        if (obj) {
+          const newCount = count + obj.danglingCount;
+          obj.danglingCount = 0;
+          return newCount;
+        } else {
+          return count;
+        }
+      }, 0);
+    } else {
+      return 0;
+    }
   }
 
   /**
@@ -80,10 +110,22 @@ export class InputManager {
 function keyChanged(manager, event, isPressed) {
   const key = event.key;
   const presses = manager._presses;
-  const oldValue = presses.get(key);
+  const object = presses.get(key);
   if (isPressed) {
-    if (oldValue == null) presses.set(key, Date.now());
+    if (object == null) {
+      presses.set(key, {
+        heldSince: Date.now(),
+        danglingCount: 1,
+      });
+    } else {
+      if (object.heldSince == null) {
+        object.heldSince = Date.now();
+      }
+      object.danglingCount++;
+    }
   } else {
-    if (oldValue != null) presses.delete(key);
+    if (object != null) {
+      object.heldSince = null;
+    }
   }
 }

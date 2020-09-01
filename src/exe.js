@@ -29,6 +29,8 @@ async function onLoad() {
   let width = parseInt(computedStyle.getPropertyValue("width"), 10);
   let height = parseInt(computedStyle.getPropertyValue("height"), 10);
 
+  let debugShowLights = false;
+
   const ratio = 1; // window.devicePixelRatio || 1;
   const canvasWidth = ratio * width;
   const canvasHeight = ratio * height;
@@ -450,12 +452,16 @@ async function onLoad() {
   }
 
   function renderStep() {
+    if (input.numPresses("showLights") % 2) {
+      debugShowLights = !debugShowLights;
+    }
+
     movePieces();
     lighting.renderLighting({
       renderInCamera,
       timeDiff,
       particles,
-      lightsOn: input.isPressed("showLights"),
+      lightsOn: debugShowLights,
     });
     doAnimationFrame(program, renderMain);
     requestAnimationFrame(renderStep);
