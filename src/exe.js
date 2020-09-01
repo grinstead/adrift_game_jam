@@ -272,6 +272,7 @@ void main() {
   let startTime = Date.now();
   let lastLoopRun = Date.now();
   let timeDiff = 0;
+  let avgFps = 0;
 
   let charX = 4;
   let charDx = 0;
@@ -293,7 +294,10 @@ void main() {
     const newTime = Date.now();
     const stepSize = (newTime - lastLoopRun) / 1000;
     lastLoopRun = newTime;
-    fpsNode.innerHTML = `fps=${Math.round(1 / stepSize)}`;
+
+    const fps = Math.round(1 / stepSize);
+    avgFps = fps / 16 + (15 / 16) * avgFps;
+    fpsNode.innerHTML = `fps=${avgFps}`;
 
     const newTimeDiff = (newTime - startTime) / 1000;
 
