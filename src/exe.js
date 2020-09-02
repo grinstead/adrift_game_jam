@@ -107,12 +107,8 @@ void main() {
     }
 
     vec4 light = texture(u_lighting, clipSpace.xy);
-    output_color = vec4(
-      min(1.f, light.x + color.x * light.a),
-      min(1.f, light.y + color.y * light.a),
-      min(1.f, light.z + color.z * light.a),
-      color.a
-    );
+    vec3 math = min(light.xyz + color.xyz * light.a, vec3(1.f, 1.f, 1.f));
+    output_color = vec4(math, color.a);
 }`
   );
 
