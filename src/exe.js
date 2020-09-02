@@ -126,6 +126,8 @@ void main() {
     TEX_PIXELS_PER_METER
   );
 
+  const audioContext = new AudioContext();
+
   const [
     wallTex,
     floorTex,
@@ -133,6 +135,8 @@ void main() {
     enemyTex,
     charWalkTex,
     charAxeTex,
+    gruntSounds,
+    exclaimSound,
   ] = await Promise.all([
     loadTextureFromImgUrl({
       gl,
@@ -164,7 +168,15 @@ void main() {
       src: "assets/Axe Chop.png",
       name: "attack",
     }),
+    Promise.all([
+      loadSound(audioContext, "assets/Grunt1.mp3"),
+      loadSound(audioContext, "assets/Grunt2.mp3"),
+      loadSound(audioContext, "assets/Grunt3.mp3"),
+    ]),
+    loadSound(audioContext, "assets/Theres something here.mp3"),
   ]);
+
+  let exclamation = null;
 
   // the division by 2 is because the textures are designed for retina
   const floorDims = {
@@ -360,6 +372,16 @@ void main() {
       activeCharSprite = charAxeSprite;
       charFrameStart = newTimeDiff;
       charFps = 12;
+
+      if (exclamation) {
+        exclamation.stop();
+      }
+
+      const audioSource = audioContext.createBufferSource();
+      audioSource.buffer =
+        gruntSounds[Math.floor(Math.random() * gruntSounds.length)];
+      audioSource.connect(audioContext.destination);
+      audioSource.start(0);
     } else {
       // move character
       charSpeedX = 1.2 * input.getSignOfAction("left", "right");
@@ -376,6 +398,11 @@ void main() {
         activeCharSprite = charSprite;
         charFrameStart = newTimeDiff;
         charFps = 12;
+      } else if (exclamation == null && charFrameStart < newTimeDiff - 4) {
+        exclamation = audioContext.createBufferSource();
+        exclamation.buffer = exclaimSound;
+        exclamation.connect(audioContext.destination);
+        exclamation.start(0);
       }
     }
 
@@ -755,6 +782,15 @@ function makeSparkSprite(gl) {
 // dead particles to the back, otherwise sort by depth so that alpha blending could ideally work
 function sortParticles(a, b) {
   return a.dead ? (b.dead ? 0 : 1) : b.dead ? -1 : a.y - b.y;
+}
+
+function loadSound(audioContext, url) {
+  return fetch(url)
+    .then((response) => {
+      if (!response.ok) throw new Error(`failed to load ${url}`);
+      return response.arrayBuffer();
+    })
+    .then((buffer) => audioContext.decodeAudioData(buffer));
 }
 
 window.onload = onLoad;
