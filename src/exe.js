@@ -37,6 +37,7 @@ async function onLoad() {
   input.setKeysForAction("right", ["d", "ArrowRight"]);
   input.setKeysForAction("showLights", ["l"]);
   input.setKeysForAction("attack", ["f", " "]);
+  input.setKeysForAction("fullscreen", ["u"]);
 
   let width = parseInt(computedStyle.getPropertyValue("width"), 10);
   let height = parseInt(computedStyle.getPropertyValue("height"), 10);
@@ -329,6 +330,13 @@ void main() {
   let activeCharSprite = charSprite;
   let charFps = 12;
 
+  let fullScreenRequest = null;
+  document.addEventListener("fullscreenchange", (event) => {
+    if (!document.fullscreenElement) {
+      fullScreenRequest = null;
+    }
+  });
+
   const shipLength = 100;
   const wave1 = (isFar) => {
     const time = timeDiff + (isFar ? 170 : 0);
@@ -586,6 +594,10 @@ void main() {
   function renderStep() {
     if (input.numPresses("showLights") % 2) {
       debugShowLights = !debugShowLights;
+    }
+
+    if (!fullScreenRequest && input.isPressed("fullscreen")) {
+      fullScreenRequest = canvas.requestFullscreen();
     }
 
     movePieces();
