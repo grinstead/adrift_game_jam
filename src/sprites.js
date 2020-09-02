@@ -166,3 +166,105 @@ export class Sprite {
 }
 
 export function singletonSprite() {}
+
+//////////////////////////////////////////////////////////////////////////////
+// Utilities
+//////////////////////////////////////////////////////////////////////////////
+
+export function characterSpriteSheet({
+  xPercent = 0,
+  yInM = 0,
+  zPercent = 0,
+  widthInPixels,
+  heightInPixels,
+  texPixelsPerUnit,
+  texture,
+  numPerRow,
+  count,
+  reverseX = false,
+}) {
+  const width = widthInPixels / texPixelsPerUnit;
+  const height = heightInPixels / texPixelsPerUnit;
+
+  return spriteSheet({
+    x: xPercent * width,
+    y: yInM,
+    z: zPercent * height,
+    width,
+    height,
+    texWidth: widthInPixels / texture.w,
+    texHeight: heightInPixels / texture.h,
+    numPerRow,
+    count,
+    reverseX,
+  });
+}
+
+export function spriteSheet({
+  x = 0,
+  y = 0,
+  z = 0,
+  width,
+  height,
+  texWidth,
+  texHeight,
+  numPerRow,
+  count,
+  texStartXOffset = 0,
+  texStartYOffset = 0,
+  texWidthStride = texWidth,
+  texHeightStride = texHeight,
+  reverseX = false,
+}) {
+  const result = [];
+  for (let i = 0; i < count; i++) {
+    const row = Math.floor(i / numPerRow);
+    const col = i % numPerRow;
+    const texStartX = texStartXOffset + col * texWidthStride;
+    const texStartY = texStartYOffset + row * texHeightStride;
+    result.push(
+      flatSprite({
+        x,
+        y,
+        z,
+        width,
+        height,
+        texStartX,
+        texEndX: texStartX + texWidth,
+        texStartY,
+        texEndY: texStartY + texHeight,
+        reverseX,
+      })
+    );
+  }
+  return result;
+}
+
+export function flatSprite({
+  x = 0,
+  y = 0,
+  z = 0,
+  width,
+  height,
+  texStartX,
+  texStartY,
+  texEndX,
+  texEndY,
+  reverseX = false,
+}) {
+  let startX, endX;
+  if (!reverseX) {
+    startX = texStartX;
+    endX = texEndX;
+  } else {
+    startX = texEndX;
+    endX = texStartX;
+  }
+  // prettier-ignore
+  return [
+    width - x, y,         -z,   endX,   texEndY,
+           -x, y,         -z, startX,   texEndY,
+    width - x, y, height - z,   endX, texStartY,
+           -x, y, height - z, startX, texStartY,
+  ];
+}

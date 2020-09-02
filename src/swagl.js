@@ -170,6 +170,20 @@ class MatrixStack {
     );
   }
 
+  pushZRotation(angle) {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    this.push(
+      // prettier-ignore
+      new Float32Array([
+        cos, -sin, 0, 0,
+        sin,  cos, 0, 0,
+          0,    0, 1, 0,
+          0,    0, 0, 1,
+      ])
+    );
+  }
+
   // mirrorAxes(axes) {
   //   const mirrorX = axes.indexOf("x") !== -1;
   //   const mirrorY = axes.indexOf("x") !== -1;

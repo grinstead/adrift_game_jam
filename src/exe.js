@@ -6,7 +6,13 @@ import {
   doAnimationFrame,
 } from "./swagl.js";
 import { GameLoop } from "./webgames/GameLoop.js";
-import { SpriteSet, Sprite } from "./sprites.js";
+import {
+  SpriteSet,
+  Sprite,
+  characterSpriteSheet,
+  spriteSheet,
+  flatSprite,
+} from "./sprites.js";
 import { InputManager } from "./webgames/Input.js";
 import { Lighting } from "./lighting.js";
 import {
@@ -14,7 +20,15 @@ import {
   PIXELS_PER_METER,
   TEX_PIXELS_PER_METER,
   ROOM_DEPTH_RADIUS,
+  TENTACLE_FRAMES,
 } from "./SpriteData.js";
+import {
+  loadCreatureResources,
+  spawnCreature,
+  renderCreatures,
+  processCreatures,
+} from "./Creature.js";
+import { makeRoom } from "./Scene.js";
 
 const ATTACK_ORIGIN_X = 284;
 const ATTACK_WIDTH = 644;
@@ -125,15 +139,19 @@ void main() {
 
   const audioContext = new AudioContext();
 
+  const loadTexture = (name, url) => {
+    return loadTextureFromImgUrl({ gl, name, src: url });
+  };
+
   const [
     wallTex,
     floorTex,
     charTex,
-    enemyTex,
     charWalkTex,
     charAxeTex,
     gruntSounds,
     exclaimSound,
+    creatureResources,
   ] = await Promise.all([
     loadTextureFromImgUrl({
       gl,
@@ -152,11 +170,6 @@ void main() {
     }),
     loadTextureFromImgUrl({
       gl,
-      src: "assets/Enemy.png",
-      name: "enemy",
-    }),
-    loadTextureFromImgUrl({
-      gl,
       src: "assets/Hero Walking with axe.png",
       name: "walk",
     }),
@@ -171,6 +184,7 @@ void main() {
       loadSound(audioContext, "assets/Grunt3.mp3"),
     ]),
     loadSound(audioContext, "assets/Theres something here.mp3"),
+    loadCreatureResources(loadTexture),
   ]);
 
   let exclamation = null;
@@ -220,6 +234,7 @@ void main() {
       widthInPixels: charW,
       heightInPixels: charH,
       texture: charTex,
+      texPixelsPerUnit: TEX_PIXELS_PER_METER,
       numPerRow: 5,
       count: 16
     }),
@@ -229,6 +244,7 @@ void main() {
       widthInPixels: charW,
       heightInPixels: charH,
       texture: charTex,
+      texPixelsPerUnit: TEX_PIXELS_PER_METER,
       numPerRow: 5,
       count: 16,
       reverseX: true,
@@ -242,6 +258,7 @@ void main() {
       widthInPixels: 424,
       heightInPixels: 442,
       texture: charWalkTex,
+      texPixelsPerUnit: TEX_PIXELS_PER_METER,
       numPerRow: 2,
       count: 8
     }),
@@ -251,6 +268,7 @@ void main() {
       widthInPixels: 424,
       heightInPixels: 442,
       texture: charWalkTex,
+      texPixelsPerUnit: TEX_PIXELS_PER_METER,
       numPerRow: 2,
       count: 8,
       reverseX: true,
@@ -264,6 +282,7 @@ void main() {
       widthInPixels: ATTACK_WIDTH,
       heightInPixels: ATTACK_HEIGHT,
       texture: charAxeTex,
+      texPixelsPerUnit: TEX_PIXELS_PER_METER,
       numPerRow: 3,
       count: 5,
     }),
@@ -273,25 +292,10 @@ void main() {
       widthInPixels: ATTACK_WIDTH,
       heightInPixels: ATTACK_HEIGHT,
       texture: charAxeTex,
+      texPixelsPerUnit: TEX_PIXELS_PER_METER,
       numPerRow: 3,
       count: 5,
       reverseX: true,
-    }),
-  });
-
-  const enemyRInPixels = 54;
-  const enemyIdleFrames = 6;
-  const enemyR = enemyRInPixels / TEX_PIXELS_PER_METER;
-  const enemySprite = new SpriteSet(enemyTex, {
-    // prettier-ignore
-    "blink": spriteSheet({
-      x: enemyR,
-      width: 2 * enemyR,
-      height: 2 * enemyR,
-      texWidth: 2 * enemyRInPixels / enemyTex.w,
-      texHeight: 2 * enemyRInPixels / enemyTex.h,
-      numPerRow: 2,
-      count: enemyIdleFrames
     }),
   });
 
@@ -309,6 +313,8 @@ void main() {
     ],
   });
 
+  const room = makeRoom({ creature: creatureResources });
+
   const sparkSprite = makeSparkSprite(gl);
 
   let mouseX = 0;
@@ -317,9 +323,21 @@ void main() {
   const particles = [];
 
   let startTime = Date.now();
-  let lastLoopRun = Date.now();
   let timeDiff = 0;
-  let avgFps = 0;
+  let avgFps = -1;
+  let stepSize = 0;
+  function updateTime() {
+    const newTime = (Date.now() - startTime) / 1000;
+    stepSize = newTime - room.roomTime;
+    timeDiff = room.roomTime = newTime;
+
+    if (avgFps === -1) {
+      avgFps = 60;
+    } else {
+      avgFps = 1 / stepSize / 16 + (15 / 16) * avgFps;
+    }
+    fpsNode.innerHTML = `fps=${Math.round(avgFps)}`;
+  }
 
   let charX = 4;
   let charDx = 0;
@@ -347,17 +365,10 @@ void main() {
     return Math.sin((Math.PI * time) / 3) / 8;
   };
 
+  spawnCreature(room, charX + 2);
+
   let shipAngle, normalX, normalZ, shipDz;
   function movePieces() {
-    const newTime = Date.now();
-    const stepSize = (newTime - lastLoopRun) / 1000;
-    lastLoopRun = newTime;
-
-    avgFps = 1 / stepSize / 16 + (15 / 16) * avgFps;
-    fpsNode.innerHTML = `fps=${Math.round(avgFps)}`;
-
-    const newTimeDiff = (newTime - startTime) / 1000;
-
     // calculate the boat rocking
     const bowY = wave1(false) + wave2(false);
     const sternY = wave1(true) + wave2(true);
@@ -369,12 +380,12 @@ void main() {
     let charSpeedX = 0;
     if (
       activeCharSprite === charAxeSprite &&
-      newTimeDiff - charFrameStart < 5 / charFps
+      timeDiff - charFrameStart < 5 / charFps
     ) {
       // do nothing
     } else if (input.isPressed("attack")) {
       activeCharSprite = charAxeSprite;
-      charFrameStart = newTimeDiff;
+      charFrameStart = timeDiff;
       charFps = 12;
 
       if (exclamation) {
@@ -395,14 +406,14 @@ void main() {
         charFacingLeft = charDx < 0;
         if (activeCharSprite !== charWalkSprite) {
           activeCharSprite = charWalkSprite;
-          charFrameStart = newTimeDiff;
+          charFrameStart = timeDiff;
           charFps = 8;
         }
       } else if (activeCharSprite !== charSprite) {
         activeCharSprite = charSprite;
-        charFrameStart = newTimeDiff;
+        charFrameStart = timeDiff;
         charFps = 12;
-      } else if (exclamation == null && charFrameStart < newTimeDiff - 4) {
+      } else if (exclamation == null && charFrameStart < timeDiff - 4) {
         exclamation = audioContext.createBufferSource();
         exclamation.buffer = exclaimSound;
         exclamation.connect(audioContext.destination);
@@ -411,7 +422,8 @@ void main() {
     }
 
     const toSpawn =
-      Math.floor(spawnHertz * newTimeDiff) - Math.floor(spawnHertz * timeDiff);
+      Math.floor(spawnHertz * timeDiff) -
+      Math.floor(spawnHertz * (timeDiff - stepSize));
     for (let i = 0; i < toSpawn; i++) {
       let x =
         charX + (flareX - (charDx ? 0.05 : 0)) * (charFacingLeft ? -1 : 1);
@@ -420,7 +432,7 @@ void main() {
 
       let baseAngle = Math.PI / 2;
       if (activeCharSprite === charAxeSprite) {
-        let charFrame = Math.floor(charFps * (newTimeDiff - charFrameStart));
+        let charFrame = Math.floor(charFps * (timeDiff - charFrameStart));
         const frameOriginPixelX =
           ATTACK_WIDTH * (charFrame % 3) + ATTACK_ORIGIN_X;
         const dataForFrame = FLARE_DURING_ATTACK[charFrame];
@@ -460,30 +472,33 @@ void main() {
         dx,
         dy,
         dz,
-        startTime: newTimeDiff,
-        deathTime: newTimeDiff + 1.5,
+        startTime: timeDiff,
+        deathTime: timeDiff + 1.5,
         onFloor: false,
       });
     }
+
+    const gravityZ = normalZ * 9.8 * stepSize;
+    const gravityX = normalX * 9.8 * stepSize;
 
     // move all the particles
     const friction = 1 - 0.8 * stepSize;
     particles.forEach((particle) => {
       const declaredDead = particle.dead;
-      if (!declaredDead && newTimeDiff < particle.deathTime) {
+      if (!declaredDead && timeDiff < particle.deathTime) {
+        particle.x += particle.dx * stepSize;
+        particle.y += particle.dy * stepSize;
+        particle.z += particle.dz * stepSize;
+
         let dz = particle.dz;
         if (particle.onFloor) {
           particle.dx *= friction;
           particle.dy *= friction;
         } else {
-          dz -= normalZ * 9.8 * stepSize;
-          particle.dx -= normalX * 9.8 * stepSize;
+          dz -= gravityZ;
+          particle.dx -= gravityX;
           particle.dz = dz;
         }
-
-        particle.x += particle.dx * stepSize;
-        particle.y += particle.dy * stepSize;
-        particle.z += particle.dz * stepSize;
 
         const y = particle.y;
         if (y < -ROOM_DEPTH_RADIUS || y > ROOM_DEPTH_RADIUS) {
@@ -509,7 +524,7 @@ void main() {
 
     particles.sort(sortParticles);
 
-    timeDiff = newTimeDiff;
+    processCreatures(room);
   }
 
   function renderInCamera(gl, program, subcode) {
@@ -530,25 +545,29 @@ void main() {
   }
 
   function renderInSceneContent(gl, program) {
+    const stack = program.stack;
+
     wall.bindTo(program);
     wall.renderSpriteDatumPrebound("main", 0);
 
     floor.bindTo(program);
     floor.renderSpriteDatumPrebound("main", 0);
 
-    program.stack.pushTranslation(charX, 0, 0);
+    stack.pushTranslation(charX, 0, 0);
     activeCharSprite.bindTo(program);
     activeCharSprite.renderSpriteDatumPrebound(
       charFacingLeft ? "left" : "right",
       Math.floor(charFps * (timeDiff - charFrameStart))
     );
-    program.stack.pop();
+    stack.pop();
+
+    renderCreatures(gl, program, room);
 
     sparkSprite.bindTo(program);
     particles.forEach((particle) => {
       if (!particle.dead) {
-        program.stack.pushTranslation(particle.x, particle.y, particle.z);
-        program.stack.pushYRotation(
+        stack.pushTranslation(particle.x, particle.y, particle.z);
+        stack.pushYRotation(
           (particle.dx >= 0 ? Math.PI : 0) +
             Math.atan(particle.dz / particle.dx)
         );
@@ -557,8 +576,8 @@ void main() {
           "fading",
           Math.floor(12 * (timeDiff - particle.startTime))
         );
-        program.stack.pop();
-        program.stack.pop();
+        stack.pop();
+        stack.pop();
       }
     });
   }
@@ -577,21 +596,17 @@ void main() {
 
     renderInCamera(gl, program, renderInSceneContent);
 
-    program.stack.pushTranslation(
-      mouseX / PIXELS_PER_METER,
-      0,
-      (height - mouseY) / PIXELS_PER_METER
-    );
-
-    const maybeFrame = Math.floor(8 * timeDiff) % (enemyIdleFrames + 8 * 4);
-    enemySprite.bindTo(program);
-    enemySprite.renderSpriteDatumPrebound(
-      "blink",
-      maybeFrame < enemyIdleFrames ? maybeFrame : 0
-    );
+    // this is how to render the mouse
+    // program.stack.pushTranslation(
+    //   mouseX / PIXELS_PER_METER,
+    //   0,
+    //   (height - mouseY) / PIXELS_PER_METER
+    // );
   }
 
   function renderStep() {
+    updateTime();
+
     if (input.numPresses("showLights") % 2) {
       debugShowLights = !debugShowLights;
     }
@@ -601,6 +616,7 @@ void main() {
     }
 
     movePieces();
+
     lighting.renderLighting({
       renderInCamera,
       timeDiff,
@@ -626,97 +642,6 @@ void main() {
     mouseX = event.offsetX;
     mouseY = event.offsetY;
   };
-}
-
-function characterSpriteSheet({
-  xPercent = 0,
-  yInM = 0,
-  zPercent = 0,
-  widthInPixels,
-  heightInPixels,
-  texture,
-  numPerRow,
-  count,
-  reverseX = false,
-}) {
-  const width = widthInPixels / TEX_PIXELS_PER_METER;
-  const height = heightInPixels / TEX_PIXELS_PER_METER;
-
-  return spriteSheet({
-    x: xPercent * width,
-    y: yInM,
-    z: zPercent * height,
-    width,
-    height,
-    texWidth: widthInPixels / texture.w,
-    texHeight: heightInPixels / texture.h,
-    numPerRow,
-    count,
-    reverseX,
-  });
-}
-
-function spriteSheet({
-  x = 0,
-  y = 0,
-  z = 0,
-  width,
-  height,
-  texWidth,
-  texHeight,
-  numPerRow,
-  count,
-  reverseX = false,
-}) {
-  const result = [];
-  for (let i = 0; i < count; i++) {
-    const row = Math.floor(i / numPerRow);
-    const col = i % numPerRow;
-    result.push(
-      flatSprite({
-        x,
-        y,
-        z,
-        width,
-        height,
-        texStartX: col * texWidth,
-        texEndX: (col + 1) * texWidth,
-        texStartY: row * texHeight,
-        texEndY: (row + 1) * texHeight,
-        reverseX,
-      })
-    );
-  }
-  return result;
-}
-
-function flatSprite({
-  x = 0,
-  y = 0,
-  z = 0,
-  width,
-  height,
-  texStartX,
-  texStartY,
-  texEndX,
-  texEndY,
-  reverseX = false,
-}) {
-  let startX, endX;
-  if (!reverseX) {
-    startX = texStartX;
-    endX = texEndX;
-  } else {
-    startX = texEndX;
-    endX = texStartX;
-  }
-  // prettier-ignore
-  return [
-    width - x, y,         -z,   endX,   texEndY,
-           -x, y,         -z, startX,   texEndY,
-    width - x, y, height - z,   endX, texStartY,
-           -x, y, height - z, startX, texStartY,
-  ];
 }
 
 // makes a fading sprite for sparks
@@ -799,6 +724,26 @@ function loadSound(audioContext, url) {
       return response.arrayBuffer();
     })
     .then((buffer) => audioContext.decodeAudioData(buffer));
+}
+
+function sqr(val) {
+  return val * val;
+}
+
+function arctan(opposite, adjacent) {
+  if (adjacent > 0) {
+    return Math.atan(opposite / adjacent);
+  } else if (adjacent === 0) {
+    if (opposite > 0) {
+      return Math.PI / 2;
+    } else if (opposite === 0) {
+      return 0; // dunno what is best here
+    } else {
+      return -Math.PI / 2;
+    }
+  } else {
+    return Math.atan(opposite / adjacent) + Math.PI;
+  }
 }
 
 window.onload = onLoad;
