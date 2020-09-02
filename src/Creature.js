@@ -7,6 +7,9 @@ const CREATURE_RADIUS_PIXELS = 54;
 const CREATURE_IDLE_FRAMES = 6;
 const CREATURE_RADIUS = CREATURE_RADIUS_PIXELS / TEX_PIXELS_PER_METER;
 
+const STEP_TIME = 1 / 8;
+const ATTACH_Z_OFFSET = 0.04;
+
 /**
  * @typedef {Object}
  * @property {number} bodyX
@@ -104,6 +107,7 @@ export async function loadCreatureResources(loadTexture) {
  * @property {number} y
  * @property {number} z
  * @property {Array<Tentacle>} tentacles
+ * @property {number} nextTentacleMove
  */
 export class Creature {
   constructor(x, y, z) {
@@ -111,39 +115,13 @@ export class Creature {
     this.x = x;
     this.y = y;
     this.z = z;
+    this.nextTentacleMove = 0;
+    this.nextTentacleIndex = 0;
     this.tentacles = [
-      {
-        bodyX: -0.05,
-        bodyY: 0.01,
-        placementX: x - 0.2,
-        placementY: 0.1,
-        placementZ: 0,
-        frameOffset: 0,
-      },
-      {
-        bodyX: 0.05,
-        bodyY: 0.01,
-        placementX: x + 0.2,
-        placementY: 0.1,
-        placementZ: 0,
-        frameOffset: 3,
-      },
-      {
-        bodyX: -0.05,
-        bodyY: -0.01,
-        placementX: x - 0.2,
-        placementY: -0.1,
-        placementZ: 0,
-        frameOffset: 7,
-      },
-      {
-        bodyX: 0.05,
-        bodyY: -0.01,
-        placementX: x + 0.2,
-        placementY: -0.1,
-        placementZ: 0,
-        frameOffset: 13,
-      },
+      makeTentacle(0, x, y, -1, 1),
+      makeTentacle(1, x, y, -1, -1),
+      makeTentacle(2, x, y, 1, 1),
+      makeTentacle(3, x, y, 1, -1),
     ];
   }
 }
@@ -154,7 +132,7 @@ export class Creature {
  * @param {number} x
  */
 export function spawnCreature(room, x) {
-  room.creatures.push(new Creature(x, 0, 0.4));
+  room.creatures.push(new Creature(x, 0, 0.2));
 }
 
 /**
@@ -165,6 +143,26 @@ export function processCreatures(room) {
   const roomTime = room.roomTime;
   room.creatures.forEach((creature) => {
     creature.x = creature.startX + 0.5 * Math.sin(roomTime);
+    const speed = 0.5 * Math.cos(roomTime);
+
+    if (roomTime > creature.nextTentacleMove) {
+      let index = creature.nextTentacleIndex;
+      creature.nextTentacleIndex = (index + 1) % creature.tentacles.length;
+      const toPlace = creature.tentacles[index];
+
+      const placementX =
+        creature.x + (STEP_TIME + 0.1) * speed + toPlace.idealX;
+      if (Math.abs(placementX - toPlace.placementX) > 0.05) {
+        creature.nextTentacleMove = roomTime + STEP_TIME;
+        toPlace.movingUntil = roomTime + STEP_TIME;
+        toPlace.moveStartX = toPlace.placementX;
+        toPlace.moveStartY = toPlace.placementY;
+        toPlace.moveStartZ = toPlace.placementZ;
+        toPlace.placementX = placementX;
+        toPlace.placementY = creature.y + toPlace.idealY;
+        toPlace.placementZ = 0;
+      }
+    }
   });
 }
 
@@ -195,22 +193,30 @@ export function renderCreatures(gl, program, room) {
 
   tentacleSprite.bindTo(program);
   room.creatures.forEach((creature) => {
-    const attachZ = creature.z - 0.08;
+    const attachZ = creature.z - ATTACH_Z_OFFSET;
 
     creature.tentacles.forEach((tentacle) => {
       const attachX = creature.x + tentacle.bodyX;
       const attachY = creature.y + tentacle.bodyY;
 
-      const dX = attachX - tentacle.placementX;
-      const dY = attachY - tentacle.placementY;
-      const dZ = attachZ - tentacle.placementZ;
+      let placementX = tentacle.placementX;
+      let placementY = tentacle.placementY;
+      let placementZ = tentacle.placementZ;
+
+      const movingUntil = tentacle.movingUntil;
+      if (roomTime < movingUntil) {
+        const percent = 1 - (movingUntil - roomTime) / STEP_TIME;
+        placementX = bezier(percent, tentacle.moveStartX, attachX, placementX);
+        placementY = bezier(percent, tentacle.moveStartY, attachY, placementY);
+        placementZ = bezier(percent, tentacle.moveStartZ, attachZ, placementZ);
+      }
+
+      const dX = attachX - placementX;
+      const dY = attachY - placementY;
+      const dZ = attachZ - placementZ;
       const mag = Math.sqrt(dX * dX + dY * dY + dZ * dZ);
 
-      stack.pushTranslation(
-        tentacle.placementX,
-        tentacle.placementY,
-        tentacle.placementZ
-      );
+      stack.pushTranslation(placementX, placementY, placementZ);
       stack.pushYRotation(arctan(dZ, dX));
 
       // prettier-ignore
@@ -254,4 +260,32 @@ function arctan(opposite, adjacent) {
   } else {
     return Math.atan(opposite / adjacent) + Math.PI;
   }
+}
+
+function makeTentacle(index, x, y, xSign, ySign) {
+  const idealX = 0.2 * xSign;
+  const idealY = 0.1 * ySign;
+  const placementX = x + idealX;
+  const placementY = y + idealY;
+  return {
+    index,
+    bodyX: xSign * 0.05,
+    bodyY: ySign * 0.05,
+    idealX,
+    idealY,
+    movingUntil: 0,
+    moveStartX: placementX,
+    moveStartY: placementY,
+    moveStartZ: 0,
+    placementX,
+    placementY,
+    placementZ: 0,
+    frameOffset: 0,
+  };
+}
+
+function bezier(percent, v1, v2, v3) {
+  let v12 = percent * v2 + (1 - percent) * v1;
+  let v23 = percent * v3 + (1 - percent) * v2;
+  return percent * v23 + (1 - percent) * v12;
 }
