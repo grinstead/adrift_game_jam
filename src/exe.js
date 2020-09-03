@@ -20,7 +20,6 @@ import {
   PIXELS_PER_METER,
   TEX_PIXELS_PER_METER,
   ROOM_DEPTH_RADIUS,
-  TENTACLE_FRAMES,
 } from "./SpriteData.js";
 import {
   loadCreatureResources,
@@ -52,25 +51,44 @@ async function onLoad() {
   input.setKeysForAction("showLights", ["l"]);
   input.setKeysForAction("attack", ["f", " "]);
   input.setKeysForAction("fullscreen", ["u"]);
+  input.setKeysForAction("up", ["w", "ArrowUp"]);
+  input.setKeysForAction("down", ["s", "ArrowDown"]);
 
   let width = parseInt(computedStyle.getPropertyValue("width"), 10);
   let height = parseInt(computedStyle.getPropertyValue("height"), 10);
 
   let debugShowLights = false;
 
-  const ratio = 1; // window.devicePixelRatio || 1;
+  const ratio = window.devicePixelRatio || 1;
   const canvasWidth = ratio * width;
   const canvasHeight = ratio * height;
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
 
+  const roomHeightM = 2;
+  const screenHeightM = height / PIXELS_PER_METER;
+  let cameraZ = 0.948;
+
+  // the projection matrix will do:
+  //   x: represents the x coordinate in clip-space when z = 0
+  //   y: represents the y coordinate in clip-space when z = 0
+  //   z: -1/2 represents the far foreground, 1/2 represents the far background
+
   // prettier-ignore
   const projection = new Float32Array([
-    2 * PIXELS_PER_METER / width, 0,    0, 0,
-    0,    -2 * PIXELS_PER_METER / height, 1/4, 0,
-    0,    2 * PIXELS_PER_METER / height, 0, 0,
-    -1,   -1,   0, 1,
+    2 * PIXELS_PER_METER / width, 0, 0, 0,
+    0, 0, 1 / (2 * ROOM_DEPTH_RADIUS), 0,
+    0, 2 / screenHeightM, 0, 0,
+    0, 0, 0, 1,
   ]);
+
+  // prettier-ignore
+  // const projection = new Float32Array([
+  //   2 * PIXELS_PER_METER / width, 0,    0, 0,
+  //   0,    -2 * PIXELS_PER_METER / height, 1/4, 0,
+  //   0,    2 * PIXELS_PER_METER / height, 0, 0,
+  //   -1,   -1,   0, 1,
+  // ]);
 
   const gl = canvas.getContext("webgl2", { antialias: false, alpha: false });
   // gl.enable(gl.BLEND);
@@ -91,9 +109,10 @@ out vec2 v_texturePosition;
 
 void main() {
     vec4 position = u_projection * vec4(a_position, 1);
-    float variance = 1.f / (position.z + 1.f);
+    float inverse = 1.f / (1.f - position.z * .2f);
 
-    vec4 result = vec4(position.x, position.y * variance, -.5f * (position.z - 1.f) * variance, position.w * variance);
+    // vec4 result = vec4(position.x * inverse, (position.y - .4f) * inverse + .2f, position.z * inverse, position.w * inverse);
+    vec4 result = vec4(position.x, inverse * position.y * (1.f - .5f * position.z), inverse * position.z, inverse * position.w);
     gl_Position = result;
     
     v_clipSpace = result;
@@ -152,6 +171,7 @@ void main() {
     gruntSounds,
     exclaimSound,
     creatureResources,
+    ceilingTex,
   ] = await Promise.all([
     loadTextureFromImgUrl({
       gl,
@@ -185,11 +205,11 @@ void main() {
     ]),
     loadSound(audioContext, "assets/Theres something here.mp3"),
     loadCreatureResources(loadTexture),
+    loadTexture("ceiling", "assets/New Ceiling.png"),
   ]);
 
   let exclamation = null;
 
-  // the division by 2 is because the textures are designed for retina
   const floorDims = {
     top: 52 / floorTex.h,
     w: floorTex.w / TEX_PIXELS_PER_METER,
@@ -201,22 +221,43 @@ void main() {
   const wall = new SpriteSet(wallTex, {
     // prettier-ignore
     "main": [[
-        wallTex.w / TEX_PIXELS_PER_METER, -floorDims.d/2, wallTex.h/TEX_PIXELS_PER_METER, 1, 0,
-        wallTex.w / TEX_PIXELS_PER_METER, -floorDims.d/2, 0, 1, 1,
-        0, -floorDims.d/2, wallTex.h/TEX_PIXELS_PER_METER, 0, 0,
-        0, -floorDims.d/2, 0, 0, 1,
+        wallTex.w / TEX_PIXELS_PER_METER, ROOM_DEPTH_RADIUS, wallTex.h/TEX_PIXELS_PER_METER, 1, 0,
+        wallTex.w / TEX_PIXELS_PER_METER, ROOM_DEPTH_RADIUS, 0, 1, 1,
+        0, ROOM_DEPTH_RADIUS, wallTex.h/TEX_PIXELS_PER_METER, 0, 0,
+        0, ROOM_DEPTH_RADIUS, 0, 0, 1,
       ]],
   });
 
   const floor = new SpriteSet(floorTex, {
     // prettier-ignore
     "main": [[
-        floorDims.w,  floorDims.d/2, -floorDims.h, 1,                  1,
-                  0,  floorDims.d/2, -floorDims.h, 0,                  1,
-        floorDims.w,  floorDims.d/2,            0, 1, floorDims.boundary,
-                  0,  floorDims.d/2,            0, 0, floorDims.boundary,
-        floorDims.w, -floorDims.d/2,            0, 1,      floorDims.top,
-                  0, -floorDims.d/2,            0, 0,      floorDims.top,
+        floorDims.w, -ROOM_DEPTH_RADIUS, -floorDims.h, 1,                  1,
+                  0, -ROOM_DEPTH_RADIUS, -floorDims.h, 0,                  1,
+        floorDims.w, -ROOM_DEPTH_RADIUS,            0, 1, floorDims.boundary,
+                  0, -ROOM_DEPTH_RADIUS,            0, 0, floorDims.boundary,
+        floorDims.w,  ROOM_DEPTH_RADIUS,            0, 1,      floorDims.top,
+                  0,  ROOM_DEPTH_RADIUS,            0, 0,      floorDims.top,
+      ]],
+  });
+
+  const ceilDims = {
+    edgeY: 62,
+    wallY: 266,
+    pipeY: 336,
+    w: ceilingTex.w / TEX_PIXELS_PER_METER,
+  };
+
+  // prettier-ignore
+  const ceilingSprite = new SpriteSet(ceilingTex, {
+    "main": [[
+      ceilDims.w, -ROOM_DEPTH_RADIUS, roomHeightM + ceilDims.edgeY / TEX_PIXELS_PER_METER, 1, 0,
+               0, -ROOM_DEPTH_RADIUS, roomHeightM + ceilDims.edgeY / TEX_PIXELS_PER_METER, 0, 0,
+      ceilDims.w, -ROOM_DEPTH_RADIUS, roomHeightM, 1, ceilDims.edgeY / ceilingTex.h,
+               0, -ROOM_DEPTH_RADIUS, roomHeightM, 0, ceilDims.edgeY / ceilingTex.h,
+      ceilDims.w,  ROOM_DEPTH_RADIUS, roomHeightM, 1, ceilDims.wallY / ceilingTex.h,
+               0,  ROOM_DEPTH_RADIUS, roomHeightM, 0, ceilDims.wallY / ceilingTex.h,
+      ceilDims.w,  ROOM_DEPTH_RADIUS, roomHeightM + (ceilDims.wallY - ceilDims.pipeY) / TEX_PIXELS_PER_METER, 1, ceilDims.pipeY / ceilingTex.h,
+               0,  ROOM_DEPTH_RADIUS, roomHeightM + (ceilDims.wallY - ceilDims.pipeY) / TEX_PIXELS_PER_METER, 0, ceilDims.pipeY / ceilingTex.h,
       ]],
   });
 
@@ -357,12 +398,14 @@ void main() {
 
   const shipLength = 100;
   const wave1 = (isFar) => {
-    const time = timeDiff + (isFar ? 170 : 0);
-    return Math.sin((Math.PI * time) / 8) / 2;
+    // const time = timeDiff + (isFar ? 170 : 0);
+    // return Math.sin((Math.PI * time) / 8) / 2;
+    return 0;
   };
   const wave2 = (isFar) => {
-    const time = timeDiff + (isFar ? 130 : 0);
-    return Math.sin((Math.PI * time) / 3) / 8;
+    // const time = timeDiff + (isFar ? 130 : 0);
+    // return Math.sin((Math.PI * time) / 3) / 8;
+    return 0;
   };
 
   spawnCreature(room, charX + 2);
@@ -531,7 +574,7 @@ void main() {
     program.stack.pushAbsolute(projection);
 
     // set the camera
-    program.stack.pushTranslation(-1.5, 0, floorDims.d / 2 + floorDims.h + 0.5);
+    program.stack.pushTranslation(-4, 0, -cameraZ);
 
     // rock the boat
     program.stack.pushYRotation(shipAngle);
@@ -552,6 +595,9 @@ void main() {
 
     floor.bindTo(program);
     floor.renderSpriteDatumPrebound("main", 0);
+
+    ceilingSprite.bindTo(program);
+    ceilingSprite.renderSpriteDatumPrebound("main", 0);
 
     stack.pushTranslation(charX, 0, 0);
     activeCharSprite.bindTo(program);
@@ -614,6 +660,9 @@ void main() {
     if (!fullScreenRequest && input.isPressed("fullscreen")) {
       fullScreenRequest = canvas.requestFullscreen();
     }
+
+    cameraZ += stepSize * input.getSignOfAction("down", "up");
+    window["cameraZ"] = cameraZ;
 
     movePieces();
 
