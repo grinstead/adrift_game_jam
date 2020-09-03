@@ -580,7 +580,7 @@ void main() {
     program.stack.pushAbsolute(projection);
 
     // set the camera
-    program.stack.pushTranslation(-4, 0, -cameraZ);
+    program.stack.pushTranslation(-charX, 0, -cameraZ);
 
     // rock the boat
     program.stack.pushYRotation(shipAngle);
