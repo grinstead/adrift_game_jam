@@ -398,14 +398,12 @@ void main() {
 
   const shipLength = 100;
   const wave1 = (isFar) => {
-    // const time = timeDiff + (isFar ? 170 : 0);
-    // return Math.sin((Math.PI * time) / 8) / 2;
-    return 0;
+    const time = timeDiff + (isFar ? 170 : 0);
+    return Math.sin((Math.PI * time) / 8) / 2;
   };
   const wave2 = (isFar) => {
-    // const time = timeDiff + (isFar ? 130 : 0);
-    // return Math.sin((Math.PI * time) / 3) / 8;
-    return 0;
+    const time = timeDiff + (isFar ? 130 : 0);
+    return Math.sin((Math.PI * time) / 3) / 8;
   };
 
   spawnCreature(room, charX + 2);
