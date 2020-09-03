@@ -111,7 +111,6 @@ void main() {
     vec4 position = u_projection * vec4(a_position, 1);
     float inverse = 1.f / (1.f - position.z * .2f);
 
-    // vec4 result = vec4(position.x * inverse, (position.y - .4f) * inverse + .2f, position.z * inverse, position.w * inverse);
     vec4 result = vec4(position.x, inverse * position.y * (1.f - .5f * position.z), inverse * position.z, inverse * position.w);
     gl_Position = result;
     
@@ -297,7 +296,7 @@ void main() {
     "right": characterSpriteSheet({
       xPercent: 258 / 424,
       widthInPixels: 424,
-      heightInPixels: 442,
+      heightInPixels: 444,
       texture: charWalkTex,
       texPixelsPerUnit: TEX_PIXELS_PER_METER,
       numPerRow: 2,
@@ -307,7 +306,7 @@ void main() {
     "left": characterSpriteSheet({
       xPercent: 1 - 258 / 424,
       widthInPixels: 424,
-      heightInPixels: 442,
+      heightInPixels: 444,
       texture: charWalkTex,
       texPixelsPerUnit: TEX_PIXELS_PER_METER,
       numPerRow: 2,

@@ -29,12 +29,13 @@ uniform mat4 u_projection;
 out vec2 v_texturePosition;
 
 void main() {
-    vec4 position = u_projection * vec4(a_position, 1);
-    float variance = 1.f / (position.z + 1.f);
+  vec4 position = u_projection * vec4(a_position, 1);
+  float inverse = 1.f / (1.f - position.z * .2f);
 
-    vec4 result = vec4(position.x, -position.y * variance, -.5f * (position.z - 1.f) * variance, position.w * variance);
-    gl_Position = result;
-    v_texturePosition = a_texturePosition;
+  vec4 result = vec4(position.x, -inverse * position.y * (1.f - .5f * position.z), inverse * position.z, inverse * position.w);
+  gl_Position = result;
+  
+  v_texturePosition = a_texturePosition;
 }`
     );
     const fShader = new Shader(
