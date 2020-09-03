@@ -156,26 +156,168 @@ export class SpriteSet {
 //////////////////////////////////////////////////////////////////////////////
 
 /**
+ * The options you can pass to a Sprite object on creation
+ * @typedef {Object}
+ * @property {string} name - The name of this Sprite (for debugging)
+ * @property {SpriteSet} set - The set from which come all the Sprite's modes
+ * @property {Array<string>} modes - All the modes the sprite can use, used to read directly from the SpriteSet's data field
+ * @property {boolean|number} loops - The number of times a sprite loops, false (or 0) if it does not, and true if it loops forever
+ * @property {Array<number> | number} frameTime - The time (in seconds) a frame (or each frame) should stay on screen
+ */
+let SpriteDefinition;
+
+/**
  * A Sprite is an atomic render-able. Unlike normal sprite systems, a sprite in
  * this system has 3d coordinates, but reads from only one texture. It can also
- * have multiple ways of rendering (eg. animated, or facing different
- * directions). In many ways, I probably should have just called it a "model"
+ * have multiple ways of rendering (eg. facing different
+ * directions). In many ways, I probably should have just called it a "model".
+ *
+ * All the "modes" must have the same number of frames.
  */
 export class Sprite {
-  constructor(modes) {
+  /**
+   * Constructs a Sprite. Do not call this directly, use makeSpriteType instead
+   * @private
+   * @param {number} numFrames - The number of frames
+   * @param {SpriteDefinition} options
+   */
+  constructor(numFrames, options) {
+    const { loops, frameTime } = options;
+
+    // set the name immediately so that the possible errors print nicely
+    /** @private {string} _name - The name of this Sprite, for debugging */
+    this._name = options.name;
+    /** @private {number} When the current mode started */
     this._startTime = 0;
+    /** @private {Array<string>} All of the modes in this sprite */
+    this._modes = options.modes;
+    /** @private {null|string} Which mode is currently running */
+    this._activeMode = null;
+    /** @private {number} The number of time a sprite loops (-1 if it loops forever) */
+    this._targetLoops = typeof loops === "number" ? loops : loops ? -1 : 0;
+    /** @private {SpriteSet} The set to bind when rendering this sprite */
+    this._spriteSet = options.set;
+    /** @private {Array<number>} The amount of time (in seconds) each frame stays on screen */
+    this._frameTimes =
+      typeof frameTime === "number"
+        ? new Array(numFrames).fill(frameTime)
+        : frameTime;
+    /** @private {number} The number of times the sprite has looped since being reset */
+    this._currentLoop = 0;
+    /** @private {number} The index of the active frame, or -1 if the Sprite is not active */
+    this._frameIndex = -1;
+    /** @private {number} The time when we should switch frames, or -1 if we reached the last one */
+    this._nextFrameTime = -1;
   }
 
   /**
-   * Resets the sprite back to the original index
-   * @param {number} time The room time
+   * Resets the sprite back to the original index.
+   * @param {string} mode - What subversion of the sprite to run
+   * @param {number} time - The room time
    */
-  resetSprite(time) {
+  resetSprite(mode, time) {
+    if (!this._modes.includes(mode)) {
+      throw new Error(`${this} does not have mode ${mode}`);
+    }
+
+    this._currentLoop = 0;
     this._startTime = time;
+    this._activeMode = mode;
+    this._frameIndex = 0;
+    this._nextFrameTime = calculateNextFrameTime(this, 0, time);
+  }
+
+  /**
+   * Update's the Sprite's frame and renders
+   * @param {Program} program
+   * @param {number} time - The room time
+   */
+  renderSprite(program, time) {
+    const mode = this._activeMode;
+    if (mode == null) {
+      throw new Error(`${this} tried rendering while inactive`);
+    }
+
+    let frameIndex = this._frameIndex;
+
+    // check if we should advance the frame
+    const nextFrameTime = this._nextFrameTime;
+    if (nextFrameTime !== -1 && nextFrameTime <= time) {
+      if (++frameIndex === this._frameTimes.length) {
+        frameIndex = 0;
+        this._currentLoop++;
+      }
+
+      this._frameIndex = frameIndex;
+      this._nextFrameTime = calculateNextFrameTime(this, frameIndex, time);
+    }
+
+    this._spriteSet.bindTo(program);
+    this._spriteSet.renderSpriteDatumPrebound(mode, frameIndex);
+  }
+
+  toString() {
+    return `Sprite/${this._name}`;
   }
 }
 
-export function singletonSprite() {}
+/**
+ * Figures out how long a specific frame should last
+ * @param {Sprite} sprite
+ * @param {number} frameIndex
+ * @param {number} time - The room time
+ * @returns The length of the frame (in seconds), or -1 if should stay indefinitely
+ */
+function calculateNextFrameTime(sprite, frameIndex, time) {
+  const frames = sprite._frameTimes;
+
+  // check if this is the last frame in the animation, and stay on it
+  // indefinitely if it is. This quite snazzily, implicitly handles _targetLoops
+  // === -1
+  if (
+    frameIndex + 1 === frames.length &&
+    sprite._currentLoop === sprite._targetLoops
+  ) {
+    return -1;
+  } else {
+    // TODO: this is wrong, we need to base it off of our theoretical start time
+    // but then we need to handle multiple frames being skipped
+    return time + frames[frameIndex];
+  }
+}
+
+/**
+ * Makes a function which will construct new sprites. It's more preferable to
+ * use this, because we validate the options
+ * @param {SpriteDefinition} options
+ * @returns {function():Sprite} A function which outputs a new sprite on ever call
+ */
+export function makeSpriteType(options) {
+  const { name, frameTime } = options;
+
+  const data = options.set.data;
+  let numFrames = -1;
+  options.modes.forEach((mode) => {
+    const datum = data[mode];
+    if (!datum) throw new Error(`Sprite/${name} has non-existent mode ${mode}`);
+
+    if (numFrames === -1) {
+      numFrames = datum._offsets.length;
+    } else if (numFrames !== datum._offsets.length) {
+      throw new Error(`Sprite/${name} has inconsistent frame counts`);
+    }
+  });
+
+  if (numFrames === -1) throw new Error(`Sprite/${name} given 0 modes`);
+
+  if (typeof frameTime !== "number" && frameTime.length !== numFrames) {
+    throw new Error(
+      `Sprite/${name} given ${frameTime.length} frame times for ${numFrames} frames`
+    );
+  }
+
+  return () => new Sprite(numFrames, options);
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // Utilities

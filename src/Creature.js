@@ -1,5 +1,5 @@
 import { TEX_PIXELS_PER_METER, TENTACLE_FRAMES } from "./SpriteData.js";
-import { SpriteSet, spriteSheet, flatSprite } from "./sprites.js";
+import { SpriteSet, spriteSheet, Sprite, makeSpriteType } from "./sprites.js";
 import { Texture, Program } from "./swagl.js";
 import { Room } from "./Scene.js";
 
@@ -22,8 +22,8 @@ let Tentacle;
 
 /**
  * @typedef {Object}
- * @property {SpriteSet} creatureSprite
  * @property {SpriteSet} tentacleSprite
+ * @property {function():Sprite} makeCreatureSprite
  */
 export let CreatureResources;
 
@@ -38,7 +38,7 @@ export async function loadCreatureResources(loadTexture) {
     loadTexture("tentacle", "assets/Tentacle.png"),
   ]);
 
-  const creatureSprite = new SpriteSet(creatureTex, {
+  const creatureSpriteSet = new SpriteSet(creatureTex, {
     // prettier-ignore
     "blink": spriteSheet({
       x: CREATURE_RADIUS,
@@ -50,6 +50,17 @@ export async function loadCreatureResources(loadTexture) {
       numPerRow: 2,
       count: CREATURE_IDLE_FRAMES,
     }),
+  });
+
+  const frameTimes = new Array(CREATURE_IDLE_FRAMES).fill(1 / 8);
+  frameTimes[0] = 4; // make the character stare for 4s before blinking
+
+  const makeCreatureSprite = makeSpriteType({
+    name: "creature_normal",
+    set: creatureSpriteSet,
+    modes: ["blink"],
+    loops: true,
+    frameTime: frameTimes,
   });
 
   const tentacleFrames = [];
@@ -98,31 +109,38 @@ export async function loadCreatureResources(loadTexture) {
     "wiggle": tentacleFrames,
   });
 
-  return { creatureSprite, tentacleSprite };
+  return { makeCreatureSprite, tentacleSprite };
 }
 
 /**
  * Represents one of the dark spawns
- * @property {number} x
- * @property {number} y
- * @property {number} z
- * @property {Array<Tentacle>} tentacles
- * @property {number} nextTentacleMove
  */
 export class Creature {
-  constructor(x, y, z) {
+  constructor(room, x, y, z) {
+    const sprite = room.resources.creature.makeCreatureSprite();
+    sprite.resetSprite("blink", room.roomTime);
+
+    /** @private {number} */
     this.startX = x;
+    /** @private {number} */
     this.x = x;
+    /** @private {number} */
     this.y = y;
+    /** @private {number} */
     this.z = z;
+    /** @private {number} */
     this.nextTentacleMove = 0;
+    /** @private {number} */
     this.nextTentacleIndex = 0;
+    /** @private {Array<Tentacle>} */
     this.tentacles = [
       makeTentacle(0, x, y, -1, 1),
       makeTentacle(1, x, y, -1, -1),
       makeTentacle(2, x, y, 1, 1),
       makeTentacle(3, x, y, 1, -1),
     ];
+    /** @private {Sprite} */
+    this.sprite = sprite;
   }
 }
 
@@ -132,7 +150,7 @@ export class Creature {
  * @param {number} x
  */
 export function spawnCreature(room, x) {
-  room.creatures.push(new Creature(x, 0, 0.2));
+  room.creatures.push(new Creature(room, x, 0, 0.2));
 }
 
 /**
@@ -175,19 +193,13 @@ export function processCreatures(room) {
 export function renderCreatures(gl, program, room) {
   const stack = program.stack;
 
-  const { creatureSprite, tentacleSprite } = room.resources.creature;
+  const { tentacleSprite } = room.resources.creature;
 
   const roomTime = room.roomTime;
 
-  creatureSprite.bindTo(program);
   room.creatures.forEach((creature) => {
     stack.pushTranslation(creature.x, creature.y, creature.z);
-    const maybeFrame =
-      Math.floor(8 * roomTime) % (CREATURE_IDLE_FRAMES + 8 * 4);
-    creatureSprite.renderSpriteDatumPrebound(
-      "blink",
-      maybeFrame < CREATURE_IDLE_FRAMES ? maybeFrame : 0
-    );
+    creature.sprite.renderSprite(program, roomTime);
     stack.pop();
   });
 
