@@ -178,10 +178,10 @@ export class Sprite {
   /**
    * Constructs a Sprite. Do not call this directly, use makeSpriteType instead
    * @private
-   * @param {number} numFrames - The number of frames
    * @param {SpriteDefinition} options
+   * @param {Array<number>} frameTimes - Computed once, supersedes the value in options
    */
-  constructor(numFrames, options) {
+  constructor(options, frameTimes) {
     const { loops, frameTime } = options;
 
     // set the name immediately so that the possible errors print nicely
@@ -198,16 +198,21 @@ export class Sprite {
     /** @private {SpriteSet} The set to bind when rendering this sprite */
     this._spriteSet = options.set;
     /** @private {Array<number>} The amount of time (in seconds) each frame stays on screen */
-    this._frameTimes =
-      typeof frameTime === "number"
-        ? new Array(numFrames).fill(frameTime)
-        : frameTime;
+    this._frameTimes = frameTimes;
     /** @private {number} The number of times the sprite has looped since being reset */
     this._currentLoop = 0;
     /** @private {number} The index of the active frame, or -1 if the Sprite is not active */
     this._frameIndex = -1;
     /** @private {number} The time when we should switch frames, or -1 if we reached the last one */
     this._nextFrameTime = -1;
+  }
+
+  /**
+   * Changes the mode of the sprite (eg. from "left" to "right")
+   * @param {string} mode
+   */
+  setMode(mode) {
+    this._activeMode = mode;
   }
 
   /**
@@ -316,7 +321,12 @@ export function makeSpriteType(options) {
     );
   }
 
-  return () => new Sprite(numFrames, options);
+  const frameTimes =
+    typeof frameTime === "number"
+      ? new Array(numFrames).fill(frameTime)
+      : frameTime;
+
+  return () => new Sprite(options, frameTimes);
 }
 
 //////////////////////////////////////////////////////////////////////////////

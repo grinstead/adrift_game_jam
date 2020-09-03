@@ -8,10 +8,10 @@ import {
 import { GameLoop } from "./webgames/GameLoop.js";
 import {
   SpriteSet,
-  Sprite,
   characterSpriteSheet,
   spriteSheet,
   flatSprite,
+  makeSpriteType,
 } from "./sprites.js";
 import { InputManager } from "./webgames/Input.js";
 import { Lighting } from "./lighting.js";
@@ -267,7 +267,7 @@ void main() {
   const charWInM = charW / TEX_PIXELS_PER_METER;
   const flareX = (387 / charW - charCenter) * charWInM;
 
-  const charSprite = new SpriteSet(charTex, {
+  const charSpriteSet = new SpriteSet(charTex, {
     // prettier-ignore
     "right": characterSpriteSheet({
       xPercent: charCenter,
@@ -290,6 +290,14 @@ void main() {
       reverseX: true,
     }),
   });
+
+  const charSprite = makeSpriteType({
+    name: "character_idle",
+    set: charSpriteSet,
+    modes: ["left", "right"],
+    loops: true,
+    frameTime: 1 / 12,
+  })();
 
   const charWalkSprite = new SpriteSet(charWalkTex, {
     // prettier-ignore
@@ -385,7 +393,7 @@ void main() {
   const spawnHertz = 48;
 
   let charFrameStart = 0;
-  let activeCharSprite = charSprite;
+  let activeCharSprite = charWalkSprite;
   let charFps = 12;
 
   let fullScreenRequest = null;
@@ -453,6 +461,7 @@ void main() {
         activeCharSprite = charSprite;
         charFrameStart = timeDiff;
         charFps = 12;
+        charSprite.resetSprite(charFacingLeft ? "left" : "right", timeDiff);
       } else if (exclamation == null && charFrameStart < timeDiff - 4) {
         exclamation = audioContext.createBufferSource();
         exclamation.buffer = exclaimSound;
@@ -597,11 +606,16 @@ void main() {
     ceilingSprite.renderSpriteDatumPrebound("main", 0);
 
     stack.pushTranslation(charX, 0, 0);
-    activeCharSprite.bindTo(program);
-    activeCharSprite.renderSpriteDatumPrebound(
-      charFacingLeft ? "left" : "right",
-      Math.floor(charFps * (timeDiff - charFrameStart))
-    );
+    if (activeCharSprite === charSprite) {
+      activeCharSprite.setMode(charFacingLeft ? "left" : "right");
+      activeCharSprite.renderSprite(program, timeDiff);
+    } else {
+      activeCharSprite.bindTo(program);
+      activeCharSprite.renderSpriteDatumPrebound(
+        charFacingLeft ? "left" : "right",
+        Math.floor(charFps * (timeDiff - charFrameStart))
+      );
+    }
     stack.pop();
 
     renderCreatures(gl, program, room);
