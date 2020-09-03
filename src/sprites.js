@@ -162,7 +162,17 @@ export class SpriteSet {
  * directions). In many ways, I probably should have just called it a "model"
  */
 export class Sprite {
-  constructor() {}
+  constructor(modes) {
+    this._startTime = 0;
+  }
+
+  /**
+   * Resets the sprite back to the original index
+   * @param {number} time The room time
+   */
+  resetSprite(time) {
+    this._startTime = time;
+  }
 }
 
 export function singletonSprite() {}
