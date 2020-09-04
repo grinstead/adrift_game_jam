@@ -8,7 +8,7 @@ const CREATURE_IDLE_FRAMES = 6;
 const CREATURE_RADIUS = CREATURE_RADIUS_PIXELS / TEX_PIXELS_PER_METER;
 
 const STEP_TIME = 1 / 8;
-const ATTACH_Z_OFFSET = 0.04;
+const ATTACH_Z_OFFSET = CREATURE_RADIUS * (3 / 4);
 
 /**
  * @typedef {Object}
@@ -150,7 +150,7 @@ export class Creature {
  * @param {number} x
  */
 export function spawnCreature(room, x) {
-  room.creatures.push(new Creature(room, x, 0, 0.2));
+  room.creatures.push(new Creature(room, x, 0, 0.4));
 }
 
 /**
@@ -282,7 +282,7 @@ function makeTentacle(index, x, y, xSign, ySign) {
   return {
     index,
     bodyX: xSign * 0.05,
-    bodyY: ySign * 0.05,
+    bodyY: 0,
     idealX,
     idealY,
     movingUntil: 0,
