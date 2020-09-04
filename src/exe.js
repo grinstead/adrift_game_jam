@@ -179,7 +179,7 @@ void main() {
     }),
     loadTextureFromImgUrl({
       gl,
-      src: "assets/new floor Floor.png",
+      src: "assets/floor.png",
       name: "floor",
     }),
     loadTextureFromImgUrl({
@@ -204,18 +204,22 @@ void main() {
     ]),
     loadSound(audioContext, "assets/Theres something here.mp3"),
     loadCreatureResources(loadTexture),
-    loadTexture("ceiling", "assets/New Ceiling.png"),
+    loadTexture("ceiling", "assets/ceiling.png"),
   ]);
 
   let exclamation = null;
 
   const floorDims = {
-    top: 52 / floorTex.h,
+    top: (512 - 290) / floorTex.h,
     w: floorTex.w / TEX_PIXELS_PER_METER,
-    h: (256 - 218) / TEX_PIXELS_PER_METER,
-    d: (218 - 52) / TEX_PIXELS_PER_METER,
-    boundary: 218 / floorTex.h,
+    h: 70 / TEX_PIXELS_PER_METER,
+    boundary: (512 - 70) / floorTex.h,
   };
+
+  // I divided the texture by 2
+  floorDims.top /= 2;
+  floorDims.w *= 2;
+  floorDims.boundary /= 2;
 
   const wall = new SpriteSet(wallTex, {
     // prettier-ignore
@@ -242,21 +246,24 @@ void main() {
   const ceilDims = {
     edgeY: 62,
     wallY: 266,
-    pipeY: 336,
     w: ceilingTex.w / TEX_PIXELS_PER_METER,
+    h: floorDims.h,
   };
+
+  // I divided the texture by 2
+  ceilDims.edgeY /= 2;
+  ceilDims.wallY /= 2;
+  ceilDims.w *= 2;
 
   // prettier-ignore
   const ceilingSprite = new SpriteSet(ceilingTex, {
     "main": [[
-      ceilDims.w, -ROOM_DEPTH_RADIUS, roomHeightM + ceilDims.edgeY / TEX_PIXELS_PER_METER, 1, 0,
-               0, -ROOM_DEPTH_RADIUS, roomHeightM + ceilDims.edgeY / TEX_PIXELS_PER_METER, 0, 0,
+      ceilDims.w, -ROOM_DEPTH_RADIUS, roomHeightM + ceilDims.h, 1, 0,
+               0, -ROOM_DEPTH_RADIUS, roomHeightM + ceilDims.h, 0, 0,
       ceilDims.w, -ROOM_DEPTH_RADIUS, roomHeightM, 1, ceilDims.edgeY / ceilingTex.h,
                0, -ROOM_DEPTH_RADIUS, roomHeightM, 0, ceilDims.edgeY / ceilingTex.h,
       ceilDims.w,  ROOM_DEPTH_RADIUS, roomHeightM, 1, ceilDims.wallY / ceilingTex.h,
                0,  ROOM_DEPTH_RADIUS, roomHeightM, 0, ceilDims.wallY / ceilingTex.h,
-      ceilDims.w,  ROOM_DEPTH_RADIUS, roomHeightM + (ceilDims.wallY - ceilDims.pipeY) / TEX_PIXELS_PER_METER, 1, ceilDims.pipeY / ceilingTex.h,
-               0,  ROOM_DEPTH_RADIUS, roomHeightM + (ceilDims.wallY - ceilDims.pipeY) / TEX_PIXELS_PER_METER, 0, ceilDims.pipeY / ceilingTex.h,
       ]],
   });
 
