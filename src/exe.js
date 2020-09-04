@@ -30,6 +30,7 @@ import {
   processCreatures,
 } from "./Creature.js";
 import { makeRoom } from "./Scene.js";
+import { loadHeroResources, flarePositionsMap } from "./Hero.js";
 
 const ATTACK_ORIGIN_X = 284;
 const ATTACK_WIDTH = 644;
@@ -91,14 +92,16 @@ async function onLoad() {
   //   y: represents the y coordinate in clip-space when z = 0
   //   z: -1/2 represents the far foreground, 1/2 represents the far background
 
+  const scaleY = Ry / (ROOM_HEIGHT / 2);
+  const scaleX = scaleY * (height / width);
+
   // prettier-ignore
   const projection = new Float32Array([
-    2 * PIXELS_PER_METER / width, 0, 0, 0,
+    scaleX, 0, 0, 0,
     0, 0, 1 / (2 * ROOM_DEPTH_RADIUS), (w2 - w1) / (2 * ROOM_DEPTH_RADIUS),
-    0, Ry / (ROOM_HEIGHT / 2), 0, 0,
+    0, scaleY, 0, 0,
     0, 0, 0, (w1 + w2) / 2,
   ]);
-  console.log(projection);
 
   // prettier-ignore
   // const projection = new Float32Array([
@@ -186,13 +189,13 @@ void main() {
   const [
     wallTex,
     floorTex,
-    charTex,
     charWalkTex,
     charAxeTex,
     gruntSounds,
     exclaimSound,
     creatureResources,
     ceilingTex,
+    heroResources,
   ] = await Promise.all([
     loadTextureFromImgUrl({
       gl,
@@ -203,11 +206,6 @@ void main() {
       gl,
       src: "assets/floor.png",
       name: "floor",
-    }),
-    loadTextureFromImgUrl({
-      gl,
-      src: "assets/Hero Breathing with axe.png",
-      name: "idle",
     }),
     loadTextureFromImgUrl({
       gl,
@@ -227,6 +225,7 @@ void main() {
     loadSound(audioContext, "assets/Theres something here.mp3"),
     loadCreatureResources(loadTexture),
     loadTexture("ceiling", "assets/ceiling.png"),
+    loadHeroResources(loadTexture),
   ]);
 
   let exclamation = null;
@@ -296,37 +295,7 @@ void main() {
   const charWInM = charW / TEX_PIXELS_PER_METER;
   const flareX = (387 / charW - charCenter) * charWInM;
 
-  const charSpriteSet = new SpriteSet(charTex, {
-    // prettier-ignore
-    "right": characterSpriteSheet({
-      xPercent: charCenter,
-      widthInPixels: charW,
-      heightInPixels: charH,
-      texture: charTex,
-      texPixelsPerUnit: TEX_PIXELS_PER_METER,
-      numPerRow: 5,
-      count: 16
-    }),
-    // prettier-ignore
-    "left": characterSpriteSheet({
-      xPercent: 1 - charCenter,
-      widthInPixels: charW,
-      heightInPixels: charH,
-      texture: charTex,
-      texPixelsPerUnit: TEX_PIXELS_PER_METER,
-      numPerRow: 5,
-      count: 16,
-      reverseX: true,
-    }),
-  });
-
-  const charSprite = makeSpriteType({
-    name: "character_idle",
-    set: charSpriteSet,
-    modes: ["left", "right"],
-    loops: true,
-    frameTime: 1 / 12,
-  })();
+  const charSprite = heroResources.idleSprite;
 
   const charWalkSprite = new SpriteSet(charWalkTex, {
     // prettier-ignore
@@ -505,38 +474,48 @@ void main() {
       Math.floor(spawnHertz * timeDiff) -
       Math.floor(spawnHertz * (timeDiff - stepSize));
     for (let i = 0; i < toSpawn; i++) {
-      let x =
-        charX + (flareX - (charDx ? 0.05 : 0)) * (charFacingLeft ? -1 : 1);
+      const speed = Math.random() * 2 + 1.4; // measured in meters per second
       let dy = 0.1 * Math.sin(2 * Math.PI * Math.random());
-      let z = (charH - 106) / TEX_PIXELS_PER_METER;
 
-      let baseAngle = Math.PI / 2;
-      if (activeCharSprite === charAxeSprite) {
-        let charFrame = Math.floor(charFps * (timeDiff - charFrameStart));
-        const frameOriginPixelX =
-          ATTACK_WIDTH * (charFrame % 3) + ATTACK_ORIGIN_X;
-        const dataForFrame = FLARE_DURING_ATTACK[charFrame];
-        x =
-          charX +
-          ((dataForFrame.x1 - frameOriginPixelX) * (charFacingLeft ? -1 : 1)) /
+      let x, z, baseAngle;
+      if (activeCharSprite === charSprite) {
+        const flarePosition = flarePositionsMap.get(charSprite.name())[
+          charSprite.frameIndex()
+        ];
+        x = charX + flarePosition.x * (charFacingLeft ? -1 : 1);
+        z = flarePosition.z; // assumes character is at 0
+        baseAngle = flarePosition.angle;
+      } else {
+        x = charX + (flareX - (charDx ? 0.05 : 0)) * (charFacingLeft ? -1 : 1);
+        z = (charH - 106) / TEX_PIXELS_PER_METER;
+
+        baseAngle = Math.PI / 2;
+
+        if (activeCharSprite === charAxeSprite) {
+          let charFrame = Math.floor(charFps * (timeDiff - charFrameStart));
+          const frameOriginPixelX =
+            ATTACK_WIDTH * (charFrame % 3) + ATTACK_ORIGIN_X;
+          const dataForFrame = FLARE_DURING_ATTACK[charFrame];
+          x =
+            charX +
+            ((dataForFrame.x1 - frameOriginPixelX) *
+              (charFacingLeft ? -1 : 1)) /
+              TEX_PIXELS_PER_METER;
+          dy = -Math.abs(dy);
+          z =
+            (ATTACK_HEIGHT -
+              (dataForFrame.y1 - ATTACK_HEIGHT * Math.floor(charFrame / 3))) /
             TEX_PIXELS_PER_METER;
-        dy = -Math.abs(dy);
-        z =
-          (ATTACK_HEIGHT -
-            (dataForFrame.y1 - ATTACK_HEIGHT * Math.floor(charFrame / 3))) /
-          TEX_PIXELS_PER_METER;
-        const denom =
-          (dataForFrame.x2 - dataForFrame.x1) * (charFacingLeft ? -1 : 1);
-        baseAngle = Math.atan((dataForFrame.y1 - dataForFrame.y2) / denom);
-        if (denom > 0) {
-          baseAngle += Math.PI;
+          const denom =
+            (dataForFrame.x2 - dataForFrame.x1) * (charFacingLeft ? -1 : 1);
+          baseAngle = Math.atan((dataForFrame.y1 - dataForFrame.y2) / denom);
+          if (denom > 0) {
+            baseAngle += Math.PI;
+          }
         }
       }
 
-      const random = Math.random() - 0.5;
-      const angle = random * (Math.PI / 4) + baseAngle;
-      const speed = Math.random() * 2 + 1.4; // measured in meters per second
-
+      const angle = (Math.random() - 0.5) * (Math.PI / 4) + baseAngle;
       const dz = speed * Math.sin(angle);
       const dx = speed * Math.cos(angle) + charSpeedX;
 

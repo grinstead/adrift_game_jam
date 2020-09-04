@@ -2,6 +2,7 @@ import { TEX_PIXELS_PER_METER, TENTACLE_FRAMES } from "./SpriteData.js";
 import { SpriteSet, spriteSheet, Sprite, makeSpriteType } from "./sprites.js";
 import { Texture, Program } from "./swagl.js";
 import { Room } from "./Scene.js";
+import { arctan } from "./webgames/math.js";
 
 const CREATURE_RADIUS_PIXELS = 54;
 const CREATURE_IDLE_FRAMES = 6;
@@ -256,22 +257,6 @@ export function renderCreatures(gl, program, room) {
       stack.pop();
     });
   });
-}
-
-function arctan(opposite, adjacent) {
-  if (adjacent > 0) {
-    return Math.atan(opposite / adjacent);
-  } else if (adjacent === 0) {
-    if (opposite > 0) {
-      return Math.PI / 2;
-    } else if (opposite === 0) {
-      return 0; // dunno what is best here
-    } else {
-      return -Math.PI / 2;
-    }
-  } else {
-    return Math.atan(opposite / adjacent) + Math.PI;
-  }
 }
 
 function makeTentacle(index, x, y, xSign, ySign) {

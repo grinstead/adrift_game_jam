@@ -216,6 +216,14 @@ export class Sprite {
   }
 
   /**
+   * Returns the frame index, or -1 if the sprite is not active
+   * @returns {number} the frame index
+   */
+  frameIndex() {
+    return this._frameIndex;
+  }
+
+  /**
    * Resets the sprite back to the original index.
    * @param {string} mode - What subversion of the sprite to run
    * @param {number} time - The room time
@@ -259,6 +267,14 @@ export class Sprite {
 
     this._spriteSet.bindTo(program);
     this._spriteSet.renderSpriteDatumPrebound(mode, frameIndex);
+  }
+
+  /**
+   * Returns the name, primarily for debugging
+   * @returns {string} The name (given in the options earlier)
+   */
+  name() {
+    return this._name;
   }
 
   toString() {
@@ -414,19 +430,23 @@ export function flatSprite({
   texEndY,
   reverseX = false,
 }) {
-  let startX, endX;
+  let startX, endX, leftX, rightX;
   if (!reverseX) {
     startX = texStartX;
     endX = texEndX;
+    leftX = -x;
+    rightX = width - x;
   } else {
     startX = texEndX;
     endX = texStartX;
+    leftX = x - width;
+    rightX = x;
   }
   // prettier-ignore
   return [
-    width - x, y,         -z,   endX,   texEndY,
-           -x, y,         -z, startX,   texEndY,
-    width - x, y, height - z,   endX, texStartY,
-           -x, y, height - z, startX, texStartY,
+    rightX, y,         -z,   endX,   texEndY,
+     leftX, y,         -z, startX,   texEndY,
+    rightX, y, height - z,   endX, texStartY,
+     leftX, y, height - z, startX, texStartY,
   ];
 }

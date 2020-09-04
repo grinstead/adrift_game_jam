@@ -5,6 +5,8 @@ export const TEX_PIXELS_PER_METER = TEX_PIXEL_PER_PIXEL * PIXELS_PER_METER;
 export const ROOM_DEPTH_RADIUS = 0.5;
 export const ROOM_HEIGHT = 2.5;
 
+export const HERO_HEIGHT = 1.8;
+
 export const TENTACLE_FRAMES = 29;
 
 export const WALL_META = {

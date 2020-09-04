@@ -1,9 +1,11 @@
 import { Creature, CreatureResources } from "./Creature.js";
+import { HeroResources } from "./Hero.js";
 
 /**
  * The basic resources used in the game
  * @typedef {Object}
  * @property {CreatureResources} creatures
+ * @property {HeroResources} hero
  */
 let Resources;
 
