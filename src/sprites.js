@@ -224,6 +224,14 @@ export class Sprite {
   }
 
   /**
+   * Returns whether the sprite has finished. Sprites that infinitely loop do not complete.
+   * @return {boolean} Whether the sprite has finished
+   */
+  isCompleted() {
+    return this._nextFrameTime === -1;
+  }
+
+  /**
    * Resets the sprite back to the original index.
    * @param {string} mode - What subversion of the sprite to run
    * @param {number} time - The room time
@@ -237,7 +245,7 @@ export class Sprite {
     this._startTime = time;
     this._activeMode = mode;
     this._frameIndex = 0;
-    this._nextFrameTime = calculateNextFrameTime(this, 0, time);
+    this._nextFrameTime = time + this._frameTimes[0];
   }
 
   /**
@@ -256,13 +264,25 @@ export class Sprite {
     // check if we should advance the frame
     const nextFrameTime = this._nextFrameTime;
     if (nextFrameTime !== -1 && nextFrameTime <= time) {
-      if (++frameIndex === this._frameTimes.length) {
-        frameIndex = 0;
-        this._currentLoop++;
-      }
+      const frameTimes = this._frameTimes;
+      const nextFrame = frameIndex + 1;
+      if (nextFrame === frameTimes.length) {
+        // check if we are in the last loop. This frame cleverly handles targetLoops === -1 (the infinite case)
+        if (this._currentLoop === this._targetLoops) {
+          // stay on this frame, but adjust the time to never advance
+          this._nextFrameTime = -1;
+        } else {
+          this._currentLoop++;
 
-      this._frameIndex = frameIndex;
-      this._nextFrameTime = calculateNextFrameTime(this, frameIndex, time);
+          frameIndex = 0;
+          this._frameIndex = frameIndex;
+          this._nextFrameTime = time + frameTimes[frameIndex];
+        }
+      } else {
+        frameIndex = nextFrame;
+        this._frameIndex = frameIndex;
+        this._nextFrameTime = time + frameTimes[frameIndex];
+      }
     }
 
     this._spriteSet.bindTo(program);
