@@ -6,7 +6,7 @@ import { arctan } from "./webgames/math.js";
 
 const CREATURE_RADIUS_PIXELS = 54;
 const CREATURE_IDLE_FRAMES = 6;
-const CREATURE_RADIUS = CREATURE_RADIUS_PIXELS / TEX_PIXELS_PER_METER;
+const CREATURE_RADIUS = 0.25; // CREATURE_RADIUS_PIXELS / TEX_PIXELS_PER_METER;
 
 const STEP_TIME = 1 / 8;
 const ATTACH_Z_OFFSET = CREATURE_RADIUS * (3 / 4);
@@ -92,7 +92,7 @@ export async function loadCreatureResources(loadTexture) {
       points.push(
         (x * basis.x + y * basis.y) / unitMag,
         rawX, // should be 1 for the base points
-        (x * -basis.y + y * basis.x) / TEX_PIXELS_PER_METER / 2,
+        (x * -basis.y + y * basis.x) / TEX_PIXELS_PER_METER,
         (tentacleFrameW * (col + rawX)) / tentacleTex.w,
         (tentacleFrameH * (row + rawY)) / tentacleTex.h
       );
@@ -151,7 +151,7 @@ export class Creature {
  * @param {number} x
  */
 export function spawnCreature(room, x) {
-  room.creatures.push(new Creature(room, x, 0, 0.4));
+  room.creatures.push(new Creature(room, x, 0, 3 * CREATURE_RADIUS));
 }
 
 /**
@@ -161,7 +161,7 @@ export function spawnCreature(room, x) {
 export function processCreatures(room) {
   const roomTime = room.roomTime;
   room.creatures.forEach((creature) => {
-    creature.x = creature.startX + 0.5 * Math.sin(roomTime);
+    creature.x = creature.startX + Math.sin(roomTime);
     const speed = 0.5 * Math.cos(roomTime);
 
     if (roomTime > creature.nextTentacleMove) {
@@ -260,7 +260,7 @@ export function renderCreatures(gl, program, room) {
 }
 
 function makeTentacle(index, x, y, xSign, ySign) {
-  const idealX = 0.2 * xSign;
+  const idealX = 0.4 * xSign;
   const idealY = 0.1 * ySign;
   const placementX = x + idealX;
   const placementY = y + idealY;

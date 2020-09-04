@@ -31,6 +31,7 @@ import {
 } from "./Creature.js";
 import { makeRoom } from "./Scene.js";
 import { loadHeroResources, flarePositionsMap } from "./Hero.js";
+import { loadEnvironResources } from "./Environ.js";
 
 const ATTACK_ORIGIN_X = 284;
 const ATTACK_WIDTH = 644;
@@ -68,7 +69,6 @@ async function onLoad() {
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
 
-  const screenHeightM = height / PIXELS_PER_METER;
   let cameraZ = ROOM_HEIGHT / 2;
 
   const layoutMiddleY =
@@ -187,7 +187,7 @@ void main() {
   };
 
   const [
-    wallTex,
+    environResources,
     floorTex,
     charWalkTex,
     charAxeTex,
@@ -197,11 +197,7 @@ void main() {
     ceilingTex,
     heroResources,
   ] = await Promise.all([
-    loadTextureFromImgUrl({
-      gl,
-      src: "assets/Back Wall.png",
-      name: "wall",
-    }),
+    loadEnvironResources(loadTexture),
     loadTextureFromImgUrl({
       gl,
       src: "assets/floor.png",
@@ -231,7 +227,7 @@ void main() {
   let exclamation = null;
 
   const floorDims = {
-    top: (512 - 290) / floorTex.h,
+    top: 220 / floorTex.h,
     w: floorTex.w / TEX_PIXELS_PER_METER,
     h: 70 / TEX_PIXELS_PER_METER,
     boundary: (512 - 70) / floorTex.h,
@@ -241,16 +237,6 @@ void main() {
   floorDims.top /= 2;
   floorDims.w *= 2;
   floorDims.boundary /= 2;
-
-  const wall = new SpriteSet(wallTex, {
-    // prettier-ignore
-    "main": [[
-        wallTex.w / TEX_PIXELS_PER_METER, ROOM_DEPTH_RADIUS, wallTex.h/TEX_PIXELS_PER_METER, 1, 0,
-        wallTex.w / TEX_PIXELS_PER_METER, ROOM_DEPTH_RADIUS, 0, 1, 1,
-        0, ROOM_DEPTH_RADIUS, wallTex.h/TEX_PIXELS_PER_METER, 0, 0,
-        0, ROOM_DEPTH_RADIUS, 0, 0, 1,
-      ]],
-  });
 
   const floor = new SpriteSet(floorTex, {
     // prettier-ignore
@@ -266,7 +252,7 @@ void main() {
 
   const ceilDims = {
     edgeY: 62,
-    wallY: 266,
+    wallY: 288,
     w: ceilingTex.w / TEX_PIXELS_PER_METER,
     h: floorDims.h,
   };
@@ -606,6 +592,7 @@ void main() {
   function renderInSceneContent(gl, program) {
     const stack = program.stack;
 
+    const wall = environResources.wallSpriteSet;
     wall.bindTo(program);
     wall.renderSpriteDatumPrebound("main", 0);
 
