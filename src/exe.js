@@ -20,6 +20,8 @@ import {
   PIXELS_PER_METER,
   TEX_PIXELS_PER_METER,
   ROOM_DEPTH_RADIUS,
+  ROOM_HEIGHT,
+  LAYOUT_TARGETS,
 } from "./SpriteData.js";
 import {
   loadCreatureResources,
@@ -65,9 +67,24 @@ async function onLoad() {
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
 
-  const roomHeightM = 2;
   const screenHeightM = height / PIXELS_PER_METER;
-  let cameraZ = 0.948;
+  let cameraZ = ROOM_HEIGHT / 2;
+
+  const layoutMiddleY =
+    (LAYOUT_TARGETS.CEIL_FOREGROUND + LAYOUT_TARGETS.FLOOR_FOREGROUND) / 2;
+  const clipSpaceY = (layoutTargetY) =>
+    (layoutMiddleY - layoutTargetY) / height;
+
+  // this is the vertical "radius" of the room, in meters
+  // const Ry = ROOM_HEIGHT / 2;
+  // this is the y position (in clip space) of the middle of the ceiling
+  const Ry = clipSpaceY(
+    (LAYOUT_TARGETS.CEIL_FOREGROUND + LAYOUT_TARGETS.CEIL_BACKGROUND) / 2
+  );
+
+  // this is the value we want for the w coordinate in the foreground
+  const w1 = Ry / clipSpaceY(LAYOUT_TARGETS.CEIL_FOREGROUND);
+  const w2 = Ry / clipSpaceY(LAYOUT_TARGETS.CEIL_BACKGROUND);
 
   // the projection matrix will do:
   //   x: represents the x coordinate in clip-space when z = 0
@@ -77,10 +94,11 @@ async function onLoad() {
   // prettier-ignore
   const projection = new Float32Array([
     2 * PIXELS_PER_METER / width, 0, 0, 0,
-    0, 0, 1 / (2 * ROOM_DEPTH_RADIUS), 0,
-    0, 2 / screenHeightM, 0, 0,
-    0, 0, 0, 1,
+    0, 0, 1 / (2 * ROOM_DEPTH_RADIUS), (w2 - w1) / (2 * ROOM_DEPTH_RADIUS),
+    0, Ry / (ROOM_HEIGHT / 2), 0, 0,
+    0, 0, 0, (w1 + w2) / 2,
   ]);
+  console.log(projection);
 
   // prettier-ignore
   // const projection = new Float32Array([
@@ -109,9 +127,11 @@ out vec2 v_texturePosition;
 
 void main() {
     vec4 position = u_projection * vec4(a_position, 1);
-    float inverse = 1.f / (1.f - position.z * .2f);
+    // float inverse = 1.f / (1.f - position.z * .2f);
 
-    vec4 result = vec4(position.x, inverse * position.y * (1.f - .5f * position.z), inverse * position.z, inverse * position.w);
+    // vec4 result = vec4(position.x, inverse * position.y * (1.f - .5f * position.z), inverse * position.z, inverse * position.w);
+    // vec4 result = vec4(position.x * position.w, position.y, position.z, position.w);
+    vec4 result = position;
     gl_Position = result;
     
     v_clipSpace = result;
@@ -132,7 +152,9 @@ in vec4 v_clipSpace;
 out vec4 output_color;
 
 void main() {
-    vec4 clipSpace = vec4(.5f * (v_clipSpace.x + 1.f), -.5f * (v_clipSpace.y - 1.f), v_clipSpace.z, v_clipSpace.w);
+    vec4 clipSpace = v_clipSpace / v_clipSpace.w; //vec4(.5f * (v_clipSpace.x + 1.f), -.5f * (v_clipSpace.y - 1.f), v_clipSpace.z, v_clipSpace.w) / v_clipSpace.w;
+    clipSpace.x = .5f * (clipSpace.x + 1.f);
+    clipSpace.y = 1.f - .5f * (1.f - clipSpace.y); // why????
 
     vec4 color = texture(u_texture, v_texturePosition.st);
     if (color.a == 0.0) {
@@ -258,12 +280,12 @@ void main() {
   // prettier-ignore
   const ceilingSprite = new SpriteSet(ceilingTex, {
     "main": [[
-      ceilDims.w, -ROOM_DEPTH_RADIUS, roomHeightM + ceilDims.h, 1, 0,
-               0, -ROOM_DEPTH_RADIUS, roomHeightM + ceilDims.h, 0, 0,
-      ceilDims.w, -ROOM_DEPTH_RADIUS, roomHeightM, 1, ceilDims.edgeY / ceilingTex.h,
-               0, -ROOM_DEPTH_RADIUS, roomHeightM, 0, ceilDims.edgeY / ceilingTex.h,
-      ceilDims.w,  ROOM_DEPTH_RADIUS, roomHeightM, 1, ceilDims.wallY / ceilingTex.h,
-               0,  ROOM_DEPTH_RADIUS, roomHeightM, 0, ceilDims.wallY / ceilingTex.h,
+      ceilDims.w, -ROOM_DEPTH_RADIUS, ROOM_HEIGHT + ceilDims.h, 1, 0,
+               0, -ROOM_DEPTH_RADIUS, ROOM_HEIGHT + ceilDims.h, 0, 0,
+      ceilDims.w, -ROOM_DEPTH_RADIUS, ROOM_HEIGHT, 1, ceilDims.edgeY / ceilingTex.h,
+               0, -ROOM_DEPTH_RADIUS, ROOM_HEIGHT, 0, ceilDims.edgeY / ceilingTex.h,
+      ceilDims.w,  ROOM_DEPTH_RADIUS, ROOM_HEIGHT, 1, ceilDims.wallY / ceilingTex.h,
+               0,  ROOM_DEPTH_RADIUS, ROOM_HEIGHT, 0, ceilDims.wallY / ceilingTex.h,
       ]],
   });
 
@@ -414,10 +436,12 @@ void main() {
   const wave1 = (isFar) => {
     const time = timeDiff + (isFar ? 170 : 0);
     return Math.sin((Math.PI * time) / 8) / 2;
+    // return 0;
   };
   const wave2 = (isFar) => {
     const time = timeDiff + (isFar ? 130 : 0);
     return Math.sin((Math.PI * time) / 3) / 8;
+    // return 0;
   };
 
   spawnCreature(room, charX + 2);
@@ -584,7 +608,7 @@ void main() {
   }
 
   function renderInCamera(gl, program, subcode) {
-    program.stack.pushAbsolute(projection);
+    program.stack.push(projection);
 
     // set the camera
     program.stack.pushTranslation(-charX, 0, -cameraZ);

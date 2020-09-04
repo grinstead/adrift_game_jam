@@ -13,6 +13,15 @@ const COMPRESSION = 4;
 
 const fadeWidth = 64;
 
+// I have no idea why, but we need to flip the y coordinate
+// prettier-ignore
+const FLIP_Y = new Float32Array([
+  1, 0, 0, 0,
+  0, -1, 0, 0,
+  0, 0, 1, 0,
+  0, 0, 0, 1,
+]);
+
 export class Lighting {
   constructor(gl, viewportWidth, viewportHeight, texPixelsPerMeter) {
     const lightingTexWidth = viewportWidth / COMPRESSION;
@@ -30,10 +39,11 @@ out vec2 v_texturePosition;
 
 void main() {
   vec4 position = u_projection * vec4(a_position, 1);
-  float inverse = 1.f / (1.f - position.z * .2f);
+  // float inverse = 1.f / (1.f - position.z * .2f);
 
-  vec4 result = vec4(position.x, -inverse * position.y * (1.f - .5f * position.z), inverse * position.z, inverse * position.w);
-  gl_Position = result;
+  // vec4 result = vec4(position.x, -inverse * position.y * (1.f - .5f * position.z), inverse * position.z, inverse * position.w);
+  // gl_Position = result;
+  gl_Position = position;
   
   v_texturePosition = a_texturePosition;
 }`
