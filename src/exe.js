@@ -63,8 +63,7 @@ async function onLoad() {
   console.log(projection);
 
   const gl = canvas.getContext("webgl2", { antialias: false, alpha: false });
-  // gl.enable(gl.BLEND);
-  // gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.enable(gl.BLEND);
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
 
@@ -354,6 +353,12 @@ void main() {
     sideSprite.renderSpriteDatumPrebound("left", 0);
     sideSprite.renderSpriteDatumPrebound("right", 0);
 
+    stack.pushTranslation(2, 0, 0);
+    const ladderSprite = room.resources.environ.ladderSprite;
+    ladderSprite.bindTo(program);
+    ladderSprite.renderSpriteDatumPrebound("main", 0);
+    stack.pop();
+
     renderHero(gl, program, room);
     renderCreatures(gl, program, room);
 
@@ -379,7 +384,8 @@ void main() {
   function renderMain(gl, program) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, canvasWidth, canvasHeight);
-    gl.disable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 

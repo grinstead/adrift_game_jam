@@ -1,4 +1,4 @@
-import { SpriteSet } from "./sprites.js";
+import { SpriteSet, flatSprite } from "./sprites.js";
 import {
   ROOM_DEPTH_RADIUS,
   ROOM_HEIGHT,
@@ -24,6 +24,7 @@ export let ProjectionData;
  * @property {Texture} floorTex
  * @property {Texture} ceilTex
  * @property {Texture} sideTex
+ * @property {SpriteSet} ladderSprite
  * @property {ProjectionData} projection
  */
 export let EnvironResources;
@@ -94,14 +95,30 @@ export function buildProjectionData(outputWidth, outputHeight) {
  * @returns {EnvironResources}
  */
 export async function loadEnvironResources(projection, loadTexture) {
-  const [wallTex, floorTex, ceilTex, sideTex] = await Promise.all([
+  const [ladderTex, wallTex, floorTex, ceilTex, sideTex] = await Promise.all([
+    loadTexture("ladder", "assets/ladder.png"),
     loadTexture("wall", "assets/Back Wall.png"),
     loadTexture("floor", "assets/floor.png"),
     loadTexture("ceiling", "assets/ceiling.png"),
     loadTexture("wall", "assets/side_wall.png"),
   ]);
 
-  return { projection, wallTex, floorTex, ceilTex, sideTex };
+  const ladderWidth = (ladderTex.w * ROOM_HEIGHT) / ladderTex.h;
+  const ladderSprite = new SpriteSet(ladderTex, {
+    // prettier-ignore
+    "main": [flatSprite({
+      x: ladderWidth / 2,
+      y: -ROOM_DEPTH_RADIUS,
+      width: ladderWidth,
+      height: ROOM_HEIGHT,
+      texStartX: 0,
+      texStartY: .5,
+      texEndX: 1,
+      texEndY: 1,
+    })],
+  });
+
+  return { projection, wallTex, floorTex, ceilTex, sideTex, ladderSprite };
 }
 
 /**

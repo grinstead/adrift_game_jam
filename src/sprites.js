@@ -482,6 +482,7 @@ export function flatSprite({
   z = 0,
   width,
   height,
+  depth = 0,
   texStartX,
   texStartY,
   texEndX,
@@ -502,9 +503,9 @@ export function flatSprite({
   }
   // prettier-ignore
   return [
-    rightX, y,         -z,   endX,   texEndY,
-     leftX, y,         -z, startX,   texEndY,
-    rightX, y, height - z,   endX, texStartY,
-     leftX, y, height - z, startX, texStartY,
+    rightX,        -y,         -z,   endX,   texEndY,
+     leftX,        -y,         -z, startX,   texEndY,
+    rightX, depth - y, height - z,   endX, texStartY,
+     leftX, depth - y, height - z, startX, texStartY,
   ];
 }

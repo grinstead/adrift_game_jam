@@ -141,9 +141,6 @@ void main() {
     const gl = this._program.gl;
     const tex = this._targetTex;
 
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE);
-
     // render everything to our target texture and frame buffer
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
     gl.viewport(0, 0, tex.w, tex.h);
@@ -169,6 +166,8 @@ void main() {
  * @param {Object} scene
  */
 function renderLightingToTexture(gl, program, lighting, scene) {
+  gl.blendFunc(gl.ONE, gl.ONE);
+
   if (scene.lightsOn) {
     gl.clearColor(0, 0, 0, 1);
   } else {
