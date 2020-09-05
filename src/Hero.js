@@ -55,7 +55,14 @@ export class Hero {
     /** @public {number} The character's speed (in meters per second) in the x-direction */
     this.speedX = 0;
     /** @private {HeroState} The hero's active state */
-    this.heroState = heroStateNormal(resources, 0);
+    this.state = {
+      name: "unstarted",
+      sprite: resources.makeIdleSprite("right", 0),
+      processStep: (room) => this.changeState(room, heroStateNormal),
+      renderSprite: () => {
+        throw new Error("Hero did not get processed before rendering!");
+      },
+    };
   }
 
   /** Enemies will stare at this point, very intimidating! */
@@ -74,7 +81,7 @@ export class Hero {
 
   /** @returns {?FlarePosition} */
   flarePosition() {
-    const data = this.heroState.sprite.frameData();
+    const data = this.state.sprite.frameData();
     return data ? data.flare : null;
   }
 
@@ -94,8 +101,21 @@ export class Hero {
   renderSprite(gl, program) {
     const stack = program.stack;
     stack.pushTranslation(this.heroX, 0, 0);
-    this.heroState.sprite.renderSprite(program);
+    this.state.sprite.renderSprite(program);
     stack.pop();
+  }
+
+  /**
+   * Changes the hero's state. Assumed to be done during a processStep call.
+   * This will invoke processStep immediately on the new step
+   * @param {Room} room - The current room
+   * @param {function(Hero,Room):HeroState} stateBuilder - The thing that
+   * returns the new hero state
+   */
+  changeState(room, stateBuilder) {
+    const state = stateBuilder(this, room);
+    this.state = state;
+    state.processStep(room);
   }
 }
 
@@ -104,7 +124,7 @@ export class Hero {
  * @param {Room} room
  */
 export function processHero(room) {
-  room.hero.heroState.processStep(room);
+  room.hero.state.processStep(room);
 }
 
 /**
@@ -114,26 +134,39 @@ export function processHero(room) {
  * @param {Room} room
  */
 export function renderHero(gl, program, room) {
-  room.hero.heroState.render(gl, program, room);
+  const render = room.hero.state.render;
+  if (render) {
+    render(gl, program, room);
+  } else {
+    room.hero.renderSprite(gl, program);
+  }
 }
 
 /**
- * In this state, the hero just walks back and fort
- * @param {HeroResources} resources
+ * In this state, the hero just walks back and forth
+ * @param {Hero} hero
+ * @param {Room} room
  * @returns {HeroState}
  */
-export function heroStateNormal(resources, time) {
+export function heroStateNormal(hero, room) {
   let isIdle = true;
 
   const state = {
     name: "normal",
-    sprite: resources.makeIdleSprite("right", time),
+    sprite: room.resources.hero.makeIdleSprite(
+      hero.directionMode(),
+      room.roomTime
+    ),
     processStep: (/** @type {Room} */ room) => {
-      const { hero, roomTime } = room;
+      const { hero, roomTime, input } = room;
+
+      if (input.isPressed("attack")) {
+        hero.changeState(room, heroStateAttacking);
+        return;
+      }
 
       // move character
-      let charDx =
-        1.2 * room.stepSize * room.input.getSignOfAction("left", "right");
+      let charDx = 1.2 * room.stepSize * input.getSignOfAction("left", "right");
       const plannedX = hero.heroX + charDx;
       if (plannedX < room.roomLeft + charWInM) {
         charDx = room.roomLeft + charWInM - hero.heroX;
@@ -165,10 +198,37 @@ export function heroStateNormal(resources, time) {
         }
       }
     },
-    render: (gl, program, room) => room.hero.renderSprite(gl, program),
+    render: null,
   };
 
   return state;
+}
+
+/**
+ * In this state, the hero just walks back and forth
+ * @param {Hero} hero
+ * @param {Room} room
+ * @returns {HeroState}
+ */
+function heroStateAttacking(hero, room) {
+  const sprite = room.resources.hero.makeAttackSprite(
+    hero.directionMode(),
+    room.roomTime
+  );
+
+  hero.setSpeedX(0);
+
+  return {
+    name: "attacking",
+    sprite,
+    processStep: (room) => {
+      sprite.updateTime(room.roomTime);
+      if (sprite.isFinished()) {
+        hero.changeState(room, heroStateNormal);
+      }
+    },
+    render: null,
+  };
 }
 
 /**
