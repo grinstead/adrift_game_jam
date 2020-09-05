@@ -46,6 +46,8 @@ const FLARE_DURING_ATTACK = [
 
 const CAMERA_X_OFFSET = 2;
 
+window.ambientLight = 0.2;
+
 async function onLoad() {
   const fpsNode = document.getElementById("fps");
   const canvas = document.getElementById("canvas");
@@ -59,6 +61,8 @@ async function onLoad() {
   input.setKeysForAction("fullscreen", ["u"]);
   input.setKeysForAction("up", ["w", "ArrowUp"]);
   input.setKeysForAction("down", ["s", "ArrowDown"]);
+  input.setKeysForAction("lightUp", ["y"]);
+  input.setKeysForAction("lightDown", ["h"]);
 
   let width = parseInt(computedStyle.getPropertyValue("width"), 10);
   let height = parseInt(computedStyle.getPropertyValue("height"), 10);
@@ -688,6 +692,15 @@ void main() {
 
   function renderStep() {
     updateTime();
+
+    window.ambientLight = Math.max(
+      0,
+      Math.min(
+        1,
+        window.ambientLight +
+          (stepSize / 4) * input.getSignOfAction("lightDown", "lightUp")
+      )
+    );
 
     if (input.numPresses("showLights") % 2) {
       debugShowLights = !debugShowLights;

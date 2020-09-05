@@ -172,7 +172,7 @@ function renderLightingToTexture(gl, program, lighting, scene) {
   if (scene.lightsOn) {
     gl.clearColor(0, 0, 0, 1);
   } else {
-    gl.clearColor(0, 0, 0, 0.2);
+    gl.clearColor(0, 0, 0, window.ambientLight);
   }
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
