@@ -20,6 +20,14 @@ let PositionTexPosition;
 let SpriteDatum;
 
 /**
+ * Creates a new sprite, starts "animating" immediately (it keeps track of
+ * time). The first argument is the sprite's starting mode, the second is the
+ * current time.
+ * @typedef {function(string,number):Sprite} SpriteBuilder
+ */
+export let SpriteBuilder;
+
+/**
  * Builder
  * @param {SpriteSet} set
  * @param {string} name
@@ -181,19 +189,21 @@ export class Sprite {
    * @private
    * @param {SpriteDefinition} options
    * @param {Array<number>} frameTimes - Computed once, supersedes the value in options
+   * @param {string} mode - The starting mode
+   * @param {number} time - The room time
    */
-  constructor(options, frameTimes) {
-    const { loops, frameTime } = options;
+  constructor(options, frameTimes, mode, time) {
+    const { loops } = options;
 
     // set the name immediately so that the possible errors print nicely
     /** @private {string} _name - The name of this Sprite, for debugging */
     this._name = options.name;
-    /** @private {number} When the current mode started */
-    this._startTime = 0;
+    /** @private {number} When the sprite started */
+    this._startTime = time;
     /** @private {Array<string>} All of the modes in this sprite */
     this._modes = options.modes;
-    /** @private {null|string} Which mode is currently running */
-    this._activeMode = null;
+    /** @private {string} Which mode is currently running */
+    this._activeMode = mode;
     /** @private {number} The number of time a sprite loops (-1 if it loops forever) */
     this._targetLoops = typeof loops === "number" ? loops : loops ? -1 : 0;
     /** @private {SpriteSet} The set to bind when rendering this sprite */
@@ -203,9 +213,9 @@ export class Sprite {
     /** @private {number} The number of times the sprite has looped since being reset */
     this._currentLoop = 0;
     /** @private {number} The index of the active frame, or -1 if the Sprite is not active */
-    this._frameIndex = -1;
+    this._frameIndex = 0;
     /** @private {number} The time when we should switch frames, or -1 if we reached the last one */
-    this._nextFrameTime = -1;
+    this._nextFrameTime = time + frameTimes[0];
     /** @private {?Array<*>} Extra data for each frame */
     this._frameData = options.perFrameData;
   }
@@ -249,6 +259,10 @@ export class Sprite {
    * @param {string} mode
    */
   setMode(mode) {
+    if (mode === this._activeMode) return;
+    if (!this._modes.includes(mode)) {
+      throw new Error(`${this} does not have mode ${mode}`);
+    }
     this._activeMode = mode;
   }
 
@@ -300,13 +314,11 @@ export class Sprite {
    * @param {Program} program
    */
   renderSprite(program) {
-    const mode = this._activeMode;
-    if (mode == null) {
-      throw new Error(`${this} tried rendering while inactive`);
-    }
-
     this._spriteSet.bindTo(program);
-    this._spriteSet.renderSpriteDatumPrebound(mode, this._frameIndex);
+    this._spriteSet.renderSpriteDatumPrebound(
+      this._activeMode,
+      this._frameIndex
+    );
   }
 
   /**
@@ -351,7 +363,7 @@ function calculateNextFrameTime(sprite, frameIndex, time) {
  * Makes a function which will construct new sprites. It's more preferable to
  * use this, because we validate the options
  * @param {SpriteDefinition} options
- * @returns {function():Sprite} A function which outputs a new sprite on ever call
+ * @returns {SpriteBuilder} A function which outputs a new sprite on ever call
  */
 export function makeSpriteType(options) {
   const { name, frameTime } = options;
@@ -388,7 +400,7 @@ export function makeSpriteType(options) {
       ? new Array(numFrames).fill(frameTime)
       : frameTime;
 
-  return () => new Sprite(options, frameTimes);
+  return (mode, time) => new Sprite(options, frameTimes, mode, time);
 }
 
 //////////////////////////////////////////////////////////////////////////////

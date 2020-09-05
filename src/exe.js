@@ -5,15 +5,7 @@ import {
   loadTextureFromRawBitmap,
   doAnimationFrame,
 } from "./swagl.js";
-import { GameLoop } from "./webgames/GameLoop.js";
-import {
-  SpriteSet,
-  characterSpriteSheet,
-  spriteSheet,
-  flatSprite,
-  makeSpriteType,
-  Sprite,
-} from "./sprites.js";
+import { SpriteSet, spriteSheet } from "./sprites.js";
 import { InputManager } from "./webgames/Input.js";
 import { Lighting } from "./lighting.js";
 import {
@@ -22,7 +14,6 @@ import {
   TEX_PIXELS_PER_METER,
   ROOM_DEPTH_RADIUS,
   ROOM_HEIGHT,
-  LAYOUT_TARGETS,
 } from "./SpriteData.js";
 import {
   loadCreatureResources,
@@ -31,19 +22,8 @@ import {
   processCreatures,
 } from "./Creature.js";
 import { makeRoom, Room } from "./Scene.js";
-import { loadHeroResources, Hero } from "./Hero.js";
+import { loadHeroResources, Hero, renderHero, processHero } from "./Hero.js";
 import { loadEnvironResources, buildProjectionData } from "./Environ.js";
-
-const ATTACK_ORIGIN_X = 284;
-const ATTACK_WIDTH = 644;
-const ATTACK_HEIGHT = 565;
-const FLARE_DURING_ATTACK = [
-  { x1: 422, y1: 285, x2: 415, y2: 353 },
-  { x1: 936, y1: 367, x2: 868, y2: 380 },
-  { x1: 1507, y1: 311, x2: 1469, y2: 318 },
-  { x1: 162, y1: 948, x2: 206, y2: 943 },
-  { x1: 1025, y1: 934, x2: 976, y2: 962 },
-];
 
 const CAMERA_X_OFFSET = 1;
 
@@ -176,21 +156,14 @@ void main() {
 
   let exclamation = null;
 
-  const charWInM = 405 / TEX_PIXELS_PER_METER;
-
-  const charSprite = heroResources.idleSprite;
-  const charWalkSprite = heroResources.walkSprite;
-  const charAxeSprite = heroResources.attackSprite;
-  let charSpriteMode = "right";
-
-  const hero = new Hero(2);
-  /** @type {Room} */
+  const hero = new Hero(heroResources, 2);
   const room = makeRoom({
     resources: {
       creature: creatureResources,
       hero: heroResources,
       environ: environResources,
     },
+    input,
     roomTime: 0,
     roomLeft: 0,
     roomRight: 12,
@@ -212,8 +185,8 @@ void main() {
   let stepSize = 0;
   function updateTime() {
     const newTime = (Date.now() - startTime) / 1000;
-    stepSize = newTime - room.roomTime;
-    timeDiff = room.roomTime = newTime;
+    room.stepSize = stepSize = newTime - room.roomTime;
+    room.roomTime = timeDiff = newTime;
 
     if (avgFps === -1) {
       avgFps = 60;
@@ -226,10 +199,6 @@ void main() {
   let charDx = 0;
   let charFacingLeft = false;
   const spawnHertz = 48;
-
-  let charFrameStart = 0;
-  let activeCharSprite = charWalkSprite;
-  let charFps = 12;
 
   let fullScreenRequest = null;
   document.addEventListener("fullscreenchange", (event) => {
@@ -262,54 +231,60 @@ void main() {
     normalX = Math.sin(shipAngle);
     shipDz = (bowY + sternY) / 2;
 
-    let charSpeedX = 0;
-    if (activeCharSprite === charAxeSprite && !charAxeSprite.isFinished()) {
-      // do nothing
-    } else if (input.isPressed("attack")) {
-      activeCharSprite = charAxeSprite;
-      charAxeSprite.resetSprite(charSpriteMode, timeDiff);
+    processHero(room);
 
-      if (exclamation) {
-        exclamation.stop();
-      }
+    // let charSpeedX = 0;
+    // if (activeCharSprite === charAxeSprite && !charAxeSprite.isFinished()) {
+    //   // do nothing
+    // } else if (input.isPressed("attack")) {
+    //   activeCharSprite = charAxeSprite;
+    //   charAxeSprite.resetSprite(charSpriteMode, timeDiff);
 
-      const audioSource = audioContext.createBufferSource();
-      audioSource.buffer =
-        gruntSounds[Math.floor(Math.random() * gruntSounds.length)];
-      audioSource.connect(audioContext.destination);
-      audioSource.start(0);
-    } else {
-      // move character
-      charDx = 1.2 * stepSize * input.getSignOfAction("left", "right");
-      let plannedX = hero.heroX + charDx;
-      if (plannedX < room.roomLeft + charWInM) {
-        charDx = room.roomLeft + charWInM - hero.heroX;
-      } else if (plannedX > room.roomRight - charWInM) {
-        charDx = room.roomRight - charWInM - hero.heroX;
-      }
+    //   if (exclamation) {
+    //     exclamation.stop();
+    //   }
 
-      if (charDx !== 0) {
-        hero.heroX += charDx;
-        charFacingLeft = charDx < 0;
-        if (activeCharSprite !== charWalkSprite) {
-          activeCharSprite = charWalkSprite;
-          charWalkSprite.resetSprite(
-            charFacingLeft ? "left" : "right",
-            timeDiff
-          );
-        }
-      } else if (activeCharSprite !== charSprite) {
-        activeCharSprite = charSprite;
-        charSprite.resetSprite(charFacingLeft ? "left" : "right", timeDiff);
-      } else if (exclamation == null && charFrameStart < timeDiff - 4) {
-        exclamation = audioContext.createBufferSource();
-        exclamation.buffer = exclaimSound;
-        exclamation.connect(audioContext.destination);
-        exclamation.start(0);
-      }
-    }
+    //   const audioSource = audioContext.createBufferSource();
+    //   audioSource.buffer =
+    //     gruntSounds[Math.floor(Math.random() * gruntSounds.length)];
+    //   audioSource.connect(audioContext.destination);
+    //   audioSource.start(0);
+    // } else {
+    //   // move character
+    //   charDx = 1.2 * stepSize * input.getSignOfAction("left", "right");
+    //   let plannedX = hero.heroX + charDx;
+    //   if (plannedX < room.roomLeft + charWInM) {
+    //     charDx = room.roomLeft + charWInM - hero.heroX;
+    //   } else if (plannedX > room.roomRight - charWInM) {
+    //     charDx = room.roomRight - charWInM - hero.heroX;
+    //   }
 
-    activeCharSprite.updateTime(timeDiff);
+    //   hero.setSpeedX(charDx);
+
+    //   if (hero.speedX) {
+    //     hero.heroX += hero.speedX;
+    //     if (activeCharSprite !== charWalkSprite) {
+    //       activeCharSprite = charWalkSprite;
+    //       charWalkSprite.resetSprite(
+    //         hero.isFacingLeft() ? "left" : "right",
+    //         timeDiff
+    //       );
+    //     }
+    //   } else if (activeCharSprite !== charSprite) {
+    //     activeCharSprite = charSprite;
+    //     charSprite.resetSprite(
+    //       hero.isFacingLeft() ? "left" : "right",
+    //       timeDiff
+    //     );
+    //   } else if (exclamation == null && charFrameStart < timeDiff - 4) {
+    //     exclamation = audioContext.createBufferSource();
+    //     exclamation.buffer = exclaimSound;
+    //     exclamation.connect(audioContext.destination);
+    //     exclamation.start(0);
+    //   }
+    // }
+
+    // activeCharSprite.updateTime(timeDiff);
 
     const toSpawn =
       Math.floor(spawnHertz * timeDiff) -
@@ -318,15 +293,14 @@ void main() {
       const speed = Math.random() * 2 + 1.4; // measured in meters per second
       let dy = 0.1 * Math.sin(2 * Math.PI * Math.random());
 
-      const frameData = activeCharSprite.frameData();
-      const flarePosition = frameData && frameData.flare;
+      const flarePosition = hero.flarePosition();
       if (!flarePosition) continue;
 
       const x = hero.heroX + flarePosition.x * (charFacingLeft ? -1 : 1);
       const z = flarePosition.z; // assumes character is at 0
       const angle = (Math.random() - 0.5) * (Math.PI / 4) + flarePosition.angle;
       const dz = speed * Math.sin(angle);
-      const dx = speed * Math.cos(angle) + charDx / stepSize;
+      const dx = speed * Math.cos(angle) + hero.speedX;
 
       if (particles.length > 100) {
         particles.pop();
@@ -441,11 +415,7 @@ void main() {
     sideSprite.renderSpriteDatumPrebound("left", 0);
     sideSprite.renderSpriteDatumPrebound("right", 0);
 
-    stack.pushTranslation(hero.heroX, 0, 0);
-    activeCharSprite.setMode(charFacingLeft ? "left" : "right");
-    activeCharSprite.renderSprite(program);
-    stack.pop();
-
+    renderHero(gl, program, room);
     renderCreatures(gl, program, room);
 
     sparkSprite.bindTo(program);

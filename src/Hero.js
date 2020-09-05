@@ -1,38 +1,174 @@
-import { SpriteSet, Sprite, makeSpriteType, spriteSheet } from "./sprites.js";
-import { Texture } from "./swagl.js";
+import {
+  SpriteSet,
+  Sprite,
+  makeSpriteType,
+  spriteSheet,
+  SpriteBuilder,
+} from "./sprites.js";
+import { Texture, Program } from "./swagl.js";
 import { HERO_HEIGHT } from "./SpriteData.js";
 import { arctan } from "./webgames/math.js";
 
 // The hero's scaling is off, but it is self-consistent
 const HERO_PIXELS_PER_METER = 434 / HERO_HEIGHT;
 
+const charWInM = 405 / HERO_PIXELS_PER_METER;
+
 /**
  * @typedef {Object} HeroResources
- * @property {Sprite} idleSprite
- * @property {Sprite} walkSprite
- * @property {Sprite} attackSprite
+ * @property {SpriteBuilder} makeIdleSprite
+ * @property {SpriteBuilder} makeWalkSprite
+ * @property {SpriteBuilder} makeAttackSprite
  */
 export let HeroResources;
 
 /**
  * The flare shoots out particles, and we want to be precise
  * about how they shoot out each frame
- * @typedef {Object}
+ * @typedef {Object} FlarePosition
  * @property {number} x - The x position (in meters) relative to the hero
  * @property {number} z - The y position (in meters) relative to the hero
  * @property {number} angle - The angle (off the origin, in the x-z plane) of the flare
  */
 let FlarePosition;
 
+/**
+ * All the states that the hero can be in
+ * @typedef {Object} HeroState
+ * @property {string} name - Useful for debugging
+ * @property {Sprite} sprite - The active sprite
+ * @property {function(Room):void} processStep - Perform the hero's code
+ * @property {function(WebGL2RenderingContext,Program,Room):void} render - Render the hero
+ */
+let HeroState;
+
 export class Hero {
-  constructor(x) {
+  /**
+   * @param {HeroResources} resources
+   * @param {number} x
+   */
+  constructor(resources, x) {
+    /** @public {number} The x position of the hero */
     this.heroX = x;
+    /** @public {number} -1 if the hero is facing left, 1 if the hero is facing right */
+    this.signX = 1;
+    /** @public {number} The character's speed (in meters per second) in the x-direction */
+    this.speedX = 0;
+    /** @private {HeroState} The hero's active state */
+    this.heroState = heroStateNormal(resources, 0);
   }
 
   /** Enemies will stare at this point, very intimidating! */
   getGoodFocusPoint() {
     return { x: this.heroX, z: HERO_HEIGHT - 0.1 };
   }
+
+  /** @returns {boolean} */
+  isFacingLeft() {
+    return this.signX === -1;
+  }
+
+  directionMode() {
+    return this.signX === -1 ? "left" : "right";
+  }
+
+  /** @returns {?FlarePosition} */
+  flarePosition() {
+    const data = this.heroState.sprite.frameData();
+    return data ? data.flare : null;
+  }
+
+  /**
+   * @param {number} speedX
+   */
+  setSpeedX(speedX) {
+    this.speedX = speedX;
+    if (speedX !== 0) this.signX = Math.sign(speedX);
+  }
+
+  /**
+   * Renders the sprite at the Hero's position
+   * @param {WebGL2RenderingContext} gl
+   * @param {Program} program
+   */
+  renderSprite(gl, program) {
+    const stack = program.stack;
+    stack.pushTranslation(this.heroX, 0, 0);
+    this.heroState.sprite.renderSprite(program);
+    stack.pop();
+  }
+}
+
+/**
+ * Moves the hero
+ * @param {Room} room
+ */
+export function processHero(room) {
+  room.hero.heroState.processStep(room);
+}
+
+/**
+ * Renders the hero, assumes the camera is at the origin
+ * @param {WebGL2RenderingContext} gl
+ * @param {Program} program
+ * @param {Room} room
+ */
+export function renderHero(gl, program, room) {
+  room.hero.heroState.render(gl, program, room);
+}
+
+/**
+ * In this state, the hero just walks back and fort
+ * @param {HeroResources} resources
+ * @returns {HeroState}
+ */
+export function heroStateNormal(resources, time) {
+  let isIdle = true;
+
+  const state = {
+    name: "normal",
+    sprite: resources.makeIdleSprite("right", time),
+    processStep: (/** @type {Room} */ room) => {
+      const { hero, roomTime } = room;
+
+      // move character
+      let charDx =
+        1.2 * room.stepSize * room.input.getSignOfAction("left", "right");
+      const plannedX = hero.heroX + charDx;
+      if (plannedX < room.roomLeft + charWInM) {
+        charDx = room.roomLeft + charWInM - hero.heroX;
+      } else if (plannedX > room.roomRight - charWInM) {
+        charDx = room.roomRight - charWInM - hero.heroX;
+      }
+
+      hero.setSpeedX(charDx / room.stepSize);
+      const mode = hero.directionMode();
+
+      if (charDx) {
+        hero.heroX += charDx;
+        if (isIdle) {
+          isIdle = false;
+          state.sprite = room.resources.hero.makeWalkSprite(mode, roomTime);
+        } else {
+          const sprite = state.sprite;
+          sprite.setMode(mode);
+          sprite.updateTime(roomTime);
+        }
+      } else {
+        if (isIdle) {
+          const sprite = state.sprite;
+          sprite.setMode(mode);
+          sprite.updateTime(roomTime);
+        } else {
+          isIdle = true;
+          state.sprite = room.resources.hero.makeIdleSprite(mode, roomTime);
+        }
+      }
+    },
+    render: (gl, program, room) => room.hero.renderSprite(gl, program),
+  };
+
+  return state;
 }
 
 /**
@@ -48,7 +184,7 @@ export async function loadHeroResources(loadTexture) {
   ]);
 
   // const flareDataToPosition =
-  const idleSprite = makeHeroSpriteType({
+  const makeIdleSprite = makeHeroSpriteType({
     name: "hero_idle",
     tex: idleTex,
     widthPx: 405,
@@ -76,9 +212,9 @@ export async function loadHeroResources(loadTexture) {
       { tx: 2010, ty: 974, bx: 2005, by: 1044 },
       { tx: 386, ty: 1406, bx: 385, by: 1477 },
     ],
-  })();
+  });
 
-  const walkSprite = makeHeroSpriteType({
+  const makeWalkSprite = makeHeroSpriteType({
     name: "hero_walk",
     tex: walkTex,
     widthPx: 424,
@@ -98,9 +234,9 @@ export async function loadHeroResources(loadTexture) {
       { tx: 408, ty: 1444, bx: 404, by: 1500 },
       { tx: 830, ty: 1444, bx: 829, by: 1500 },
     ],
-  })();
+  });
 
-  const attackSprite = makeHeroSpriteType({
+  const makeAttackSprite = makeHeroSpriteType({
     name: "hero_attack",
     tex: attackTex,
     widthPx: 644,
@@ -117,9 +253,9 @@ export async function loadHeroResources(loadTexture) {
       { tx: 162, ty: 948, bx: 206, by: 943 },
       { tx: 1025, ty: 934, bx: 976, by: 962 },
     ],
-  })();
+  });
 
-  return { idleSprite, walkSprite, attackSprite };
+  return { makeIdleSprite, makeWalkSprite, makeAttackSprite };
 }
 
 /**

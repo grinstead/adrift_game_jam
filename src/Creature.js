@@ -12,7 +12,7 @@ const STEP_TIME = 1 / 8;
 const ATTACH_Z_OFFSET = CREATURE_RADIUS * (3 / 4);
 
 /**
- * @typedef {Object}
+ * @typedef {Object} Tentacle
  * @property {number} bodyX
  * @property {number} bodyY
  * @property {number} placementX
@@ -22,7 +22,7 @@ const ATTACH_Z_OFFSET = CREATURE_RADIUS * (3 / 4);
 let Tentacle;
 
 /**
- * @typedef {Object}
+ * @typedef {Object} CreatureResources
  * @property {SpriteSet} tentacleSprite
  * @property {function():Sprite} makeCreatureSprite
  * @property {function():Sprite} makeCreatureAttackSprite
@@ -151,8 +151,10 @@ export async function loadCreatureResources(loadTexture) {
  */
 export class Creature {
   constructor(room, x, y, z) {
-    const sprite = room.resources.creature.makeCreatureSprite();
-    sprite.resetSprite("blink", room.roomTime);
+    const sprite = room.resources.creature.makeCreatureSprite(
+      "blink",
+      room.roomTime
+    );
 
     // const sprite = room.resources.creature.makeCreatureAttackSprite();
     // sprite.resetSprite("bite", room.roomTime);
