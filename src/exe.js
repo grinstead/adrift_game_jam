@@ -32,7 +32,7 @@ import {
 } from "./Creature.js";
 import { makeRoom } from "./Scene.js";
 import { loadHeroResources, Hero } from "./Hero.js";
-import { loadEnvironResources } from "./Environ.js";
+import { loadEnvironResources, buildProjectionData } from "./Environ.js";
 
 const ATTACK_ORIGIN_X = 284;
 const ATTACK_WIDTH = 644;
@@ -78,45 +78,8 @@ async function onLoad() {
 
   let cameraZ = ROOM_HEIGHT / 2;
 
-  const layoutMiddleY =
-    (LAYOUT_TARGETS.CEIL_FOREGROUND + LAYOUT_TARGETS.FLOOR_FOREGROUND) / 2;
-  const clipSpaceY = (layoutTargetY) =>
-    (layoutMiddleY - layoutTargetY) / height;
-
-  // this is the vertical "radius" of the room, in meters
-  // const Ry = ROOM_HEIGHT / 2;
-  // this is the y position (in clip space) of the middle of the ceiling
-  const Ry = clipSpaceY(
-    (LAYOUT_TARGETS.CEIL_FOREGROUND + LAYOUT_TARGETS.CEIL_BACKGROUND) / 2
-  );
-
-  // this is the value we want for the w coordinate in the foreground
-  const w1 = Ry / clipSpaceY(LAYOUT_TARGETS.CEIL_FOREGROUND);
-  const w2 = Ry / clipSpaceY(LAYOUT_TARGETS.CEIL_BACKGROUND);
-
-  // the projection matrix will do:
-  //   x: represents the x coordinate in clip-space when z = 0
-  //   y: represents the y coordinate in clip-space when z = 0
-  //   z: -1/2 represents the far foreground, 1/2 represents the far background
-
-  const scaleY = Ry / (ROOM_HEIGHT / 2);
-  const scaleX = scaleY * (height / width);
-
-  // prettier-ignore
-  const projection = new Float32Array([
-    scaleX, 0, 0, 0,
-    0, 0, 1 / (2 * ROOM_DEPTH_RADIUS), (w2 - w1) / (2 * ROOM_DEPTH_RADIUS),
-    0, scaleY, 0, 0,
-    0, 0, 0, (w1 + w2) / 2,
-  ]);
-
-  // prettier-ignore
-  // const projection = new Float32Array([
-  //   2 * PIXELS_PER_METER / width, 0,    0, 0,
-  //   0,    -2 * PIXELS_PER_METER / height, 1/4, 0,
-  //   0,    2 * PIXELS_PER_METER / height, 0, 0,
-  //   -1,   -1,   0, 1,
-  // ]);
+  const projection = buildProjectionData(width, height);
+  console.log(projection);
 
   const gl = canvas.getContext("webgl2", { antialias: false, alpha: false });
   // gl.enable(gl.BLEND);
@@ -202,7 +165,7 @@ void main() {
     ceilingTex,
     heroResources,
   ] = await Promise.all([
-    loadEnvironResources(loadTexture),
+    loadEnvironResources(projection, loadTexture),
     loadTextureFromImgUrl({
       gl,
       src: "assets/floor.png",
@@ -498,7 +461,7 @@ void main() {
   }
 
   function renderInCamera(gl, program, subcode) {
-    program.stack.push(projection);
+    program.stack.push(projection.matrix);
 
     // set the camera
     const cameraX = Math.min(
