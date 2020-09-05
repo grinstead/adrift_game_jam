@@ -1,44 +1,2363 @@
-'use strict';class aa{constructor(a,b,c){this.name=c;this.G=`${b}${c}`;switch(a){case "uniform":this.type=1;if("u_"!==b)throw Error(`uniform field "${this.G}" invalid, must start with u_`);break;case "in":this.type=2;if("a_"!==b)throw Error(`in field "${this.G}" invalid, must start with a_`);break;default:throw Error("Impossible");}}}function ha(a){const b=[];a.split("\n").forEach(c=>{(c=/^\s*(in|uniform)\s(?:\w+\s)*([ua]_)(\w+);/.exec(c))&&b.push(new aa(c[1],c[2],c[3]))});return b}
-const ia=new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);function ja(a,b){a.f.uniformMatrix4fv(a.j,!1,b);a.a.push(b)}function E(a,b,c,e=0){var d=a.a;d=d.length?d[d.length-1]:ia;ja(a,new Float32Array([d[0],d[1],d[2],d[3],d[4],d[5],d[6],d[7],d[8],d[9],d[10],d[11],b*d[0]+c*d[4]+e*d[8]+d[12],b*d[1]+c*d[5]+e*d[9]+d[13],b*d[2]+c*d[6]+e*d[10]+d[14],b*d[3]+c*d[7]+e*d[11]+d[15]]))}function H(a,b){const c=Math.cos(b);b=Math.sin(b);a.push(new Float32Array([c,0,b,0,0,1,0,0,-b,0,c,0,0,0,0,1]))}
-class ka{constructor(a,b){this.f=a;this.j=b;this.a=[];a.uniformMatrix4fv(b,!1,ia)}pop(){return this.a.pop()}push(a){var b=this.a;0===b.length?ja(this,a):(b=b[b.length-1],ja(this,new Float32Array([a[0]*b[0]+a[1]*b[4]+a[2]*b[8]+a[3]*b[12],a[0]*b[1]+a[1]*b[5]+a[2]*b[9]+a[3]*b[13],a[0]*b[2]+a[1]*b[6]+a[2]*b[10]+a[3]*b[14],a[0]*b[3]+a[1]*b[7]+a[2]*b[11]+a[3]*b[15],a[4]*b[0]+a[5]*b[4]+a[6]*b[8]+a[7]*b[12],a[4]*b[1]+a[5]*b[5]+a[6]*b[9]+a[7]*b[13],a[4]*b[2]+a[5]*b[6]+a[6]*b[10]+a[7]*b[14],a[4]*b[3]+a[5]*
-b[7]+a[6]*b[11]+a[7]*b[15],a[8]*b[0]+a[9]*b[4]+a[10]*b[8]+a[11]*b[12],a[8]*b[1]+a[9]*b[5]+a[10]*b[9]+a[11]*b[13],a[8]*b[2]+a[9]*b[6]+a[10]*b[10]+a[11]*b[14],a[8]*b[3]+a[9]*b[7]+a[10]*b[11]+a[11]*b[15],a[12]*b[0]+a[13]*b[4]+a[14]*b[8]+a[15]*b[12],a[12]*b[1]+a[13]*b[5]+a[14]*b[9]+a[15]*b[13],a[12]*b[2]+a[13]*b[6]+a[14]*b[10]+a[15]*b[14],a[12]*b[3]+a[13]*b[7]+a[14]*b[11]+a[15]*b[15]])))}}
-class I{constructor(a,b){this.name=a.name;var c=this.f=a.f;a=this.type=a.type;switch(a){case "vertex":var e=this.f.VERTEX_SHADER;break;case "fragment":e=this.f.FRAGMENT_SHADER;break;default:throw Error(`Unrecognized shader type "${a}"`);}e=this.a=c.createShader(e);c.shaderSource(e,b);c.compileShader(e);if(!c.getShaderParameter(e,c.COMPILE_STATUS))throw b=`Failed to compile ${this.name} ${a}-shader: ${c.getShaderInfoLog(e)}`,c.deleteShader(e),Error(b);this.Da=ha(b)}}
-function la(a,...b){const c=a.f,e=a.ea;b.forEach(d=>{a.pa.push(d);c.attachShader(e,d.a)});return a}class ma{constructor(a){this.name=a.name;this.I=a.I;a=this.f=a.f;this.a=!1;this.ea=a.createProgram();this.pa=[];this.A={};this.C={};this.stack=null}link(){if(this.a)return this;var a=this.f,b=this.ea;a.linkProgram(b);if(!a.getProgramParameter(b,a.LINK_STATUS)){var c=`Failed to link ${this.name} program: ${a.getProgramInfoLog(b)}`;a.deleteProgram(b);throw Error(c);}this.a=!0;return this}}
-function na(a,b){var c=a.f,e=a.ea;c.useProgram(e);for(var d={},h={},k=a.pa,f=0;f<k.length;f++)for(var g=k[f].Da,l=0;l<g.length;l++){var n=g[l];1===n.type?n.G in d||(d[n.name]=c.getUniformLocation(e,n.G)):n.G in h||(h[n.name]=c.getAttribLocation(e,n.G))}a.A=d;a.C=h;if(e=a.I)if(e in a.A)a.stack=new ka(c,a.A[e]);else throw Error(`No anchor point "${e}" in program`);try{b(c,a)}finally{a.A={},a.C={},a.stack=null}}
-class qa{constructor(a,b,c,e,d){this.f=a;this.name=b;this.w=c;this.i=e;this.a=d(a)}bindTexture(){this.f.bindTexture(this.f.TEXTURE_2D,this.a)}}function ra(a){return(new Promise((b,c)=>{const e=new Image;e.onload=()=>void b(e);e.onerror=()=>{c(Error(`failed to load ${a.src}`))};e.mode="no-cors";e.src=a.src})).then(b=>{const c=b.naturalWidth,e=b.naturalHeight;return new qa(a.f,a.name,c,e,sa(d=>{d.texImage2D(d.TEXTURE_2D,0,d.RGBA,c,e,0,d.RGBA,d.UNSIGNED_BYTE,b)}))})}
-function ta(a){const b=a.width,c=a.height;return new qa(a.f,a.name,b,c,sa(e=>{e.texImage2D(e.TEXTURE_2D,0,e.RGBA,b,c,0,e.RGBA,e.UNSIGNED_BYTE,a.qa,0)}))}function ua(a){return new qa(a.f,a.name,a.width,a.height,()=>a.O)}
-function sa(a){return b=>{const c=b.createTexture();b.bindTexture(b.TEXTURE_2D,c);a(b);b.texParameteri(b.TEXTURE_2D,b.TEXTURE_MAG_FILTER,b.NEAREST);b.texParameteri(b.TEXTURE_2D,b.TEXTURE_MIN_FILTER,b.NEAREST);b.texParameteri(b.TEXTURE_2D,b.TEXTURE_WRAP_S,b.REPEAT);b.texParameteri(b.TEXTURE_2D,b.TEXTURE_WRAP_T,b.REPEAT);b.bindTexture(b.TEXTURE_2D,null);return c}};function K(a,b){const c=a.a.f;let e=a.j;null!=e?c.bindBuffer(c.ARRAY_BUFFER,e):(a.j=e=c.createBuffer(),c.bindBuffer(c.ARRAY_BUFFER,e),c.bufferData(c.ARRAY_BUFFER,a.F,c.STATIC_DRAW));c.activeTexture(c.TEXTURE0);a.a.bindTexture();c.uniform1i(b.A.texture,0);c.enableVertexAttribArray(b.C.texturePosition);c.vertexAttribPointer(b.C.texturePosition,2,c.FLOAT,!1,20,12);c.enableVertexAttribArray(b.C.position);c.vertexAttribPointer(b.C.position,3,c.FLOAT,!1,20,0)}
-function O(a,b,c){if(!a.data.hasOwnProperty(b))throw Error(`Can not render unknown "${b}"`);b=a.data[b];a=a.a.f;const e=b.fa;a.drawArrays(a.TRIANGLE_STRIP,e[c%e.length],b.Xa)}
-class R{constructor(a,b){this.a=a;this.j=null;a=this.data={};const c=[];let e=0;for(const d in b){const h=b[d],k=[],f=h.length;if(0===f)throw Error("Sprite declared with 0 points");const g=h[0].length;if(0==g)throw Error("Sprite declared with list of length 5 (must be non-zero multiple of 5)");const l=g/5;for(let n=0;n<f;n++){const t=h[n];if(t.length!==g)throw Error("Sprite declared with inconsistent lengths of elements");k.push(e);c.push.apply(c,t);e+=l}a[d]={nb:this,name:d,fa:k,Xa:l}}this.F=new Float32Array(c)}}
-function va(a,b){for(var c=a.B;-1!==c&&c<=b;){c=a.F;const e=a.a+1;e===c.length?a.j===a.Ua?a.B=c=-1:(a.j++,a.a=0,a.B=c=b+c[0]):(a.a=e,a.B=c=b+c[e])}}function T(a,b,c){if(!a.Sa.includes(b))throw Error(`${a} does not have mode ${b}`);a.j=0;a.da=b;a.a=0;a.B=c+a.F[0]}function wa(a,b){const c=a.da;if(null==c)throw Error(`${a} tried rendering while inactive`);K(a.ta,b);O(a.ta,c,a.a)}
-class xa{constructor(a,b){const c=a.v;this.V=a.name;this.Sa=a.Z;this.da=null;this.Ua="number"===typeof c?c:c?-1:0;this.ta=a.set;this.F=b;this.j=0;this.B=this.a=-1;this.Ra=a.Za}U(){const a=this.Ra;return null!=a?a[this.a]:void 0}name(){return this.V}toString(){return`Sprite/${this.V}`}}
-function ya(a){const b=a.name,c=a.u,e=a.set.data;let d=-1;a.Z.forEach(k=>{const f=e[k];if(!f)throw Error(`Sprite/${b} has non-existent mode ${k}`);if(-1===d)d=f.fa.length;else if(d!==f.fa.length)throw Error(`Sprite/${b} has inconsistent frame counts`);});if(-1===d)throw Error(`Sprite/${b} given 0 modes`);if("number"!==typeof c&&c.length!==d)throw Error(`Sprite/${b} given ${c.length} frame times for ${d} frames`);if(a.U&&a.U.length!==d)throw Error(`Sprite/${b} given ${a.U.length} frame data points for ${d} frames`);
-const h="number"===typeof c?Array(d).fill(c):c;return()=>new xa(a,h)}function V({x:a=0,y:b=0,z:c=0,width:e,height:d,ca:h,ba:k,$:f,count:g,sb:l=0,tb:n=0,ub:t=h,rb:y=k,N:v=!1}){const z=[];for(let r=0;r<g;r++){const w=l+r%f*t,L=n+Math.floor(r/f)*y;z.push(Ha({x:a,y:b,z:c,width:e,height:d,hb:w,fb:w+h,ib:L,gb:L+k,N:v}))}return z}function Ha({x:a=0,y:b=0,z:c=0,width:e,height:d,hb:h,ib:k,fb:f,gb:g,N:l=!1}){l?(l=f,f=a-e):(l=h,h=f,f=-a,a=e-a);return[a,b,-c,h,g,f,b,-c,l,g,a,b,d-c,h,k,f,b,d-c,l,k]};function W(a,b,c){a=a.j;null!=c?a.set(b,c):a.delete(b)}function X(a,b){b=a.j.get(b);const c=a.a;return!!b&&!!b.some(e=>(e=c.get(e))?(e.R=0,null!=e.W):!1)}function Ia(a){const b=a.j.get("showLights");if(b){const c=a.a;return b.reduce((e,d)=>(d=c.get(d))?(e+=d.R,d.R=0,e):e,0)}return 0}function Ja(a,b,c){b=X(a,b)?1:0;return(X(a,c)?1:0)-b}
-class Ka{constructor(a){this.a=new Map;this.j=new Map;a.addEventListener("keydown",b=>{La(this,b,!0)});a.addEventListener("keyup",b=>{La(this,b,!1)});a.onblur=()=>{this.a.clear()};a.onfocus=()=>{this.a.clear()}}}function La(a,b,c){b=b.key;a=a.a;const e=a.get(b);c?null==e?a.set(b,{W:Date.now(),R:1}):(null==e.W&&(e.W=Date.now()),e.R++):null!=e&&(e.W=null)};function Ma(a,b){const c=a.a.f,e=a.j;c.enable(c.BLEND);c.blendFunc(c.ONE,c.ONE);c.bindFramebuffer(c.FRAMEBUFFER,a.V);c.viewport(0,0,e.w,e.i);na(a.a,(d,h)=>{Na(d,h,a,b)})}
-class Oa{constructor(a,b,c,e){b/=4;c/=4;var d=new I({f:a,type:"vertex"},"#version 300 es\nin vec3 a_position;\nin vec2 a_texturePosition;\n\nuniform mat4 u_projection;\n\nout vec2 v_texturePosition;\n\nvoid main() {\n  vec4 position = u_projection * vec4(a_position, 1);\n  // float inverse = 1.f / (1.f - position.z * .2f);\n\n  // vec4 result = vec4(position.x, -inverse * position.y * (1.f - .5f * position.z), inverse * position.z, inverse * position.w);\n  // gl_Position = result;\n  gl_Position = position;\n  \n  v_texturePosition = a_texturePosition;\n}"),h=
-new I({f:a,type:"fragment"},"#version 300 es\nprecision mediump float;\n\nuniform sampler2D u_texture;\nuniform float u_threshold;\n\nin vec2 v_texturePosition;\nout vec4 output_color;\n\nvoid main() {\n    vec4 color = texture(u_texture, v_texturePosition.st);\n    color.a -= u_threshold;\n    if (color.a <= u_threshold) {\n        discard;\n    }\n    output_color = color;\n}");const k=new ma({f:a,I:"projection"});la(k,d,h).link();d=a.createTexture();a.bindTexture(a.TEXTURE_2D,d);a.texImage2D(a.TEXTURE_2D,
-0,a.RGBA,b,c,0,a.RGBA,a.UNSIGNED_BYTE,null);a.texParameteri(a.TEXTURE_2D,a.TEXTURE_MIN_FILTER,a.LINEAR);a.texParameteri(a.TEXTURE_2D,a.TEXTURE_WRAP_S,a.CLAMP_TO_EDGE);a.texParameteri(a.TEXTURE_2D,a.TEXTURE_WRAP_T,a.CLAMP_TO_EDGE);h=a.createFramebuffer();a.bindFramebuffer(a.FRAMEBUFFER,h);a.framebufferTexture2D(a.FRAMEBUFFER,a.COLOR_ATTACHMENT0,a.TEXTURE_2D,d,0);a.bindFramebuffer(a.FRAMEBUFFER,null);const f=128/e;e=ta({name:"fade",width:64,height:64,f:a,qa:Pa(e)});this.a=k;this.j=ua({O:d,name:"lighting",
-width:b,height:c,f:a});this.V=h;this.F=new R(e,{main:[[f,0,-f,1,0,f,0,f,1,1,-f,0,-f,0,0,-f,0,f,0,1]]})}}function Na(a,b,c,e){e.Ta?a.clearColor(0,0,0,1):a.clearColor(0,0,0,window.a);a.clear(a.COLOR_BUFFER_BIT|a.DEPTH_BUFFER_BIT);e.$a(a,b,()=>{const d=c.F;K(d,b);const h=b.A.threshold,k=e.jb;e.Ya.forEach(f=>{if(!f.m){var g=f.startTime;g=(k-g)/(f.sa-g);a.uniform1f(h,.5*g*g);E(b.stack,f.x,f.y,f.z);O(d,"main",0);b.stack.pop()}})})}
-function Pa(a){const b=new Uint8Array(16384),c=(h,k)=>{h/=a;k/=a;return h*h+k*k},e=Math.min(c(32,0),c(32,0));for(let h=0;64>h;h++)for(let k=0;64>k;k++){const f=4*(64*h+k);var d=c(k-32,h-32);const g=1-Math.sqrt(d/e);d=1E-4>=d?5:0;const l=Math.max(Math.round(255*g*g),0);b[f]=d+Math.max(Math.round(20*g),0);b[f+1]=d;b[f+2]=d;b[f+3]=l}return b};function Qa(a,b){return 0<b?Math.atan(a/b):0===b?0<a?Math.PI/2:0===a?0:-Math.PI/2:Math.atan(a/b)+Math.PI};const Y=434/1.8;class Ra{constructor(a){this.l=a}}
-async function Sa(a){const [b,c,e]=await Promise.all([a("hero_idle","assets/Hero Breathing with axe.png"),a("hero_walk","assets/Hero Walking with axe.png"),a("hero_attack","assets/Axe Chop.png")]);a=Ta({name:"hero_idle",O:b,ma:405,ha:434,na:220,oa:434,ga:16,v:!0,u:1/12,T:[{g:388,h:104,b:385,c:170},{g:792,h:105,b:790,c:170},{g:1198,h:105,b:1195,c:169},{g:1602,h:106,b:1600,c:170},{g:2008,h:106,b:2005,c:172},{g:388,h:539,b:385,c:604},{g:794,h:540,b:790,c:605},{g:1196,h:539,b:1196,c:604},{g:1602,h:539,
-b:1602,c:604},{g:2009,h:541,b:2007,c:604},{g:386,h:974,b:385,c:1036},{g:792,h:972,b:790,c:1033},{g:1198,h:974,b:1196,c:1038},{g:1602,h:972,b:1601,c:1036},{g:2010,h:974,b:2005,c:1044},{g:386,h:1406,b:385,c:1477}]})();const d=Ta({name:"hero_walk",O:c,ma:424,ha:444,na:258,oa:444,ga:8,v:!0,u:.125,T:[{g:408,h:110,b:404,c:166},{g:830,h:110,b:829,c:166},{g:408,h:554,b:404,c:614},{g:830,h:554,b:829,c:614},{g:408,h:998,b:404,c:1055},{g:830,h:998,b:829,c:1055},{g:408,h:1444,b:404,c:1500},{g:830,h:1444,b:829,
-c:1500}]})(),h=Ta({name:"hero_attack",O:e,ma:644,ha:565,na:284,oa:565,ga:5,v:!1,u:1/12,T:[{g:422,h:285,b:415,c:353},{g:936,h:367,b:868,c:380},{g:1507,h:311,b:1469,c:318},{g:162,h:948,b:206,c:943},{g:1025,h:934,b:976,c:962}]})();return{Qa:a,kb:d,Ea:h}}
-function Ta(a){var b=a.O;const c=a.ma,e=a.ha,d=a.na,h=a.oa,k=Math.floor(b.w/c),f={x:d/Y,z:(e-h)/Y,width:c/Y,height:e/Y,ca:c/b.w,ba:e/b.i,$:k,count:a.ga},g=a.T&&a.T.map(({g:l,h:n,b:t,c:y},v)=>({Ka:{x:(l-(v%k*c+d))/Y,z:(Math.floor(v/k)*e+h-n)/Y,angle:Qa(-(n-y),l-t)}}));b=new R(b,{right:V(f),left:V({...f,N:!0})});return ya({name:a.name,set:b,Z:["left","right"],v:a.v,u:a.u,Za:g})};function Ua(a,b){var c=376/b;const e=c/(484/b),d=c/(268/b);c/=1.25;a=b/a*c;return{Wa:new Float32Array([a,0,0,0,0,0,1,d-e,0,c,0,0,0,0,0,(e+d)/2]),wb:e,vb:d,pb:a,qb:c,Y:554/b*e/c-1.25,H:.3}}async function Va(a,b){const [c,e,d,h]=await Promise.all([b("wall","assets/Back Wall.png"),b("floor","assets/floor.png"),b("ceiling","assets/ceiling.png"),b("wall","assets/side_wall.png")]);return{I:a,mb:c,Ma:e,Ia:d,bb:h}}
-function Wa({mb:a,Ma:b,Ia:c,bb:e,I:d},h,k){k=-k-d.H;const f=2*d.H+k+h;var g=1-648/a.i,l=g*a.i/2.5*h/a.w;a=new R(a,{main:[[f,.5,2.5,l,1-g,f,.5,0,l,1,k,.5,2.5,0,1-g,k,.5,0,0,1]]});g=110/b.i;l=220/b.i;var n=(l-g)*b.i*h/b.w;b=new R(b,{main:[[f,-.5,-d.Y,n,1,k,-.5,-d.Y,0,1,f,-.5,0,n,l,k,-.5,0,0,l,f,.5,0,n,g,k,.5,0,0,g]]});g=144/c.i;l=32/c.i;h=(l-g)*c.i*h/c.w;c=new R(c,{main:[[f,-.5,2.5+d.Y,h,0,k,-.5,2.5+d.Y,0,0,f,-.5,2.5,h,l,k,-.5,2.5,0,l,f,.5,2.5,h,g,k,.5,2.5,0,g]]});h=438/e.w;g=318/e.w;l=194/e.i;n=1164/
-e.i;const t=84/e.w;d=[k,-.5,2.5,h,l,k,-.5,0,h,n,k+d.H,-.5,2.5,g,l,k+d.H,-.5,0,g,n,k+d.H,.5,2.5,t,414/e.i,k+d.H,.5,0,t,964/e.i];h=[];for(g=0;g<d.length;g+=5)h.push(f+(k-d[g]),d[g+1],d[g+2],d[g+3],d[g+4]);e=new R(e,{right:[h],left:[d]});return{lb:a,La:b,Ha:c,ab:e}};function Xa(a){const b=a.J,c=a.K;return{M:a.M,P:[],o:a.o,J:b,K:c,Ba:a.Ba,ka:a.ka,S:Wa(a.M.Ja,c-b,b),X:a.X}};const Ya=new Float32Array([-1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
-async function Za(a){const [b,c,e]=await Promise.all([a("creature","assets/Enemy.png"),a("tentacle","assets/Tentacle.png"),a("creature_attack","assets/enemy_bite.png")]);var d=new R(b,{blink:V({x:.25,z:.25,width:.5,height:.5,ca:108/b.w,ba:108/b.i,$:2,count:6,N:!0})});a=ya({name:"creature_attack",set:new R(e,{bite:V({x:.5,z:.75,width:1,height:2,ba:530/e.i,ca:278/e.w,$:7,count:42,N:!0})}),Z:["bite"],v:!0,u:1/12});var h=Array(6).fill(.125);h[0]=4;d=ya({name:"creature_normal",set:d,Z:["blink"],v:!0,u:h});
-h=[];var k=92,f=-22;const g=Math.sqrt(k*k+f*f);k/=g;f/=g;for(let l=0;29>l;l++){const n=l%5,t=Math.floor(l/5),y=[],v=(z,r)=>{const w=100*z,L=77*r-48;y.push((w*k+L*f)/g,z,(w*-f+L*k)/360,100*(n+z)/c.w,77*(t+r)/c.i)};v(1,1);v(0,1);v(1,0);v(0,0);h.push(y)}h=new R(c,{wiggle:h});return{Va:d,ob:a,eb:h}}class $a{constructor(a,b,c,e){const d=a.M.ra.Va();T(d,"blink",a.o);this.x=this.cb=b;this.y=c;this.z=e;this.ya=this.za=0;this.la=[Z(0,b,c,-1,1),Z(1,b,c,-1,-1),Z(2,b,c,1,1),Z(3,b,c,1,-1)];this.Ca=d}}
-function ab(a){const b=a.o;a.P.forEach(c=>{c.x=c.cb+Math.sin(b);var e=.5*Math.cos(b);va(c.Ca,a.o);if(b>c.za){var d=c.ya;c.ya=(d+1)%c.la.length;d=c.la[d];e=c.x+.225*e+d.Oa;.05<Math.abs(e-d.aa)&&(c.za=b+.125,d.xa=b+.125,d.ua=d.aa,d.va=d.ia,d.wa=d.ja,d.aa=e,d.ia=c.y+d.Pa,d.ja=0)}})}
-function bb(a,b){const c=a.stack,e=b.M.ra.eb,d=b.o,{x:h,z:k}={x:b.X.l,z:1.7};b.P.forEach(f=>{var g=f.x;const l=f.z;E(c,g,f.y,l);let n=h<g;g=Qa(k-l,h-g);n&&(c.push(Ya),g=Math.PI-g);H(c,g);wa(f.Ca,a);c.pop();n&&c.pop();c.pop()});K(e,a);b.P.forEach(f=>{const g=f.z-.1875;f.la.forEach(l=>{var n=f.x+l.Fa,t=f.y+l.Ga;let y=l.aa,v=l.ia,z=l.ja;var r=l.xa;d<r&&(r=1-(r-d)/.125,y=cb(r,l.ua,n,y),v=cb(r,l.va,t,v),z=cb(r,l.wa,g,z));n-=y;t-=v;r=g-z;const w=Math.sqrt(n*n+t*t+r*r);E(c,y,v,z);H(c,Qa(r,n));c.push(new Float32Array([w,
-0,0,0,0,t,0,0,0,0,1,0,0,0,0,1]));O(e,"wiggle",Math.abs((Math.floor(24*d)+l.Na)%57+1-29));c.pop();c.pop();c.pop()})})}function Z(a,b,c,e,d){const h=.4*e;d=.1*d;b+=h;c+=d;return{index:a,Fa:.05*e,Ga:0,Oa:h,Pa:d,xa:0,ua:b,va:c,wa:0,aa:b,ia:c,ja:0,Na:0}}function cb(a,b,c,e){return a*(a*e+(1-a)*c)+(1-a)*(a*c+(1-a)*b)};window.a=.1;function db(a){const b=1/18/18,c=h=>Math.max(0,Math.min(255,Math.round(256*(1-b*h*h)))),e=[];for(let h=0;2>h;h++)for(let k=0;18>k;k++)for(let f=0;2>f;f++){let g;var d=void 0;let l;d=k+6*f;18>d?(g=255,d=c(d),l=255):l=d=g=0;c(k+6*f);c(k+6*f+1);for(let n=0;2>n;n++)e.push(g,d,d,l)}a=ta({name:"spark",width:72,height:2,f:a,qa:new Uint8Array(e)});return new R(a,{fading:V({x:1/180,width:.04,height:2/180,ca:1/18,ba:1,$:18,count:18})})}function eb(a,b){return a.m?b.m?0:1:b.m?-1:a.y-b.y}
-function fb(a,b){return fetch(b).then(c=>{if(!c.ok)throw Error(`failed to load ${b}`);return c.arrayBuffer()}).then(c=>a.decodeAudioData(c))}
-window.onload=async function(){function a(){var m=Math.sin(Math.PI*(x+0)/8)/2+Math.sin(Math.PI*(x+0)/3)/8,q=Math.sin(Math.PI*(x+170)/8)/2+Math.sin(Math.PI*(x+130)/3)/8;ba=Math.asin((m-q)/100);za=Math.cos(ba);Aa=Math.sin(ba);Ba=(m+q)/2;if(F!==ca||-1===ca.B)X(g,"attack")?(F=ca,T(ca,"right",x),P&&P.stop(),m=M.createBufferSource(),m.buffer=Ca[Math.floor(Math.random()*Ca.length)],m.connect(M.destination),m.start(0)):(N=1.2*A*Ja(g,"left","right"),m=G.l+N,m<u.J+1.125?N=u.J+1.125-G.l:m>u.K-1.125&&(N=u.K-
-1.125-G.l),0!==N?(G.l+=N,U=0>N,F!==da&&(F=da,T(da,U?"left":"right",x))):F!==oa?(F=oa,T(oa,U?"left":"right",x)):null==P&&0<x-4&&(P=M.createBufferSource(),P.buffer=gb,P.connect(M.destination),P.start(0)));va(F,x);m=Math.floor(48*x)-Math.floor(48*(x-A));for(q=0;q<m;q++){var B=2*Math.random()+1.4;let p=.1*Math.sin(2*Math.PI*Math.random());var C=F.U(),S=C&&C.Ka;if(!S)continue;C=G.l+S.x*(U?-1:1);const J=S.z,D=Math.PI/4*(Math.random()-.5)+S.angle;S=B*Math.sin(D);B=B*Math.cos(D)+N/A;100<Q.length&&Q.pop();
-Q.push({m:!1,x:C,y:.01,z:J,s:B,L:p,D:S,startTime:x,sa:x+1.5,Aa:!1})}const hb=9.8*za*A,ib=9.8*Aa*A,Da=1-.8*A;Q.forEach(p=>{var J=p.m;if(!J&&x<p.sa){p.x+=p.s*A;p.y+=p.L*A;p.z+=p.D*A;J=p.D;p.Aa?(p.s*=Da,p.L*=Da):(J-=hb,p.s-=ib,p.D=J);if(p.x<u.J||p.x>u.K)p.m=!0;var D=p.y;if(-.5>D||.5<D){const Ea=0<D?.5:-.5;p.y=Ea+(Ea-D);p.L=-p.L}D=u.ka;p.z<D&&(-.01<J?(p.z=180,p.D=D,p.Aa=!0):(p.z=D-p.z,p.D=-.25*J))}else J||(p.m=!0)});Q.sort(eb);ab(u)}function b(m,q,B){q.stack.push(r.Wa);E(q.stack,-Math.min(Math.max(G.l,
-u.J+1),u.K-1),0,-z);H(q.stack,ba);E(q.stack,0,0,Ba);B(m,q);q.stack.pop();q.stack.pop();q.stack.pop()}function c(m,q){const B=q.stack;m=u.S.lb;K(m,q);O(m,"main",0);m=u.S.La;K(m,q);O(m,"main",0);m=u.S.Ha;K(m,q);O(m,"main",0);m=u.S.ab;K(m,q);O(m,"left",0);O(m,"right",0);E(B,G.l,0,0);F.da=U?"left":"right";wa(F,q);B.pop();bb(q,u);K(Fa,q);Q.forEach(C=>{C.m||(E(B,C.x,C.y,C.z),H(B,(0<=C.s?Math.PI:0)+Math.atan(C.D/C.s)),O(Fa,"fading",Math.floor(12*(x-C.startTime))),B.pop(),B.pop())})}function e(m,q){m.bindFramebuffer(m.FRAMEBUFFER,
-null);m.viewport(0,0,y,v);m.disable(m.BLEND);m.clearColor(0,0,0,1);m.clear(m.COLOR_BUFFER_BIT|m.DEPTH_BUFFER_BIT);m.activeTexture(m.TEXTURE1);Ga.j.bindTexture();m.uniform1i(q.A.lighting,1);m.activeTexture(m.TEXTURE0);b(m,q,c)}function d(){{const m=(Date.now()-jb)/1E3;A=m-u.o;x=u.o=m;ea=-1===ea?60:1/A/16+.9375*ea;h.innerHTML=`fps=${Math.round(ea)}`}window.a=Math.max(0,Math.min(1,window.a+A/4*Ja(g,"lightDown","lightUp")));Ia(g)%2&&(n=!n);!pa&&X(g,"fullscreen")&&(pa=k.requestFullscreen());z+=A*Ja(g,
-"down","up");window.cameraZ=z;a();Ma(Ga,{$a:b,jb:x,Ya:Q,Ta:n});na(L,e);requestAnimationFrame(d)}const h=document.getElementById("fps"),k=document.getElementById("canvas");var f=window.getComputedStyle(k);const g=new Ka(document.body);W(g,"left",["a","ArrowLeft"]);W(g,"right",["d","ArrowRight"]);W(g,"showLights",["l"]);W(g,"attack",["f"," "]);W(g,"fullscreen",["u"]);W(g,"up",["w","ArrowUp"]);W(g,"down",["s","ArrowDown"]);W(g,"lightUp",["y"]);W(g,"lightDown",["h"]);var l=parseInt(f.getPropertyValue("width"),
-10);f=parseInt(f.getPropertyValue("height"),10);let n=!1;const t=window.devicePixelRatio||1,y=t*l,v=t*f;k.width=y;k.height=v;let z=1.25;const r=Ua(l,f);console.log(r);const w=k.getContext("webgl2",{antialias:!1,alpha:!1});w.enable(w.DEPTH_TEST);w.depthFunc(w.LEQUAL);l=new I({f:w,type:"vertex"},"#version 300 es\nin vec3 a_position;\nin vec2 a_texturePosition;\n\nuniform mat4 u_projection;\n\nout vec4 v_clipSpace;\nout vec2 v_texturePosition;\n\nvoid main() {\n    vec4 position = u_projection * vec4(a_position, 1);\n    // float inverse = 1.f / (1.f - position.z * .2f);\n\n    // vec4 result = vec4(position.x, inverse * position.y * (1.f - .5f * position.z), inverse * position.z, inverse * position.w);\n    // vec4 result = vec4(position.x * position.w, position.y, position.z, position.w);\n    vec4 result = position;\n    gl_Position = result;\n    \n    v_clipSpace = result;\n    v_texturePosition = a_texturePosition;\n}");
-f=new I({f:w,type:"fragment"},"#version 300 es\nprecision mediump float;\n\nuniform sampler2D u_texture;\nuniform sampler2D u_lighting;\n\nin vec2 v_texturePosition;\nin vec4 v_clipSpace;\nout vec4 output_color;\n\nvoid main() {\n    vec4 clipSpace = v_clipSpace / v_clipSpace.w; //vec4(.5f * (v_clipSpace.x + 1.f), -.5f * (v_clipSpace.y - 1.f), v_clipSpace.z, v_clipSpace.w) / v_clipSpace.w;\n    clipSpace.x = .5f * (clipSpace.x + 1.f);\n    clipSpace.y = 1.f - .5f * (1.f - clipSpace.y); // why????\n\n    vec4 color = texture(u_texture, v_texturePosition.st);\n    if (color.a == 0.0) {\n        discard;\n    }\n\n    vec4 light = texture(u_lighting, clipSpace.xy);\n    vec3 math = min(light.xyz + color.xyz * light.a, vec3(1.f, 1.f, 1.f));\n    output_color = vec4(math, color.a);\n}");
-const L=new ma({f:w,I:"projection"});la(L,l,f).link();const Ga=new Oa(w,y,v,360),M=new AudioContext;l=(m,q)=>ra({f:w,name:m,src:q});const [kb,Ca,gb,lb,fa]=await Promise.all([Va(r,l),Promise.all([fb(M,"assets/Grunt1.mp3"),fb(M,"assets/Grunt2.mp3"),fb(M,"assets/Grunt3.mp3")]),fb(M,"assets/Theres something here.mp3"),Za(l),Sa(l)]);let P=null;const oa=fa.Qa,da=fa.kb,ca=fa.Ea,G=new Ra(2),u=Xa({M:{ra:lb,X:fa,Ja:kb},o:0,J:0,K:12,Ba:2.5,ka:0,X:G}),Fa=db(w),Q=[];let jb=Date.now(),x=0,ea=-1,A=0,N=0,U=!1,F=
-da,pa=null;document.addEventListener("fullscreenchange",()=>{document.fullscreenElement||(pa=null)});u.P.push(new $a(u,G.l+2,0,.75));let ba,Aa,za,Ba;requestAnimationFrame(d);k.onmousemove=()=>{}};
+var $jscomp = $jscomp || {};
+$jscomp.scope = {};
+$jscomp.getGlobal = function(passedInThis) {
+  var possibleGlobals = ["object" == typeof globalThis && globalThis, passedInThis, "object" == typeof window && window, "object" == typeof self && self, "object" == typeof global && global, ];
+  for (var i = 0; i < possibleGlobals.length; ++i) {
+    var maybeGlobal = possibleGlobals[i];
+    if (maybeGlobal && maybeGlobal["Math"] == Math) {
+      return maybeGlobal;
+    }
+  }
+  return {valueOf:function() {
+    throw new Error("Cannot find global object");
+  }}.valueOf();
+};
+$jscomp.global = $jscomp.getGlobal(this);
+$jscomp.checkEs6ConformanceViaProxy = function() {
+  try {
+    var proxied = {};
+    var proxy = Object.create(new $jscomp.global["Proxy"](proxied, {"get":function(target, key, receiver) {
+      return target == proxied && key == "q" && receiver == proxy;
+    }}));
+    return proxy["q"] === true;
+  } catch (err) {
+    return false;
+  }
+};
+$jscomp.USE_PROXY_FOR_ES6_CONFORMANCE_CHECKS = false;
+$jscomp.ES6_CONFORMANCE = $jscomp.USE_PROXY_FOR_ES6_CONFORMANCE_CHECKS && $jscomp.checkEs6ConformanceViaProxy();
+$jscomp.arrayIteratorImpl = function(array) {
+  var index = 0;
+  return function() {
+    if (index < array.length) {
+      return {done:false, value:array[index++], };
+    } else {
+      return {done:true};
+    }
+  };
+};
+$jscomp.arrayIterator = function(array) {
+  return {next:$jscomp.arrayIteratorImpl(array)};
+};
+$jscomp.ASSUME_ES5 = false;
+$jscomp.ASSUME_NO_NATIVE_MAP = false;
+$jscomp.ASSUME_NO_NATIVE_SET = false;
+$jscomp.SIMPLE_FROUND_POLYFILL = false;
+$jscomp.ISOLATE_POLYFILLS = false;
+$jscomp.defineProperty = $jscomp.ASSUME_ES5 || typeof Object.defineProperties == "function" ? Object.defineProperty : function(target, property, descriptor) {
+  if (target == Array.prototype || target == Object.prototype) {
+    return target;
+  }
+  target[property] = descriptor.value;
+  return target;
+};
+$jscomp.IS_SYMBOL_NATIVE = typeof Symbol === "function" && typeof Symbol("x") === "symbol";
+$jscomp.TRUST_ES6_POLYFILLS = !$jscomp.ISOLATE_POLYFILLS || $jscomp.IS_SYMBOL_NATIVE;
+$jscomp.polyfills = {};
+$jscomp.propertyToPolyfillSymbol = {};
+$jscomp.POLYFILL_PREFIX = "$jscp$";
+var $jscomp$lookupPolyfilledValue = function(target, key) {
+  var polyfilledKey = $jscomp.propertyToPolyfillSymbol[key];
+  if (polyfilledKey == null) {
+    return target[key];
+  }
+  var polyfill = target[polyfilledKey];
+  return polyfill !== undefined ? polyfill : target[key];
+};
+$jscomp.polyfill = function(target, polyfill, fromLang, toLang) {
+  if (!polyfill) {
+    return;
+  }
+  if ($jscomp.ISOLATE_POLYFILLS) {
+    $jscomp.polyfillIsolated(target, polyfill, fromLang, toLang);
+  } else {
+    $jscomp.polyfillUnisolated(target, polyfill, fromLang, toLang);
+  }
+};
+$jscomp.polyfillUnisolated = function(target, polyfill, fromLang, toLang) {
+  var obj = $jscomp.global;
+  var split = target.split(".");
+  for (var i = 0; i < split.length - 1; i++) {
+    var key = split[i];
+    if (!(key in obj)) {
+      return;
+    }
+    obj = obj[key];
+  }
+  var property = split[split.length - 1];
+  var orig = obj[property];
+  var impl = polyfill(orig);
+  if (impl == orig || impl == null) {
+    return;
+  }
+  $jscomp.defineProperty(obj, property, {configurable:true, writable:true, value:impl});
+};
+$jscomp.polyfillIsolated = function(target, polyfill, fromLang, toLang) {
+  var split = target.split(".");
+  var isNativeClass = split.length === 1;
+  var root = split[0];
+  var obj;
+  if (!isNativeClass && root in $jscomp.polyfills) {
+    obj = $jscomp.polyfills;
+  } else {
+    obj = $jscomp.global;
+  }
+  for (var i = 0; i < split.length - 1; i++) {
+    var key = split[i];
+    if (!(key in obj)) {
+      return;
+    }
+    obj = obj[key];
+  }
+  var property = split[split.length - 1];
+  var nativeImpl = $jscomp.IS_SYMBOL_NATIVE && fromLang === "es6" ? obj[property] : null;
+  var impl = polyfill(nativeImpl);
+  if (impl == null) {
+    return;
+  }
+  if (isNativeClass) {
+    $jscomp.defineProperty($jscomp.polyfills, property, {configurable:true, writable:true, value:impl});
+  } else {
+    if (impl !== nativeImpl) {
+      $jscomp.propertyToPolyfillSymbol[property] = $jscomp.IS_SYMBOL_NATIVE ? $jscomp.global["Symbol"](property) : $jscomp.POLYFILL_PREFIX + property;
+      property = $jscomp.propertyToPolyfillSymbol[property];
+      $jscomp.defineProperty(obj, property, {configurable:true, writable:true, value:impl});
+    }
+  }
+};
+$jscomp.initSymbol = function() {
+};
+$jscomp.polyfill("Symbol", function(orig) {
+  if (orig) {
+    return orig;
+  }
+  var SymbolClass = function(id, opt_description) {
+    this.$jscomp$symbol$id_ = id;
+    this.description;
+    $jscomp.defineProperty(this, "description", {configurable:true, writable:true, value:opt_description});
+  };
+  SymbolClass.prototype.toString = function() {
+    return this.$jscomp$symbol$id_;
+  };
+  var SYMBOL_PREFIX = "jscomp_symbol_";
+  var counter = 0;
+  var symbolPolyfill = function(opt_description) {
+    if (this instanceof symbolPolyfill) {
+      throw new TypeError("Symbol is not a constructor");
+    }
+    return new SymbolClass(SYMBOL_PREFIX + (opt_description || "") + "_" + counter++, opt_description);
+  };
+  return symbolPolyfill;
+}, "es6", "es3");
+$jscomp.initSymbolIterator = function() {
+};
+$jscomp.polyfill("Symbol.iterator", function(orig) {
+  if (orig) {
+    return orig;
+  }
+  var symbolIterator = Symbol("Symbol.iterator");
+  var arrayLikes = ["Array", "Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array", "Int32Array", "Uint32Array", "Float32Array", "Float64Array"];
+  for (var i = 0; i < arrayLikes.length; i++) {
+    var ArrayLikeCtor = $jscomp.global[arrayLikes[i]];
+    if (typeof ArrayLikeCtor === "function" && typeof ArrayLikeCtor.prototype[symbolIterator] != "function") {
+      $jscomp.defineProperty(ArrayLikeCtor.prototype, symbolIterator, {configurable:true, writable:true, value:function() {
+        return $jscomp.iteratorPrototype($jscomp.arrayIteratorImpl(this));
+      }});
+    }
+  }
+  return symbolIterator;
+}, "es6", "es3");
+$jscomp.initSymbolAsyncIterator = function() {
+};
+$jscomp.polyfill("Symbol.asyncIterator", function(orig) {
+  if (orig) {
+    return orig;
+  }
+  return Symbol("Symbol.asyncIterator");
+}, "es9", "es3");
+$jscomp.iteratorPrototype = function(next) {
+  var iterator = {next:next};
+  iterator[Symbol.iterator] = function() {
+    return this;
+  };
+  return iterator;
+};
+$jscomp.makeIterator = function(iterable) {
+  var iteratorFunction = typeof Symbol != "undefined" && Symbol.iterator && iterable[Symbol.iterator];
+  return iteratorFunction ? iteratorFunction.call(iterable) : $jscomp.arrayIterator(iterable);
+};
+$jscomp.owns = function(obj, prop) {
+  return Object.prototype.hasOwnProperty.call(obj, prop);
+};
+$jscomp.polyfill("WeakMap", function(NativeWeakMap) {
+  function isConformant() {
+    if (!NativeWeakMap || !Object.seal) {
+      return false;
+    }
+    try {
+      var x = Object.seal({});
+      var y = Object.seal({});
+      var map = new NativeWeakMap([[x, 2], [y, 3]]);
+      if (map.get(x) != 2 || map.get(y) != 3) {
+        return false;
+      }
+      map["delete"](x);
+      map.set(y, 4);
+      return !map.has(x) && map.get(y) == 4;
+    } catch (err) {
+      return false;
+    }
+  }
+  if ($jscomp.USE_PROXY_FOR_ES6_CONFORMANCE_CHECKS) {
+    if (NativeWeakMap && $jscomp.ES6_CONFORMANCE) {
+      return NativeWeakMap;
+    }
+  } else {
+    if (isConformant()) {
+      return NativeWeakMap;
+    }
+  }
+  var prop = "$jscomp_hidden_" + Math.random();
+  function WeakMapMembership() {
+  }
+  function isValidKey(key) {
+    var type = typeof key;
+    return type === "object" && key !== null || type === "function";
+  }
+  function insert(target) {
+    if (!$jscomp.owns(target, prop)) {
+      var obj = new WeakMapMembership;
+      $jscomp.defineProperty(target, prop, {value:obj});
+    }
+  }
+  function patch(name) {
+    if ($jscomp.ISOLATE_POLYFILLS) {
+      return;
+    }
+    var prev = Object[name];
+    if (prev) {
+      Object[name] = function(target) {
+        if (target instanceof WeakMapMembership) {
+          return target;
+        } else {
+          if (Object.isExtensible(target)) {
+            insert(target);
+          }
+          return prev(target);
+        }
+      };
+    }
+  }
+  patch("freeze");
+  patch("preventExtensions");
+  patch("seal");
+  var index = 0;
+  var PolyfillWeakMap = function(opt_iterable) {
+    this.id_ = (index += Math.random() + 1).toString();
+    if (opt_iterable) {
+      var iter = $jscomp.makeIterator(opt_iterable);
+      var entry;
+      while (!(entry = iter.next()).done) {
+        var item = entry.value;
+        this.set(item[0], item[1]);
+      }
+    }
+  };
+  PolyfillWeakMap.prototype.set = function(key, value) {
+    if (!isValidKey(key)) {
+      throw new Error("Invalid WeakMap key");
+    }
+    insert(key);
+    if (!$jscomp.owns(key, prop)) {
+      throw new Error("WeakMap key fail: " + key);
+    }
+    key[prop][this.id_] = value;
+    return this;
+  };
+  PolyfillWeakMap.prototype.get = function(key) {
+    return isValidKey(key) && $jscomp.owns(key, prop) ? key[prop][this.id_] : undefined;
+  };
+  PolyfillWeakMap.prototype.has = function(key) {
+    return isValidKey(key) && $jscomp.owns(key, prop) && $jscomp.owns(key[prop], this.id_);
+  };
+  PolyfillWeakMap.prototype["delete"] = function(key) {
+    if (!isValidKey(key) || !$jscomp.owns(key, prop) || !$jscomp.owns(key[prop], this.id_)) {
+      return false;
+    }
+    return delete key[prop][this.id_];
+  };
+  return PolyfillWeakMap;
+}, "es6", "es3");
+$jscomp.MapEntry = function() {
+  this.previous;
+  this.next;
+  this.head;
+  this.key;
+  this.value;
+};
+$jscomp.polyfill("Map", function(NativeMap) {
+  function isConformant() {
+    if ($jscomp.ASSUME_NO_NATIVE_MAP || !NativeMap || typeof NativeMap != "function" || !NativeMap.prototype.entries || typeof Object.seal != "function") {
+      return false;
+    }
+    try {
+      NativeMap = NativeMap;
+      var key = Object.seal({x:4});
+      var map = new NativeMap($jscomp.makeIterator([[key, "s"]]));
+      if (map.get(key) != "s" || map.size != 1 || map.get({x:4}) || map.set({x:4}, "t") != map || map.size != 2) {
+        return false;
+      }
+      var iter = map.entries();
+      var item = iter.next();
+      if (item.done || item.value[0] != key || item.value[1] != "s") {
+        return false;
+      }
+      item = iter.next();
+      if (item.done || item.value[0].x != 4 || item.value[1] != "t" || !iter.next().done) {
+        return false;
+      }
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+  if ($jscomp.USE_PROXY_FOR_ES6_CONFORMANCE_CHECKS) {
+    if (NativeMap && $jscomp.ES6_CONFORMANCE) {
+      return NativeMap;
+    }
+  } else {
+    if (isConformant()) {
+      return NativeMap;
+    }
+  }
+  var idMap = new WeakMap;
+  var PolyfillMap = function(opt_iterable) {
+    this.data_ = {};
+    this.head_ = createHead();
+    this.size = 0;
+    if (opt_iterable) {
+      var iter = $jscomp.makeIterator(opt_iterable);
+      var entry;
+      while (!(entry = iter.next()).done) {
+        var item = entry.value;
+        this.set(item[0], item[1]);
+      }
+    }
+  };
+  PolyfillMap.prototype.set = function(key, value) {
+    key = key === 0 ? 0 : key;
+    var r = maybeGetEntry(this, key);
+    if (!r.list) {
+      r.list = this.data_[r.id] = [];
+    }
+    if (!r.entry) {
+      r.entry = {next:this.head_, previous:this.head_.previous, head:this.head_, key:key, value:value, };
+      r.list.push(r.entry);
+      this.head_.previous.next = r.entry;
+      this.head_.previous = r.entry;
+      this.size++;
+    } else {
+      r.entry.value = value;
+    }
+    return this;
+  };
+  PolyfillMap.prototype["delete"] = function(key) {
+    var r = maybeGetEntry(this, key);
+    if (r.entry && r.list) {
+      r.list.splice(r.index, 1);
+      if (!r.list.length) {
+        delete this.data_[r.id];
+      }
+      r.entry.previous.next = r.entry.next;
+      r.entry.next.previous = r.entry.previous;
+      r.entry.head = null;
+      this.size--;
+      return true;
+    }
+    return false;
+  };
+  PolyfillMap.prototype.clear = function() {
+    this.data_ = {};
+    this.head_ = this.head_.previous = createHead();
+    this.size = 0;
+  };
+  PolyfillMap.prototype.has = function(key) {
+    return !!maybeGetEntry(this, key).entry;
+  };
+  PolyfillMap.prototype.get = function(key) {
+    var entry = maybeGetEntry(this, key).entry;
+    return entry && entry.value;
+  };
+  PolyfillMap.prototype.entries = function() {
+    return makeIterator(this, function(entry) {
+      return [entry.key, entry.value];
+    });
+  };
+  PolyfillMap.prototype.keys = function() {
+    return makeIterator(this, function(entry) {
+      return entry.key;
+    });
+  };
+  PolyfillMap.prototype.values = function() {
+    return makeIterator(this, function(entry) {
+      return entry.value;
+    });
+  };
+  PolyfillMap.prototype.forEach = function(callback, opt_thisArg) {
+    var iter = this.entries();
+    var item;
+    while (!(item = iter.next()).done) {
+      var entry = item.value;
+      callback.call(opt_thisArg, entry[1], entry[0], this);
+    }
+  };
+  PolyfillMap.prototype[Symbol.iterator] = PolyfillMap.prototype.entries;
+  var maybeGetEntry = function(map, key) {
+    var id = getId(key);
+    var list = map.data_[id];
+    if (list && $jscomp.owns(map.data_, id)) {
+      for (var index = 0; index < list.length; index++) {
+        var entry = list[index];
+        if (key !== key && entry.key !== entry.key || key === entry.key) {
+          return {id:id, list:list, index:index, entry:entry};
+        }
+      }
+    }
+    return {id:id, list:list, index:-1, entry:undefined};
+  };
+  var makeIterator = function(map, func) {
+    var entry = map.head_;
+    return $jscomp.iteratorPrototype(function() {
+      if (entry) {
+        while (entry.head != map.head_) {
+          entry = entry.previous;
+        }
+        while (entry.next != entry.head) {
+          entry = entry.next;
+          return {done:false, value:func(entry)};
+        }
+        entry = null;
+      }
+      return {done:true, value:void 0};
+    });
+  };
+  var createHead = function() {
+    var head = {};
+    head.previous = head.next = head.head = head;
+    return head;
+  };
+  var mapIndex = 0;
+  var getId = function(obj) {
+    var type = obj && typeof obj;
+    if (type == "object" || type == "function") {
+      obj = obj;
+      if (!idMap.has(obj)) {
+        var id = "" + ++mapIndex;
+        idMap.set(obj, id);
+        return id;
+      }
+      return idMap.get(obj);
+    }
+    return "p_" + obj;
+  };
+  return PolyfillMap;
+}, "es6", "es3");
+$jscomp.polyfill("Set", function(NativeSet) {
+  function isConformant() {
+    if ($jscomp.ASSUME_NO_NATIVE_SET || !NativeSet || typeof NativeSet != "function" || !NativeSet.prototype.entries || typeof Object.seal != "function") {
+      return false;
+    }
+    try {
+      NativeSet = NativeSet;
+      var value = Object.seal({x:4});
+      var set = new NativeSet($jscomp.makeIterator([value]));
+      if (!set.has(value) || set.size != 1 || set.add(value) != set || set.size != 1 || set.add({x:4}) != set || set.size != 2) {
+        return false;
+      }
+      var iter = set.entries();
+      var item = iter.next();
+      if (item.done || item.value[0] != value || item.value[1] != value) {
+        return false;
+      }
+      item = iter.next();
+      if (item.done || item.value[0] == value || item.value[0].x != 4 || item.value[1] != item.value[0]) {
+        return false;
+      }
+      return iter.next().done;
+    } catch (err) {
+      return false;
+    }
+  }
+  if ($jscomp.USE_PROXY_FOR_ES6_CONFORMANCE_CHECKS) {
+    if (NativeSet && $jscomp.ES6_CONFORMANCE) {
+      return NativeSet;
+    }
+  } else {
+    if (isConformant()) {
+      return NativeSet;
+    }
+  }
+  var PolyfillSet = function(opt_iterable) {
+    this.map_ = new Map;
+    if (opt_iterable) {
+      var iter = $jscomp.makeIterator(opt_iterable);
+      var entry;
+      while (!(entry = iter.next()).done) {
+        var item = entry.value;
+        this.add(item);
+      }
+    }
+    this.size = this.map_.size;
+  };
+  PolyfillSet.prototype.add = function(value) {
+    value = value === 0 ? 0 : value;
+    this.map_.set(value, value);
+    this.size = this.map_.size;
+    return this;
+  };
+  PolyfillSet.prototype["delete"] = function(value) {
+    var result = this.map_["delete"](value);
+    this.size = this.map_.size;
+    return result;
+  };
+  PolyfillSet.prototype.clear = function() {
+    this.map_.clear();
+    this.size = 0;
+  };
+  PolyfillSet.prototype.has = function(value) {
+    return this.map_.has(value);
+  };
+  PolyfillSet.prototype.entries = function() {
+    return this.map_.entries();
+  };
+  PolyfillSet.prototype.values = function() {
+    return this.map_.values();
+  };
+  PolyfillSet.prototype.keys = PolyfillSet.prototype.values;
+  PolyfillSet.prototype[Symbol.iterator] = PolyfillSet.prototype.values;
+  PolyfillSet.prototype.forEach = function(callback, opt_thisArg) {
+    var set = this;
+    this.map_.forEach(function(value) {
+      return callback.call(opt_thisArg, value, value, set);
+    });
+  };
+  return PolyfillSet;
+}, "es6", "es3");
+(function() {
+  var Module = function(id, opt_exports) {
+    this.id = id;
+    this.exports = opt_exports || {};
+  };
+  Module.prototype.exportAllFrom = function(other) {
+    var module = this;
+    var define = {};
+    for (var key in other) {
+      if (key == "default" || key in module.exports || key in define) {
+        continue;
+      }
+      define[key] = {enumerable:true, get:function(key) {
+        return function() {
+          return other[key];
+        };
+      }(key)};
+    }
+    $jscomp.global.Object.defineProperties(module.exports, define);
+  };
+  var CacheEntry = function(def, module, path) {
+    this.def = def;
+    this.module = module;
+    this.path = path;
+    this.blockingDeps = new Set;
+  };
+  CacheEntry.prototype.load = function() {
+    if (this.def) {
+      var def = this.def;
+      this.def = null;
+      callRequireCallback(def, this.module);
+    }
+    return this.module.exports;
+  };
+  function callRequireCallback(callback, opt_module) {
+    var oldPath = currentModulePath;
+    try {
+      if (opt_module) {
+        currentModulePath = opt_module.id;
+        callback.call(opt_module, createRequire(opt_module), opt_module.exports, opt_module);
+      } else {
+        callback($jscomp.require);
+      }
+    } finally {
+      currentModulePath = oldPath;
+    }
+  }
+  var moduleCache = new Map;
+  var currentModulePath = "";
+  function normalizePath(path) {
+    var components = path.split("/");
+    var i = 0;
+    while (i < components.length) {
+      if (components[i] == ".") {
+        components.splice(i, 1);
+      } else {
+        if (i && components[i] == ".." && components[i - 1] && components[i - 1] != "..") {
+          components.splice(--i, 2);
+        } else {
+          i++;
+        }
+      }
+    }
+    return components.join("/");
+  }
+  $jscomp.getCurrentModulePath = function() {
+    return currentModulePath;
+  };
+  function getCacheEntry(id) {
+    var cacheEntry = moduleCache.get(id);
+    if (cacheEntry === undefined) {
+      throw new Error("Module " + id + " does not exist.");
+    }
+    return cacheEntry;
+  }
+  var ensureMap = new Map;
+  var CallbackEntry = function(requireSet, callback) {
+    this.requireSet = requireSet;
+    this.callback = callback;
+  };
+  function maybeNormalizePath(root, absOrRelativePath) {
+    if (absOrRelativePath.startsWith("./") || absOrRelativePath.startsWith("../")) {
+      return normalizePath(root + "/../" + absOrRelativePath);
+    } else {
+      return absOrRelativePath;
+    }
+  }
+  function createRequire(opt_module) {
+    function require(absOrRelativePath) {
+      var absPath = absOrRelativePath;
+      if (opt_module) {
+        absPath = maybeNormalizePath(opt_module.id, absPath);
+      }
+      return getCacheEntry(absPath).load();
+    }
+    function requireEnsure(requires, callback) {
+      if (currentModulePath) {
+        for (var i = 0; i < requires.length; i++) {
+          requires[i] = maybeNormalizePath(currentModulePath, requires[i]);
+        }
+      }
+      var blockingRequires = [];
+      for (var i = 0; i < requires.length; i++) {
+        var required = moduleCache.get(requires[i]);
+        if (!required || required.blockingDeps.size) {
+          blockingRequires.push(requires[i]);
+        }
+      }
+      if (blockingRequires.length) {
+        var requireSet = new Set(blockingRequires);
+        var callbackEntry = new CallbackEntry(requireSet, callback);
+        requireSet.forEach(function(require) {
+          var arr = ensureMap.get(require);
+          if (!arr) {
+            arr = [];
+            ensureMap.set(require, arr);
+          }
+          arr.push(callbackEntry);
+        });
+      } else {
+        callback(require);
+      }
+    }
+    require.ensure = requireEnsure;
+    return require;
+  }
+  $jscomp.require = createRequire();
+  $jscomp.hasModule = function(id) {
+    return moduleCache.has(id);
+  };
+  function markAvailable(absModulePath) {
+    var ensures = ensureMap.get(absModulePath);
+    if (ensures) {
+      for (var i = 0; i < ensures.length; i++) {
+        var entry = ensures[i];
+        entry.requireSet["delete"](absModulePath);
+        if (!entry.requireSet.size) {
+          ensures.splice(i--, 1);
+          callRequireCallback(entry.callback);
+        }
+      }
+      if (!ensures.length) {
+        ensureMap["delete"](absModulePath);
+      }
+    }
+  }
+  $jscomp.registerModule = function(moduleDef, absModulePath, opt_shallowDeps) {
+    if (moduleCache.has(absModulePath)) {
+      throw new Error("Module " + absModulePath + " has already been registered.");
+    }
+    if (currentModulePath) {
+      throw new Error("Cannot nest modules.");
+    }
+    var shallowDeps = opt_shallowDeps || [];
+    for (var i = 0; i < shallowDeps.length; i++) {
+      shallowDeps[i] = maybeNormalizePath(absModulePath, shallowDeps[i]);
+    }
+    var blockingDeps = new Set;
+    for (var i = 0; i < shallowDeps.length; i++) {
+      getTransitiveBlockingDepsOf(shallowDeps[i]).forEach(function(transitive) {
+        blockingDeps.add(transitive);
+      });
+    }
+    blockingDeps["delete"](absModulePath);
+    var cacheEntry = new CacheEntry(moduleDef, new Module(absModulePath), absModulePath);
+    moduleCache.set(absModulePath, cacheEntry);
+    blockingDeps.forEach(function(blocker) {
+      addAsBlocking(cacheEntry, blocker);
+    });
+    if (!blockingDeps.size) {
+      markAvailable(cacheEntry.module.id);
+    }
+    removeAsBlocking(cacheEntry);
+  };
+  function getTransitiveBlockingDepsOf(moduleId) {
+    var cacheEntry = moduleCache.get(moduleId);
+    var blocking = new Set;
+    if (cacheEntry) {
+      cacheEntry.blockingDeps.forEach(function(dep) {
+        getTransitiveBlockingDepsOf(dep).forEach(function(transitive) {
+          blocking.add(transitive);
+        });
+      });
+    } else {
+      blocking.add(moduleId);
+    }
+    return blocking;
+  }
+  var blockingModulePathToBlockedModules = new Map;
+  function addAsBlocking(blocked, blocker) {
+    if (blocked.module.id != blocker) {
+      var blockedModules = blockingModulePathToBlockedModules.get(blocker);
+      if (!blockedModules) {
+        blockedModules = new Set;
+        blockingModulePathToBlockedModules.set(blocker, blockedModules);
+      }
+      blockedModules.add(blocked);
+      blocked.blockingDeps.add(blocker);
+    }
+  }
+  function removeAsBlocking(cacheEntry) {
+    var blocked = blockingModulePathToBlockedModules.get(cacheEntry.module.id);
+    if (blocked) {
+      blockingModulePathToBlockedModules["delete"](cacheEntry.module.id);
+      blocked.forEach(function(blockedCacheEntry) {
+        blockedCacheEntry.blockingDeps["delete"](cacheEntry.module.id);
+        cacheEntry.blockingDeps.forEach(function(blocker) {
+          addAsBlocking(blockedCacheEntry, blocker);
+        });
+        if (!blockedCacheEntry.blockingDeps.size) {
+          removeAsBlocking(blockedCacheEntry);
+          markAvailable(blockedCacheEntry.module.id);
+        }
+      });
+    }
+  }
+  $jscomp.registerAndLoadModule = function(moduleDef, absModulePath, shallowDeps) {
+    $jscomp.require.ensure([absModulePath], function(require) {
+      require(absModulePath);
+    });
+    $jscomp.registerModule(moduleDef, absModulePath, shallowDeps);
+  };
+  $jscomp.registerEs6ModuleExports = function(absModulePath, exports) {
+    if (moduleCache.has(absModulePath)) {
+      throw new Error("Module at path " + absModulePath + " is already registered.");
+    }
+    var entry = new CacheEntry(null, new Module(absModulePath, exports), absModulePath);
+    moduleCache.set(absModulePath, entry);
+    markAvailable(absModulePath);
+  };
+  $jscomp.clearModules = function() {
+    moduleCache.clear();
+  };
+})();
+//src/webgames/GameLoop.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {GameLoop:{enumerable:true, get:function() {
+    return GameLoop;
+  }}});
+  const FPS_DAMPENER = 0.1;
+  class GameLoop {
+    constructor() {
+      this.onLoop = null;
+      this.fps = 60;
+      this._avgFps = 0;
+      this._interval = 0;
+      this._nextTimeout = 0;
+      this._loopId = 0;
+      this._run = () => void runStep(this);
+      this._lastRun = 0;
+    }
+    start(fps = this.fps) {
+      this.fps = fps;
+      if (!this._nextTimeout) {
+        this._lastRun = 0;
+        this._avgFps = fps;
+        this._nextTimeout = setTimeout(this._run, 0);
+      }
+    }
+    avgFps() {
+      return this._avgFps;
+    }
+    isRunning() {
+      return this._nextTimeout !== 0;
+    }
+    stop() {
+      const timeout = this._nextTimeout;
+      if (timeout) {
+        this._nextTimeout = 0;
+        clearTimeout(timeout);
+      }
+    }
+  }
+  function runStep(loop) {
+    const invocation = loop._nextTimeout;
+    const time = Date.now();
+    const lastRun = loop._lastRun;
+    if (lastRun !== 0) {
+      const hertz = 1000 / (time - lastRun);
+      loop._avgFps = FPS_DAMPENER * hertz + (1 - FPS_DAMPENER) * loop._avgFps;
+    }
+    loop._lastRun = time;
+    try {
+      const onLoop = loop.onLoop;
+      onLoop();
+    } finally {
+      const delay = 1000 / loop.fps - (Date.now() - time);
+      if (loop._nextTimeout === invocation) {
+        loop._nextTimeout = setTimeout(loop._run, Math.max(delay, 0));
+      }
+    }
+  }
+}, "src/webgames/GameLoop.js", []);
+
+//src/webgames/Input.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {InputManager:{enumerable:true, get:function() {
+    return InputManager;
+  }}});
+  class InputManager {
+    constructor(domElement) {
+      this._domElement = domElement;
+      this._inFocus = document.activeElement === domElement;
+      this._presses = new Map;
+      this._actionToKeys = new Map;
+      domElement.addEventListener("keydown", e => {
+        keyChanged(this, e, true);
+      });
+      domElement.addEventListener("keyup", e => {
+        keyChanged(this, e, false);
+      });
+      domElement.onblur = () => {
+        this._presses.clear();
+        this._inFocus = false;
+      };
+      domElement.onfocus = () => {
+        this._presses.clear();
+        this._inFocus = true;
+      };
+    }
+    setKeysForAction(action, keys) {
+      const actionToKeys = this._actionToKeys;
+      if (keys != null) {
+        actionToKeys.set(action, keys);
+      } else {
+        actionToKeys["delete"](action);
+      }
+    }
+    isPressed(action) {
+      const keys = this._actionToKeys.get(action);
+      const presses = this._presses;
+      return !!keys && !!keys.some(key => {
+        const obj = presses.get(key);
+        if (obj) {
+          obj.danglingCount = 0;
+          return obj.heldSince != null;
+        } else {
+          return false;
+        }
+      });
+    }
+    numPresses(action) {
+      const keys = this._actionToKeys.get(action);
+      if (keys) {
+        const presses = this._presses;
+        return keys.reduce((count, key) => {
+          const obj = presses.get(key);
+          if (obj) {
+            const newCount = count + obj.danglingCount;
+            obj.danglingCount = 0;
+            return newCount;
+          } else {
+            return count;
+          }
+        }, 0);
+      } else {
+        return 0;
+      }
+    }
+    getSignOfAction(negAction, posAction) {
+      const neg = this.isPressed(negAction) ? 1 : 0;
+      const pos = this.isPressed(posAction) ? 1 : 0;
+      return pos - neg;
+    }
+  }
+  function keyChanged(manager, event, isPressed) {
+    const key = event.key;
+    const presses = manager._presses;
+    const object = presses.get(key);
+    if (isPressed) {
+      if (object == null) {
+        presses.set(key, {heldSince:Date.now(), danglingCount:1, });
+      } else {
+        if (object.heldSince == null) {
+          object.heldSince = Date.now();
+        }
+        object.danglingCount++;
+      }
+    } else {
+      if (object != null) {
+        object.heldSince = null;
+      }
+    }
+  }
+}, "src/webgames/Input.js", []);
+
+//src/swagl.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {Program:{enumerable:true, get:function() {
+    return Program;
+  }}, Shader:{enumerable:true, get:function() {
+    return Shader;
+  }}, Texture:{enumerable:true, get:function() {
+    return Texture;
+  }}, doAnimationFrame:{enumerable:true, get:function() {
+    return doAnimationFrame;
+  }}, loadTextureFromImgUrl:{enumerable:true, get:function() {
+    return loadTextureFromImgUrl;
+  }}, loadTextureFromRawBitmap:{enumerable:true, get:function() {
+    return loadTextureFromRawBitmap;
+  }}, wrapPremadeTexture:{enumerable:true, get:function() {
+    return wrapPremadeTexture;
+  }}});
+  const ShaderType = {FRAGMENT:"fragment", VERTEX:"vertex", };
+  const LocationType = {UNIFORM:1, ATTRIBUTE:2, };
+  class Location {
+    constructor(type, prefix, name) {
+      this.name = name;
+      this.glName = `${prefix}${name}`;
+      switch(type) {
+        case "uniform":
+          this.type = LocationType.UNIFORM;
+          if (prefix !== "u_") {
+            throw new Error(`uniform field "${this.glName}" invalid, must start with u_`);
+          }
+          break;
+        case "in":
+          this.type = LocationType.ATTRIBUTE;
+          if (prefix !== "a_") {
+            throw new Error(`in field "${this.glName}" invalid, must start with a_`);
+          }
+          break;
+        default:
+          throw new Error("Impossible");
+      }
+    }
+  }
+  function findLocations(code) {
+    const locs = [];
+    code.split("\n").forEach(line => {
+      let name, declaration;
+      declaration = /^\s*(in|uniform)\s(?:\w+\s)*([ua]_)(\w+);/.exec(line);
+      if (declaration) {
+        locs.push(new Location(declaration[1], declaration[2], declaration[3]));
+      }
+    });
+    return locs;
+  }
+  const identityMat = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, ]);
+  class MatrixStack {
+    constructor(gl, anchor) {
+      this.gl = gl;
+      this.anchor = anchor;
+      this._stack = [];
+      gl.uniformMatrix4fv(anchor, false, identityMat);
+    }
+    peek() {
+      const stack = this._stack;
+      return stack[stack.length - 1] || identityMat;
+    }
+    pop() {
+      return this._stack.pop();
+    }
+    pushAbsolute(matrix) {
+      this.gl.uniformMatrix4fv(this.anchor, false, matrix);
+      this._stack.push(matrix);
+    }
+    push(matrix) {
+      const stack = this._stack;
+      if (stack.length === 0) {
+        this.pushAbsolute(matrix);
+      } else {
+        const A = matrix;
+        const B = stack[stack.length - 1];
+        this.pushAbsolute(new Float32Array([A[0] * B[0] + A[1] * B[4] + A[2] * B[8] + A[3] * B[12], A[0] * B[1] + A[1] * B[5] + A[2] * B[9] + A[3] * B[13], A[0] * B[2] + A[1] * B[6] + A[2] * B[10] + A[3] * B[14], A[0] * B[3] + A[1] * B[7] + A[2] * B[11] + A[3] * B[15], A[4] * B[0] + A[5] * B[4] + A[6] * B[8] + A[7] * B[12], A[4] * B[1] + A[5] * B[5] + A[6] * B[9] + A[7] * B[13], A[4] * B[2] + A[5] * B[6] + A[6] * B[10] + A[7] * B[14], A[4] * B[3] + A[5] * B[7] + A[6] * B[11] + A[7] * B[15], A[8] * 
+        B[0] + A[9] * B[4] + A[10] * B[8] + A[11] * B[12], A[8] * B[1] + A[9] * B[5] + A[10] * B[9] + A[11] * B[13], A[8] * B[2] + A[9] * B[6] + A[10] * B[10] + A[11] * B[14], A[8] * B[3] + A[9] * B[7] + A[10] * B[11] + A[11] * B[15], A[12] * B[0] + A[13] * B[4] + A[14] * B[8] + A[15] * B[12], A[12] * B[1] + A[13] * B[5] + A[14] * B[9] + A[15] * B[13], A[12] * B[2] + A[13] * B[6] + A[14] * B[10] + A[15] * B[14], A[12] * B[3] + A[13] * B[7] + A[14] * B[11] + A[15] * B[15], ]));
+      }
+    }
+    pushTranslation(x, y, z = 0) {
+      const stack = this._stack;
+      const A = stack.length ? stack[stack.length - 1] : identityMat;
+      this.pushAbsolute(new Float32Array([A[0], A[1], A[2], A[3], A[4], A[5], A[6], A[7], A[8], A[9], A[10], A[11], x * A[0] + y * A[4] + z * A[8] + A[12], x * A[1] + y * A[5] + z * A[9] + A[13], x * A[2] + y * A[6] + z * A[10] + A[14], x * A[3] + y * A[7] + z * A[11] + A[15], ]));
+    }
+    pushYRotation(angle) {
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      this.push(new Float32Array([cos, 0, sin, 0, 0, 1, 0, 0, -sin, 0, cos, 0, 0, 0, 0, 1, ]));
+    }
+    pushZRotation(angle) {
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      this.push(new Float32Array([cos, -sin, 0, 0, sin, cos, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, ]));
+    }
+  }
+  class Shader {
+    constructor(options, code) {
+      this.name = options.name;
+      var gl = this.gl = options.gl;
+      var type = this.type = options.type;
+      var glType;
+      switch(type) {
+        case ShaderType.VERTEX:
+          glType = this.gl.VERTEX_SHADER;
+          break;
+        case ShaderType.FRAGMENT:
+          glType = this.gl.FRAGMENT_SHADER;
+          break;
+        default:
+          throw new Error(`Unrecognized shader type "${type}"`);
+      }
+      this._glType = glType;
+      var shader = this._glShader = gl.createShader(glType);
+      gl.shaderSource(shader, code);
+      gl.compileShader(shader);
+      var compiled = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+      if (!compiled) {
+        var error = gl.getShaderInfoLog(shader);
+        var message = `Failed to compile ${this.name} ${type}-shader: ${error}`;
+        gl.deleteShader(shader);
+        throw new Error(message);
+      }
+      this._locs = findLocations(code);
+    }
+  }
+  class Program {
+    constructor(options) {
+      this.name = options.name;
+      this.projection = options.projection;
+      var gl = this.gl = options.gl;
+      this.linked = false;
+      this._glProgram = gl.createProgram();
+      this._shaders = [];
+      this.u = {};
+      this.a = {};
+      this.stack = null;
+    }
+    attach(...shaders) {
+      const gl = this.gl;
+      const glProgram = this._glProgram;
+      shaders.forEach(shader => {
+        this._shaders.push(shader);
+        gl.attachShader(glProgram, shader._glShader);
+      });
+      return this;
+    }
+    link() {
+      if (this.linked) {
+        return this;
+      }
+      var gl = this.gl;
+      var glProgram = this._glProgram;
+      gl.linkProgram(glProgram);
+      if (!gl.getProgramParameter(glProgram, gl.LINK_STATUS)) {
+        var info = gl.getProgramInfoLog(glProgram);
+        var message = `Failed to link ${this.name} program: ${info}`;
+        gl.deleteProgram(glProgram);
+        throw new Error(message);
+      }
+      this.linked = true;
+      return this;
+    }
+  }
+  function doAnimationFrame(program, code) {
+    var gl = program.gl;
+    var glProgram = program._glProgram;
+    gl.useProgram(glProgram);
+    var u = {}, a = {}, shaders = program._shaders;
+    for (var i = 0; i < shaders.length; i++) {
+      var locs = shaders[i]._locs;
+      for (var j = 0; j < locs.length; j++) {
+        var loc = locs[j];
+        if (loc.type === LocationType.UNIFORM) {
+          if (loc.glName in u) {
+            continue;
+          }
+          u[loc.name] = gl.getUniformLocation(glProgram, loc.glName);
+        } else {
+          if (loc.glName in a) {
+            continue;
+          }
+          a[loc.name] = gl.getAttribLocation(glProgram, loc.glName);
+        }
+      }
+    }
+    program.u = u;
+    program.a = a;
+    const projection = program.projection;
+    if (projection) {
+      if (projection in program.u) {
+        program.stack = new MatrixStack(gl, program.u[projection]);
+      } else {
+        throw new Error(`No anchor point "${projection}" in program`);
+      }
+    }
+    try {
+      code(gl, program);
+    } finally {
+      program.u = {};
+      program.a = {};
+      program.stack = null;
+    }
+  }
+  class Texture {
+    constructor(gl, name, width, height, createTexture) {
+      this.gl = gl;
+      this.name = name;
+      this.w = width;
+      this.h = height;
+      this._glTex = createTexture(gl);
+    }
+    bindTexture() {
+      this.gl.bindTexture(this.gl.TEXTURE_2D, this._glTex);
+    }
+    passSize(anchor) {
+      this.gl.uniform2f(anchor, this.w, this.h);
+    }
+    rawTexture() {
+      return this._glTex;
+    }
+  }
+  function loadTextureFromImgUrl(options) {
+    return (new Promise((resolve, reject) => {
+      const image = new Image;
+      image.onload = () => void resolve(image);
+      image.onerror = () => {
+        reject(new Error(`failed to load ${options.src}`));
+      };
+      image.mode = "no-cors";
+      image.src = options.src;
+    })).then(img => {
+      const width = img.naturalWidth;
+      const height = img.naturalHeight;
+      return new Texture(options.gl, options.name, width, height, createStandardTexture(gl => {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      }));
+    });
+  }
+  function loadTextureFromRawBitmap(options) {
+    const {width, height} = options;
+    return new Texture(options.gl, options.name, width, height, createStandardTexture(gl => {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, options.bmp, 0);
+    }));
+  }
+  function wrapPremadeTexture(options) {
+    return new Texture(options.gl, options.name, options.width, options.height, () => options.tex);
+  }
+  function createStandardTexture(loader) {
+    return gl => {
+      const texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      loader(gl);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+      return texture;
+    };
+  }
+}, "src/swagl.js", []);
+
+//src/sprites.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {Sprite:{enumerable:true, get:function() {
+    return Sprite;
+  }}, SpriteSet:{enumerable:true, get:function() {
+    return SpriteSet;
+  }}, characterSpriteSheet:{enumerable:true, get:function() {
+    return characterSpriteSheet;
+  }}, flatSprite:{enumerable:true, get:function() {
+    return flatSprite;
+  }}, makeSpriteType:{enumerable:true, get:function() {
+    return makeSpriteType;
+  }}, spriteSheet:{enumerable:true, get:function() {
+    return spriteSheet;
+  }}});
+  var module$src$swagl = $$require("src/swagl.js");
+  const TUPLE_LENGTH = 5;
+  let PositionTexPosition;
+  let SpriteDatum;
+  function makeDatum(set, name, offsets, nPoints) {
+    return {_set:set, name, _offsets:offsets, nPoints};
+  }
+  class SpriteSet {
+    constructor(tex, data) {
+      this._tex = tex;
+      this._buffer = null;
+      const internalData = this.data = {};
+      const allData = [];
+      let numTuples = 0;
+      for (const name in data) {
+        const sequence = data[name];
+        const offsets = [];
+        const sequenceLength = sequence.length;
+        if (sequenceLength === 0) {
+          throw new Error("Sprite declared with 0 points");
+        }
+        const stepLength = sequence[0].length;
+        if (stepLength == 0 || TUPLE_LENGTH % 5 !== 0) {
+          throw new Error(`Sprite declared with list of length ${TUPLE_LENGTH} (must be non-zero multiple of 5)`);
+        }
+        const tuplesPerStep = stepLength / 5;
+        for (let i = 0; i < sequenceLength; i++) {
+          const tuples = sequence[i];
+          if (tuples.length !== stepLength) {
+            throw new Error(`Sprite declared with inconsistent lengths of elements`);
+          }
+          offsets.push(numTuples);
+          allData.push.apply(allData, tuples);
+          numTuples += tuplesPerStep;
+        }
+        internalData[name] = makeDatum(this, name, offsets, tuplesPerStep);
+      }
+      this._rawData = new Float32Array(allData);
+    }
+    bindTo(program) {
+      const gl = this._tex.gl;
+      let buffer = this._buffer;
+      if (buffer != null) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      } else {
+        this._buffer = buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, this._rawData, gl.STATIC_DRAW);
+      }
+      gl.activeTexture(gl.TEXTURE0);
+      this._tex.bindTexture();
+      gl.uniform1i(program.u["texture"], 0);
+      gl.enableVertexAttribArray(program.a["texturePosition"]);
+      gl.vertexAttribPointer(program.a["texturePosition"], 2, gl.FLOAT, false, 20, 12);
+      gl.enableVertexAttribArray(program.a["position"]);
+      gl.vertexAttribPointer(program.a["position"], 3, gl.FLOAT, false, 20, 0);
+    }
+    renderSpriteDatumPrebound(datumName, index) {
+      if (!this.data.hasOwnProperty(datumName)) {
+        throw new Error(`Can not render unknown "${datumName}"`);
+      }
+      const datum = this.data[datumName];
+      const gl = this._tex.gl;
+      const offsets = datum._offsets;
+      gl.drawArrays(gl.TRIANGLE_STRIP, offsets[index % offsets.length], datum.nPoints);
+    }
+  }
+  let SpriteDefinition;
+  class Sprite {
+    constructor(options, frameTimes) {
+      const {loops, frameTime} = options;
+      this._name = options.name;
+      this._startTime = 0;
+      this._modes = options.modes;
+      this._activeMode = null;
+      this._targetLoops = typeof loops === "number" ? loops : loops ? -1 : 0;
+      this._spriteSet = options.set;
+      this._frameTimes = frameTimes;
+      this._currentLoop = 0;
+      this._frameIndex = -1;
+      this._nextFrameTime = -1;
+      this._frameData = options.perFrameData;
+    }
+    updateTime(time) {
+      let changed = false;
+      let nextFrameTime = this._nextFrameTime;
+      while (nextFrameTime !== -1 && nextFrameTime <= time) {
+        changed = true;
+        const frameTimes = this._frameTimes;
+        const nextFrame = this._frameIndex + 1;
+        if (nextFrame === frameTimes.length) {
+          if (this._currentLoop === this._targetLoops) {
+            this._nextFrameTime = nextFrameTime = -1;
+          } else {
+            this._currentLoop++;
+            this._frameIndex = 0;
+            this._nextFrameTime = nextFrameTime = time + frameTimes[0];
+          }
+        } else {
+          this._frameIndex = nextFrame;
+          this._nextFrameTime = nextFrameTime = time + frameTimes[nextFrame];
+        }
+      }
+      return changed;
+    }
+    setMode(mode) {
+      this._activeMode = mode;
+    }
+    frameIndex() {
+      return this._frameIndex;
+    }
+    frameData() {
+      const frameData = this._frameData;
+      return frameData != null ? frameData[this._frameIndex] : undefined;
+    }
+    isFinished() {
+      return this._nextFrameTime === -1;
+    }
+    resetSprite(mode, time) {
+      if (!this._modes.includes(mode)) {
+        throw new Error(`${this} does not have mode ${mode}`);
+      }
+      this._currentLoop = 0;
+      this._startTime = time;
+      this._activeMode = mode;
+      this._frameIndex = 0;
+      this._nextFrameTime = time + this._frameTimes[0];
+    }
+    renderSprite(program) {
+      const mode = this._activeMode;
+      if (mode == null) {
+        throw new Error(`${this} tried rendering while inactive`);
+      }
+      this._spriteSet.bindTo(program);
+      this._spriteSet.renderSpriteDatumPrebound(mode, this._frameIndex);
+    }
+    name() {
+      return this._name;
+    }
+    toString() {
+      return `Sprite/${this._name}`;
+    }
+  }
+  function calculateNextFrameTime(sprite, frameIndex, time) {
+    const frames = sprite._frameTimes;
+    if (frameIndex + 1 === frames.length && sprite._currentLoop === sprite._targetLoops) {
+      return -1;
+    } else {
+      return time + frames[frameIndex];
+    }
+  }
+  function makeSpriteType(options) {
+    const {name, frameTime} = options;
+    const data = options.set.data;
+    let numFrames = -1;
+    options.modes.forEach(mode => {
+      const datum = data[mode];
+      if (!datum) {
+        throw new Error(`Sprite/${name} has non-existent mode ${mode}`);
+      }
+      if (numFrames === -1) {
+        numFrames = datum._offsets.length;
+      } else {
+        if (numFrames !== datum._offsets.length) {
+          throw new Error(`Sprite/${name} has inconsistent frame counts`);
+        }
+      }
+    });
+    if (numFrames === -1) {
+      throw new Error(`Sprite/${name} given 0 modes`);
+    }
+    if (typeof frameTime !== "number" && frameTime.length !== numFrames) {
+      throw new Error(`Sprite/${name} given ${frameTime.length} frame times for ${numFrames} frames`);
+    }
+    if (options.frameData && options.frameData.length !== numFrames) {
+      throw new Error(`Sprite/${name} given ${options.frameData.length} frame data points for ${numFrames} frames`);
+    }
+    const frameTimes = typeof frameTime === "number" ? (new Array(numFrames)).fill(frameTime) : frameTime;
+    return () => new Sprite(options, frameTimes);
+  }
+  function characterSpriteSheet({xPercent = 0, yInM = 0, zPercent = 0, widthInPixels, heightInPixels, texPixelsPerUnit, texture, numPerRow, count, reverseX = false}) {
+    const width = widthInPixels / texPixelsPerUnit;
+    const height = heightInPixels / texPixelsPerUnit;
+    return spriteSheet({x:xPercent * width, y:yInM, z:zPercent * height, width, height, texWidth:widthInPixels / texture.w, texHeight:heightInPixels / texture.h, numPerRow, count, reverseX, });
+  }
+  function spriteSheet({x = 0, y = 0, z = 0, width, height, texWidth, texHeight, numPerRow, count, texStartXOffset = 0, texStartYOffset = 0, texWidthStride = texWidth, texHeightStride = texHeight, reverseX = false}) {
+    const result = [];
+    for (let i = 0; i < count; i++) {
+      const row = Math.floor(i / numPerRow);
+      const col = i % numPerRow;
+      const texStartX = texStartXOffset + col * texWidthStride;
+      const texStartY = texStartYOffset + row * texHeightStride;
+      result.push(flatSprite({x, y, z, width, height, texStartX, texEndX:texStartX + texWidth, texStartY, texEndY:texStartY + texHeight, reverseX, }));
+    }
+    return result;
+  }
+  function flatSprite({x = 0, y = 0, z = 0, width, height, texStartX, texStartY, texEndX, texEndY, reverseX = false}) {
+    let startX, endX, leftX, rightX;
+    if (!reverseX) {
+      startX = texStartX;
+      endX = texEndX;
+      leftX = -x;
+      rightX = width - x;
+    } else {
+      startX = texEndX;
+      endX = texStartX;
+      leftX = x - width;
+      rightX = x;
+    }
+    return [rightX, y, -z, endX, texEndY, leftX, y, -z, startX, texEndY, rightX, y, height - z, endX, texStartY, leftX, y, height - z, startX, texStartY, ];
+  }
+}, "src/sprites.js", ["src/swagl.js"]);
+
+//src/SpriteData.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {HERO_HEIGHT:{enumerable:true, get:function() {
+    return HERO_HEIGHT;
+  }}, LAYOUT_TARGETS:{enumerable:true, get:function() {
+    return LAYOUT_TARGETS;
+  }}, PIXELS_PER_METER:{enumerable:true, get:function() {
+    return PIXELS_PER_METER;
+  }}, ROOM_DEPTH_RADIUS:{enumerable:true, get:function() {
+    return ROOM_DEPTH_RADIUS;
+  }}, ROOM_HEIGHT:{enumerable:true, get:function() {
+    return ROOM_HEIGHT;
+  }}, TENTACLE_FRAMES:{enumerable:true, get:function() {
+    return TENTACLE_FRAMES;
+  }}, TEX_PIXELS_PER_METER:{enumerable:true, get:function() {
+    return TEX_PIXELS_PER_METER;
+  }}, TEX_PIXEL_PER_PIXEL:{enumerable:true, get:function() {
+    return TEX_PIXEL_PER_PIXEL;
+  }}, WALL_META:{enumerable:true, get:function() {
+    return WALL_META;
+  }}});
+  const TEX_PIXEL_PER_PIXEL = 2;
+  const PIXELS_PER_METER = 180;
+  const TEX_PIXELS_PER_METER = TEX_PIXEL_PER_PIXEL * PIXELS_PER_METER;
+  const ROOM_DEPTH_RADIUS = 0.5;
+  const ROOM_HEIGHT = 2.5;
+  const HERO_HEIGHT = 1.8;
+  const TENTACLE_FRAMES = 29;
+  const WALL_META = {portholeR:100, portholeRNextPowerOf2:128, portholeXs:[2423], portholeD:353, };
+  const LAYOUT_TARGETS = {CEIL_LIP:-70, CEIL_FOREGROUND:0, CEIL_BACKGROUND:216, FLOOR_BACKGROUND:752, FLOOR_FOREGROUND:968, FLOOR_LIP:1038, };
+}, "src/SpriteData.js", []);
+
+//src/lighting.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {Lighting:{enumerable:true, get:function() {
+    return Lighting;
+  }}});
+  var module$src$swagl = $$require("src/swagl.js");
+  var module$src$sprites = $$require("src/sprites.js");
+  var module$src$SpriteData = $$require("src/SpriteData.js");
+  const COMPRESSION = 4;
+  const fadeWidth = 64;
+  const FLIP_Y = new Float32Array([1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, ]);
+  class Lighting {
+    constructor(gl, viewportWidth, viewportHeight, texPixelsPerMeter) {
+      const lightingTexWidth = viewportWidth / COMPRESSION;
+      const lightingTexHeight = viewportHeight / COMPRESSION;
+      const vShader = new module$src$swagl.Shader({gl, type:"vertex"}, `#version 300 es
+in vec3 a_position;
+in vec2 a_texturePosition;
+
+uniform mat4 u_projection;
+
+out vec2 v_texturePosition;
+
+void main() {
+  vec4 position = u_projection * vec4(a_position, 1);
+  // float inverse = 1.f / (1.f - position.z * .2f);
+
+  // vec4 result = vec4(position.x, -inverse * position.y * (1.f - .5f * position.z), inverse * position.z, inverse * position.w);
+  // gl_Position = result;
+  gl_Position = position;
+  
+  v_texturePosition = a_texturePosition;
+}`);
+      const fShader = new module$src$swagl.Shader({gl, type:"fragment"}, `#version 300 es
+precision mediump float;
+
+uniform sampler2D u_texture;
+uniform float u_threshold;
+
+in vec2 v_texturePosition;
+out vec4 output_color;
+
+void main() {
+    vec4 color = texture(u_texture, v_texturePosition.st);
+    color.a -= u_threshold;
+    if (color.a <= u_threshold) {
+        discard;
+    }
+    output_color = color;
+}`);
+      const program = new module$src$swagl.Program({gl, projection:"projection"});
+      program.attach(vShader, fShader).link();
+      const targetTex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, targetTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, lightingTexWidth, lightingTexHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      const fb = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, targetTex, 0);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      const fadeRadius = COMPRESSION * (0.5 * fadeWidth) / texPixelsPerMeter;
+      const fadeTexture = (0,module$src$swagl.loadTextureFromRawBitmap)({name:"fade", width:fadeWidth, height:fadeWidth, gl, bmp:makeQuadraticDropoff(fadeWidth, fadeWidth, 0.01, texPixelsPerMeter), });
+      this._program = program;
+      this._targetTex = (0,module$src$swagl.wrapPremadeTexture)({tex:targetTex, name:"lighting", width:lightingTexWidth, height:lightingTexHeight, gl, });
+      this._frameBuffer = fb;
+      this._fade = new module$src$sprites.SpriteSet(fadeTexture, {"main":[[fadeRadius, 0, -fadeRadius, 1, 0, fadeRadius, 0, fadeRadius, 1, 1, -fadeRadius, 0, -fadeRadius, 0, 0, -fadeRadius, 0, fadeRadius, 0, 1, ]], });
+    }
+    renderLighting(scene) {
+      const gl = this._program.gl;
+      const tex = this._targetTex;
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
+      gl.viewport(0, 0, tex.w, tex.h);
+      (0,module$src$swagl.doAnimationFrame)(this._program, (gl, program) => {
+        renderLightingToTexture(gl, program, this, scene);
+      });
+    }
+    lightingTex() {
+      return this._targetTex;
+    }
+  }
+  function renderLightingToTexture(gl, program, lighting, scene) {
+    if (scene.lightsOn) {
+      gl.clearColor(0, 0, 0, 1);
+    } else {
+      gl.clearColor(0, 0, 0, window.ambientLight);
+    }
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    scene.renderInCamera(gl, program, () => {
+      const fade = lighting._fade;
+      fade.bindTo(program);
+      const thresholder = program.u["threshold"];
+      const time = scene.timeDiff;
+      scene.particles.forEach(particle => {
+        if (!particle.dead) {
+          const startTime = particle.startTime;
+          const percentPassed = (time - startTime) / (particle.deathTime - startTime);
+          gl.uniform1f(thresholder, 0.5 * percentPassed * percentPassed);
+          program.stack.pushTranslation(particle.x, particle.y, particle.z);
+          fade.renderSpriteDatumPrebound("main", 0);
+          program.stack.pop();
+        }
+      });
+    });
+  }
+  function makeQuadraticDropoff(width, height, brightRadius, texPixelsPerMeter) {
+    const bitmap = new Uint8Array(4 * width * height);
+    const getDistanceSquared = (pixelDx, pixelDy) => {
+      const dx = pixelDx / texPixelsPerMeter;
+      const dy = pixelDy / texPixelsPerMeter;
+      return dx * dx + dy * dy;
+    };
+    const middleX = width / 2;
+    const middleY = height / 2;
+    const brightRadiusSquared = brightRadius * brightRadius;
+    const edgeValue = Math.min(getDistanceSquared(middleX, 0), getDistanceSquared(middleY, 0));
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const offset = 4 * (y * width + x);
+        const distanceSquared = getDistanceSquared(x - middleX, y - middleY);
+        const percentageFromEdge = 1 - Math.sqrt(distanceSquared / edgeValue);
+        const brightAdd = distanceSquared <= brightRadiusSquared ? 5 : 0;
+        const primary = Math.max(Math.round(255 * percentageFromEdge * percentageFromEdge), 0);
+        bitmap[offset + 0] = brightAdd + Math.max(Math.round(20 * percentageFromEdge), 0);
+        bitmap[offset + 1] = brightAdd;
+        bitmap[offset + 2] = brightAdd;
+        bitmap[offset + 3] = primary;
+      }
+    }
+    return bitmap;
+  }
+  function makeSolidTexture(gl, r, g, b, a) {
+    return (0,module$src$swagl.loadTextureFromRawBitmap)({name:"solid", width:1, height:1, gl, bmp:new Uint8Array([r, g, b, a]), });
+  }
+  function makeCircleSprite(radiusInPixels, texPixelsPerMeter) {
+    const bitmap = new Uint8Array(4 * radiusInPixels * radiusInPixels);
+  }
+}, "src/lighting.js", ["src/swagl.js", "src/sprites.js", "src/SpriteData.js"]);
+
+//src/webgames/math.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {arctan:{enumerable:true, get:function() {
+    return arctan;
+  }}});
+  function arctan(opposite, adjacent) {
+    if (adjacent > 0) {
+      return Math.atan(opposite / adjacent);
+    } else {
+      if (adjacent === 0) {
+        if (opposite > 0) {
+          return Math.PI / 2;
+        } else {
+          if (opposite === 0) {
+            return 0;
+          } else {
+            return -Math.PI / 2;
+          }
+        }
+      } else {
+        return Math.atan(opposite / adjacent) + Math.PI;
+      }
+    }
+  }
+}, "src/webgames/math.js", []);
+
+//src/Creature.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {Creature:{enumerable:true, get:function() {
+    return Creature;
+  }}, CreatureResources:{enumerable:true, get:function() {
+    return CreatureResources;
+  }}, loadCreatureResources:{enumerable:true, get:function() {
+    return loadCreatureResources;
+  }}, processCreatures:{enumerable:true, get:function() {
+    return processCreatures;
+  }}, renderCreatures:{enumerable:true, get:function() {
+    return renderCreatures;
+  }}, spawnCreature:{enumerable:true, get:function() {
+    return spawnCreature;
+  }}});
+  var module$src$SpriteData = $$require("src/SpriteData.js");
+  var module$src$sprites = $$require("src/sprites.js");
+  var module$src$swagl = $$require("src/swagl.js");
+  var module$src$Scene = $$require("src/Scene.js");
+  var module$src$webgames$math = $$require("src/webgames/math.js");
+  const CREATURE_RADIUS_PIXELS = 54;
+  const CREATURE_IDLE_FRAMES = 6;
+  const CREATURE_RADIUS = 0.25;
+  const STEP_TIME = 1 / 8;
+  const ATTACH_Z_OFFSET = CREATURE_RADIUS * (3 / 4);
+  let Tentacle;
+  let CreatureResources;
+  const mirrorX = new Float32Array([-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, ]);
+  async function loadCreatureResources(loadTexture) {
+    const [creatureTex, tentacleTex, creatureAttackTex] = await Promise.all([loadTexture("creature", "assets/Enemy.png"), loadTexture("tentacle", "assets/Tentacle.png"), loadTexture("creature_attack", "assets/enemy_bite.png"), ]);
+    const creatureSpriteSet = new module$src$sprites.SpriteSet(creatureTex, {"blink":(0,module$src$sprites.spriteSheet)({x:CREATURE_RADIUS, z:CREATURE_RADIUS, width:2 * CREATURE_RADIUS, height:2 * CREATURE_RADIUS, texWidth:2 * CREATURE_RADIUS_PIXELS / creatureTex.w, texHeight:2 * CREATURE_RADIUS_PIXELS / creatureTex.h, numPerRow:2, count:CREATURE_IDLE_FRAMES, reverseX:true, }), });
+    const makeCreatureAttackSprite = (0,module$src$sprites.makeSpriteType)({name:"creature_attack", set:new module$src$sprites.SpriteSet(creatureAttackTex, {"bite":(0,module$src$sprites.spriteSheet)({x:2 * CREATURE_RADIUS, z:3 * CREATURE_RADIUS, width:4 * CREATURE_RADIUS, height:8 * CREATURE_RADIUS, texHeight:530 / creatureAttackTex.h, texWidth:278 / creatureAttackTex.w, numPerRow:7, count:42, reverseX:true, }), }), modes:["bite"], loops:true, frameTime:1 / 12, });
+    const frameTimes = (new Array(CREATURE_IDLE_FRAMES)).fill(1 / 8);
+    frameTimes[0] = 4;
+    const makeCreatureSprite = (0,module$src$sprites.makeSpriteType)({name:"creature_normal", set:creatureSpriteSet, modes:["blink"], loops:true, frameTime:frameTimes, });
+    const tentacleFrames = [];
+    const tentacleFramesPerRow = 5;
+    const tipPoint = {x:0, y:48};
+    const basePoint = {x:92, y:26};
+    const basis = {x:basePoint.x - tipPoint.x, y:basePoint.y - tipPoint.y};
+    const unitMag = Math.sqrt(basis.x * basis.x + basis.y * basis.y);
+    basis.x /= unitMag;
+    basis.y /= unitMag;
+    const tentacleFrameW = 100;
+    const tentacleFrameH = 77;
+    for (let i = 0; i < module$src$SpriteData.TENTACLE_FRAMES; i++) {
+      const col = i % tentacleFramesPerRow;
+      const row = Math.floor(i / tentacleFramesPerRow);
+      const points = [];
+      const addProjectedPoint = (rawX, rawY) => {
+        const x = rawX * tentacleFrameW - tipPoint.x;
+        const y = rawY * tentacleFrameH - tipPoint.y;
+        points.push((x * basis.x + y * basis.y) / unitMag, rawX, (x * -basis.y + y * basis.x) / module$src$SpriteData.TEX_PIXELS_PER_METER, tentacleFrameW * (col + rawX) / tentacleTex.w, tentacleFrameH * (row + rawY) / tentacleTex.h);
+      };
+      addProjectedPoint(1, 1);
+      addProjectedPoint(0, 1);
+      addProjectedPoint(1, 0);
+      addProjectedPoint(0, 0);
+      tentacleFrames.push(points);
+    }
+    const tentacleSprite = new module$src$sprites.SpriteSet(tentacleTex, {"wiggle":tentacleFrames, });
+    return {makeCreatureSprite, makeCreatureAttackSprite, tentacleSprite};
+  }
+  class Creature {
+    constructor(room, x, y, z) {
+      const sprite = room.resources.creature.makeCreatureSprite();
+      sprite.resetSprite("blink", room.roomTime);
+      this.startX = x;
+      this.x = x;
+      this.y = y;
+      this.z = z;
+      this.nextTentacleMove = 0;
+      this.nextTentacleIndex = 0;
+      this.tentacles = [makeTentacle(0, x, y, -1, 1), makeTentacle(1, x, y, -1, -1), makeTentacle(2, x, y, 1, 1), makeTentacle(3, x, y, 1, -1), ];
+      this.sprite = sprite;
+    }
+  }
+  function spawnCreature(room, x) {
+    room.creatures.push(new Creature(room, x, 0, 3 * CREATURE_RADIUS));
+  }
+  function processCreatures(room) {
+    const roomTime = room.roomTime;
+    room.creatures.forEach(creature => {
+      creature.x = creature.startX + Math.sin(roomTime);
+      const speed = 0.5 * Math.cos(roomTime);
+      creature.sprite.updateTime(room.roomTime);
+      if (roomTime > creature.nextTentacleMove) {
+        let index = creature.nextTentacleIndex;
+        creature.nextTentacleIndex = (index + 1) % creature.tentacles.length;
+        const toPlace = creature.tentacles[index];
+        const placementX = creature.x + (STEP_TIME + 0.1) * speed + toPlace.idealX;
+        if (Math.abs(placementX - toPlace.placementX) > 0.05) {
+          creature.nextTentacleMove = roomTime + STEP_TIME;
+          toPlace.movingUntil = roomTime + STEP_TIME;
+          toPlace.moveStartX = toPlace.placementX;
+          toPlace.moveStartY = toPlace.placementY;
+          toPlace.moveStartZ = toPlace.placementZ;
+          toPlace.placementX = placementX;
+          toPlace.placementY = creature.y + toPlace.idealY;
+          toPlace.placementZ = 0;
+        }
+      }
+    });
+  }
+  function renderCreatures(gl, program, room) {
+    const stack = program.stack;
+    const {tentacleSprite} = room.resources.creature;
+    const roomTime = room.roomTime;
+    const {x:focusX, z:focusZ} = room.hero.getGoodFocusPoint();
+    room.creatures.forEach(creature => {
+      const x = creature.x;
+      const z = creature.z;
+      stack.pushTranslation(x, creature.y, z);
+      let needsMirror = focusX < x;
+      let angle = (0,module$src$webgames$math.arctan)(focusZ - z, focusX - x);
+      if (needsMirror) {
+        stack.push(mirrorX);
+        angle = Math.PI - angle;
+      }
+      stack.pushYRotation(angle);
+      creature.sprite.renderSprite(program);
+      stack.pop();
+      if (needsMirror) {
+        stack.pop();
+      }
+      stack.pop();
+    });
+    tentacleSprite.bindTo(program);
+    room.creatures.forEach(creature => {
+      const attachZ = creature.z - ATTACH_Z_OFFSET;
+      creature.tentacles.forEach(tentacle => {
+        const attachX = creature.x + tentacle.bodyX;
+        const attachY = creature.y + tentacle.bodyY;
+        let placementX = tentacle.placementX;
+        let placementY = tentacle.placementY;
+        let placementZ = tentacle.placementZ;
+        const movingUntil = tentacle.movingUntil;
+        if (roomTime < movingUntil) {
+          const percent = 1 - (movingUntil - roomTime) / STEP_TIME;
+          placementX = bezier(percent, tentacle.moveStartX, attachX, placementX);
+          placementY = bezier(percent, tentacle.moveStartY, attachY, placementY);
+          placementZ = bezier(percent, tentacle.moveStartZ, attachZ, placementZ);
+        }
+        const dX = attachX - placementX;
+        const dY = attachY - placementY;
+        const dZ = attachZ - placementZ;
+        const mag = Math.sqrt(dX * dX + dY * dY + dZ * dZ);
+        stack.pushTranslation(placementX, placementY, placementZ);
+        stack.pushYRotation((0,module$src$webgames$math.arctan)(dZ, dX));
+        stack.push(new Float32Array([mag, 0, 0, 0, 0, dY, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]));
+        tentacleSprite.renderSpriteDatumPrebound("wiggle", Math.abs((Math.floor(24 * roomTime) + tentacle.frameOffset) % (2 * module$src$SpriteData.TENTACLE_FRAMES - 1) + 1 - module$src$SpriteData.TENTACLE_FRAMES));
+        stack.pop();
+        stack.pop();
+        stack.pop();
+      });
+    });
+  }
+  function makeTentacle(index, x, y, xSign, ySign) {
+    const idealX = 0.4 * xSign;
+    const idealY = 0.1 * ySign;
+    const placementX = x + idealX;
+    const placementY = y + idealY;
+    return {index, bodyX:xSign * 0.05, bodyY:0, idealX, idealY, movingUntil:0, moveStartX:placementX, moveStartY:placementY, moveStartZ:0, placementX, placementY, placementZ:0, frameOffset:0, };
+  }
+  function bezier(percent, v1, v2, v3) {
+    let v12 = percent * v2 + (1 - percent) * v1;
+    let v23 = percent * v3 + (1 - percent) * v2;
+    return percent * v23 + (1 - percent) * v12;
+  }
+}, "src/Creature.js", ["src/SpriteData.js", "src/sprites.js", "src/swagl.js", "src/Scene.js", "src/webgames/math.js"]);
+
+//src/Hero.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {Hero:{enumerable:true, get:function() {
+    return Hero;
+  }}, HeroResources:{enumerable:true, get:function() {
+    return HeroResources;
+  }}, loadHeroResources:{enumerable:true, get:function() {
+    return loadHeroResources;
+  }}});
+  var module$src$sprites = $$require("src/sprites.js");
+  var module$src$swagl = $$require("src/swagl.js");
+  var module$src$SpriteData = $$require("src/SpriteData.js");
+  var module$src$webgames$math = $$require("src/webgames/math.js");
+  const HERO_PIXELS_PER_METER = 434 / module$src$SpriteData.HERO_HEIGHT;
+  let HeroResources;
+  let FlarePosition;
+  class Hero {
+    constructor(x) {
+      this.heroX = x;
+    }
+    getGoodFocusPoint() {
+      return {x:this.heroX, z:module$src$SpriteData.HERO_HEIGHT - 0.1};
+    }
+  }
+  async function loadHeroResources(loadTexture) {
+    const [idleTex, walkTex, attackTex] = await Promise.all([loadTexture("hero_idle", "assets/Hero Breathing with axe.png"), loadTexture("hero_walk", "assets/Hero Walking with axe.png"), loadTexture("hero_attack", "assets/Axe Chop.png"), ]);
+    const idleSprite = makeHeroSpriteType({name:"hero_idle", tex:idleTex, widthPx:405, heightPx:434, xPx:220, yPx:434, frameCount:16, loops:true, frameTime:1 / 12, flareData:[{tx:388, ty:104, bx:385, by:170}, {tx:792, ty:105, bx:790, by:170}, {tx:1198, ty:105, bx:1195, by:169}, {tx:1602, ty:106, bx:1600, by:170}, {tx:2008, ty:106, bx:2005, by:172}, {tx:388, ty:539, bx:385, by:604}, {tx:794, ty:540, bx:790, by:605}, {tx:1196, ty:539, bx:1196, by:604}, {tx:1602, ty:539, bx:1602, by:604}, {tx:2009, 
+    ty:541, bx:2007, by:604}, {tx:386, ty:974, bx:385, by:1036}, {tx:792, ty:972, bx:790, by:1033}, {tx:1198, ty:974, bx:1196, by:1038}, {tx:1602, ty:972, bx:1601, by:1036}, {tx:2010, ty:974, bx:2005, by:1044}, {tx:386, ty:1406, bx:385, by:1477}, ], })();
+    const walkSprite = makeHeroSpriteType({name:"hero_walk", tex:walkTex, widthPx:424, heightPx:444, xPx:258, yPx:444, frameCount:8, loops:true, frameTime:1 / 8, flareData:[{tx:408, ty:110, bx:404, by:166}, {tx:830, ty:110, bx:829, by:166}, {tx:408, ty:554, bx:404, by:614}, {tx:830, ty:554, bx:829, by:614}, {tx:408, ty:998, bx:404, by:1055}, {tx:830, ty:998, bx:829, by:1055}, {tx:408, ty:1444, bx:404, by:1500}, {tx:830, ty:1444, bx:829, by:1500}, ], })();
+    const attackSprite = makeHeroSpriteType({name:"hero_attack", tex:attackTex, widthPx:644, heightPx:565, xPx:284, yPx:565, frameCount:5, loops:false, frameTime:1 / 12, flareData:[{tx:422, ty:285, bx:415, by:353}, {tx:936, ty:367, bx:868, by:380}, {tx:1507, ty:311, bx:1469, by:318}, {tx:162, ty:948, bx:206, by:943}, {tx:1025, ty:934, bx:976, by:962}, ], })();
+    return {idleSprite, walkSprite, attackSprite};
+  }
+  function makeHeroSpriteType(options) {
+    const {tex, widthPx, heightPx, xPx, yPx, frameCount} = options;
+    const numPerRow = Math.floor(tex.w / widthPx);
+    const spriteSheetOptions = {x:xPx / HERO_PIXELS_PER_METER, z:(heightPx - yPx) / HERO_PIXELS_PER_METER, width:widthPx / HERO_PIXELS_PER_METER, height:heightPx / HERO_PIXELS_PER_METER, texWidth:widthPx / tex.w, texHeight:heightPx / tex.h, numPerRow, count:frameCount, };
+    const perFrameData = options.flareData && options.flareData.map(({tx, ty, bx, by}, index) => {
+      const row = Math.floor(index / numPerRow);
+      const col = index % numPerRow;
+      return {flare:{x:(tx - (col * widthPx + xPx)) / HERO_PIXELS_PER_METER, z:(row * heightPx + yPx - ty) / HERO_PIXELS_PER_METER, angle:(0,module$src$webgames$math.arctan)(-(ty - by), tx - bx), }, };
+    });
+    const spriteSet = new module$src$sprites.SpriteSet(tex, {"right":(0,module$src$sprites.spriteSheet)(spriteSheetOptions), "left":(0,module$src$sprites.spriteSheet)({...spriteSheetOptions, reverseX:true}), });
+    return (0,module$src$sprites.makeSpriteType)({name:options.name, set:spriteSet, modes:["left", "right"], loops:options.loops, frameTime:options.frameTime, perFrameData, });
+  }
+}, "src/Hero.js", ["src/sprites.js", "src/swagl.js", "src/SpriteData.js", "src/webgames/math.js"]);
+
+//src/Scene.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {Room:{enumerable:true, get:function() {
+    return Room;
+  }}, makeRoom:{enumerable:true, get:function() {
+    return makeRoom;
+  }}});
+  var module$src$Creature = $$require("src/Creature.js");
+  var module$src$Hero = $$require("src/Hero.js");
+  var module$src$Environ = $$require("src/Environ.js");
+  let Resources;
+  let Room;
+  function makeRoom(options) {
+    const {resources, roomLeft, roomRight} = options;
+    return {resources, creatures:[], roomTime:options.roomTime, roomLeft, roomRight, roomTop:options.roomTop, roomBottom:options.roomBottom, environSprites:(0,module$src$Environ.makeRoomSprites)(options.resources.environ, roomRight - roomLeft, roomLeft), hero:options.hero, };
+  }
+}, "src/Scene.js", ["src/Creature.js", "src/Hero.js", "src/Environ.js"]);
+
+//src/Environ.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {EnvironResources:{enumerable:true, get:function() {
+    return EnvironResources;
+  }}, EnvironRoomSprites:{enumerable:true, get:function() {
+    return EnvironRoomSprites;
+  }}, ProjectionData:{enumerable:true, get:function() {
+    return ProjectionData;
+  }}, buildProjectionData:{enumerable:true, get:function() {
+    return buildProjectionData;
+  }}, loadEnvironResources:{enumerable:true, get:function() {
+    return loadEnvironResources;
+  }}, makeRoomSprites:{enumerable:true, get:function() {
+    return makeRoomSprites;
+  }}});
+  var module$src$sprites = $$require("src/sprites.js");
+  var module$src$SpriteData = $$require("src/SpriteData.js");
+  var module$src$swagl = $$require("src/swagl.js");
+  let ProjectionData;
+  let EnvironResources;
+  let EnvironRoomSprites;
+  function buildProjectionData(outputWidth, outputHeight) {
+    const roomDepth = 2 * module$src$SpriteData.ROOM_DEPTH_RADIUS;
+    const layoutMiddleY = (module$src$SpriteData.LAYOUT_TARGETS.CEIL_FOREGROUND + module$src$SpriteData.LAYOUT_TARGETS.FLOOR_FOREGROUND) / 2;
+    const clipSpaceY = layoutTargetY => (layoutMiddleY - layoutTargetY) / outputHeight;
+    const Ry = clipSpaceY((module$src$SpriteData.LAYOUT_TARGETS.CEIL_FOREGROUND + module$src$SpriteData.LAYOUT_TARGETS.CEIL_BACKGROUND) / 2);
+    const w1 = Ry / clipSpaceY(module$src$SpriteData.LAYOUT_TARGETS.CEIL_FOREGROUND);
+    const w2 = Ry / clipSpaceY(module$src$SpriteData.LAYOUT_TARGETS.CEIL_BACKGROUND);
+    const scaleY = Ry / (module$src$SpriteData.ROOM_HEIGHT / 2);
+    const scaleX = scaleY * (outputHeight / outputWidth);
+    const matrix = new Float32Array([scaleX, 0, 0, 0, 0, 0, 1 / roomDepth, (w2 - w1) / roomDepth, 0, scaleY, 0, 0, 0, 0, 0, (w1 + w2) / 2, ]);
+    return {matrix, wForeground:w1, wBackground:w2, scaleX, scaleY, lipHeight:clipSpaceY(module$src$SpriteData.LAYOUT_TARGETS.CEIL_LIP) * w1 / scaleY - module$src$SpriteData.ROOM_HEIGHT / 2, lipWidth:0.3, };
+  }
+  async function loadEnvironResources(projection, loadTexture) {
+    const [wallTex, floorTex, ceilTex, sideTex] = await Promise.all([loadTexture("wall", "assets/Back Wall.png"), loadTexture("floor", "assets/floor.png"), loadTexture("ceiling", "assets/ceiling.png"), loadTexture("wall", "assets/side_wall.png"), ]);
+    return {projection, wallTex, floorTex, ceilTex, sideTex};
+  }
+  function makeRoomSprites({wallTex, floorTex, ceilTex, sideTex, projection}, roomWidth, roomOriginX) {
+    const roomLeft = -roomOriginX - projection.lipWidth;
+    const roomRight = 2 * projection.lipWidth + roomLeft + roomWidth;
+    const wallTopY = 494 / wallTex.h;
+    const wallBottomY = 1016 / wallTex.h;
+    const wallHeightPercent = wallBottomY - wallTopY;
+    const rightWallTex = wallHeightPercent * wallTex.h / module$src$SpriteData.ROOM_HEIGHT * roomWidth / wallTex.w;
+    const wallSpriteSet = new module$src$sprites.SpriteSet(wallTex, {"main":[[roomRight, module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, rightWallTex, wallTopY, roomRight, module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, rightWallTex, wallBottomY, roomLeft, module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, 0, wallTopY, roomLeft, module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, 0, wallBottomY, ]], });
+    const floorBackground = 110 / floorTex.h;
+    const floorForeground = 220 / floorTex.h;
+    const rightFloorTex = (floorForeground - floorBackground) * floorTex.h / (2 * module$src$SpriteData.ROOM_DEPTH_RADIUS) * roomWidth / floorTex.w;
+    const floorSpriteSet = new module$src$sprites.SpriteSet(floorTex, {"main":[[roomRight, -module$src$SpriteData.ROOM_DEPTH_RADIUS, -projection.lipHeight, rightFloorTex, 1, roomLeft, -module$src$SpriteData.ROOM_DEPTH_RADIUS, -projection.lipHeight, 0, 1, roomRight, -module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, rightFloorTex, floorForeground, roomLeft, -module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, 0, floorForeground, roomRight, module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, rightFloorTex, floorBackground, 
+    roomLeft, module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, 0, floorBackground, ]], });
+    const ceilBackground = 144 / ceilTex.h;
+    const ceilForeground = 32 / ceilTex.h;
+    const rightCeilTex = (ceilForeground - ceilBackground) * ceilTex.h / (2 * module$src$SpriteData.ROOM_DEPTH_RADIUS) * roomWidth / ceilTex.w;
+    const ceilSpriteSet = new module$src$sprites.SpriteSet(ceilTex, {"main":[[roomRight, -module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT + projection.lipHeight, rightCeilTex, 0, roomLeft, -module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT + projection.lipHeight, 0, 0, roomRight, -module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, rightCeilTex, ceilForeground, roomLeft, -module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, 
+    0, ceilForeground, roomRight, module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, rightCeilTex, ceilBackground, roomLeft, module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, 0, ceilBackground, ]], });
+    const sideLipX = 438 / sideTex.w;
+    const sideForegroundX = 318 / sideTex.w;
+    const sideForegroundHighY = 194 / sideTex.h;
+    const sideForegroundLowY = 1164 / sideTex.h;
+    const sideBackgroundX = 84 / sideTex.w;
+    const sideBackgroundHighY = 414 / sideTex.h;
+    const sideBackgroundLowY = 964 / sideTex.h;
+    const sideLeftData = [roomLeft, -module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, sideLipX, sideForegroundHighY, roomLeft, -module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, sideLipX, sideForegroundLowY, roomLeft + projection.lipWidth, -module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, sideForegroundX, sideForegroundHighY, roomLeft + projection.lipWidth, -module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, sideForegroundX, sideForegroundLowY, roomLeft + 
+    projection.lipWidth, module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, sideBackgroundX, sideBackgroundHighY, roomLeft + projection.lipWidth, module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, sideBackgroundX, sideBackgroundLowY, ];
+    const sideRightData = [];
+    for (let i = 0; i < sideLeftData.length; i += 5) {
+      const x = sideLeftData[i + 0];
+      const y = sideLeftData[i + 1];
+      const z = sideLeftData[i + 2];
+      const texX = sideLeftData[i + 3];
+      const texY = sideLeftData[i + 4];
+      sideRightData.push(roomRight + (roomLeft - x), y, z, texX, texY);
+    }
+    const sideSpriteSet = new module$src$sprites.SpriteSet(sideTex, {"right":[sideRightData], "left":[sideLeftData], });
+    return {wallSpriteSet, floorSpriteSet, ceilSpriteSet, sideSpriteSet};
+  }
+}, "src/Environ.js", ["src/sprites.js", "src/SpriteData.js", "src/swagl.js"]);
+
+//src/exe.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  var module$src$swagl = $$require("src/swagl.js");
+  var module$src$webgames$GameLoop = $$require("src/webgames/GameLoop.js");
+  var module$src$sprites = $$require("src/sprites.js");
+  var module$src$webgames$Input = $$require("src/webgames/Input.js");
+  var module$src$lighting = $$require("src/lighting.js");
+  var module$src$SpriteData = $$require("src/SpriteData.js");
+  var module$src$Creature = $$require("src/Creature.js");
+  var module$src$Scene = $$require("src/Scene.js");
+  var module$src$Hero = $$require("src/Hero.js");
+  var module$src$Environ = $$require("src/Environ.js");
+  const ATTACK_ORIGIN_X = 284;
+  const ATTACK_WIDTH = 644;
+  const ATTACK_HEIGHT = 565;
+  const FLARE_DURING_ATTACK = [{x1:422, y1:285, x2:415, y2:353}, {x1:936, y1:367, x2:868, y2:380}, {x1:1507, y1:311, x2:1469, y2:318}, {x1:162, y1:948, x2:206, y2:943}, {x1:1025, y1:934, x2:976, y2:962}, ];
+  const CAMERA_X_OFFSET = 1;
+  window.ambientLight = 0.1;
+  async function onLoad() {
+    const fpsNode = document.getElementById("fps");
+    const canvas = document.getElementById("canvas");
+    const computedStyle = window.getComputedStyle(canvas);
+    const input = new module$src$webgames$Input.InputManager(document.body);
+    input.setKeysForAction("left", ["a", "ArrowLeft"]);
+    input.setKeysForAction("right", ["d", "ArrowRight"]);
+    input.setKeysForAction("showLights", ["l"]);
+    input.setKeysForAction("attack", ["f", " "]);
+    input.setKeysForAction("fullscreen", ["u"]);
+    input.setKeysForAction("up", ["w", "ArrowUp"]);
+    input.setKeysForAction("down", ["s", "ArrowDown"]);
+    input.setKeysForAction("lightUp", ["y"]);
+    input.setKeysForAction("lightDown", ["h"]);
+    let width = parseInt(computedStyle.getPropertyValue("width"), 10);
+    let height = parseInt(computedStyle.getPropertyValue("height"), 10);
+    let debugShowLights = false;
+    const ratio = window.devicePixelRatio || 1;
+    const canvasWidth = ratio * width;
+    const canvasHeight = ratio * height;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    let cameraZ = module$src$SpriteData.ROOM_HEIGHT / 2;
+    const projection = (0,module$src$Environ.buildProjectionData)(width, height);
+    console.log(projection);
+    const gl = canvas.getContext("webgl2", {antialias:false, alpha:false});
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthFunc(gl.LEQUAL);
+    const vShader = new module$src$swagl.Shader({gl, type:"vertex"}, `#version 300 es
+in vec3 a_position;
+in vec2 a_texturePosition;
+
+uniform mat4 u_projection;
+
+out vec4 v_clipSpace;
+out vec2 v_texturePosition;
+
+void main() {
+    vec4 position = u_projection * vec4(a_position, 1);
+    // float inverse = 1.f / (1.f - position.z * .2f);
+
+    // vec4 result = vec4(position.x, inverse * position.y * (1.f - .5f * position.z), inverse * position.z, inverse * position.w);
+    // vec4 result = vec4(position.x * position.w, position.y, position.z, position.w);
+    vec4 result = position;
+    gl_Position = result;
+    
+    v_clipSpace = result;
+    v_texturePosition = a_texturePosition;
+}`);
+    const fShader = new module$src$swagl.Shader({gl, type:"fragment"}, `#version 300 es
+precision mediump float;
+
+uniform sampler2D u_texture;
+uniform sampler2D u_lighting;
+
+in vec2 v_texturePosition;
+in vec4 v_clipSpace;
+out vec4 output_color;
+
+void main() {
+    vec4 clipSpace = v_clipSpace / v_clipSpace.w; //vec4(.5f * (v_clipSpace.x + 1.f), -.5f * (v_clipSpace.y - 1.f), v_clipSpace.z, v_clipSpace.w) / v_clipSpace.w;
+    clipSpace.x = .5f * (clipSpace.x + 1.f);
+    clipSpace.y = 1.f - .5f * (1.f - clipSpace.y); // why????
+
+    vec4 color = texture(u_texture, v_texturePosition.st);
+    if (color.a == 0.0) {
+        discard;
+    }
+
+    vec4 light = texture(u_lighting, clipSpace.xy);
+    vec3 math = min(light.xyz + color.xyz * light.a, vec3(1.f, 1.f, 1.f));
+    output_color = vec4(math, color.a);
+}`);
+    const program = new module$src$swagl.Program({gl, projection:"projection"});
+    program.attach(vShader, fShader).link();
+    const lighting = new module$src$lighting.Lighting(gl, canvasWidth, canvasHeight, module$src$SpriteData.TEX_PIXELS_PER_METER);
+    const audioContext = new AudioContext;
+    const loadTexture = (name, url) => {
+      return (0,module$src$swagl.loadTextureFromImgUrl)({gl, name, src:url});
+    };
+    const [environResources, gruntSounds, exclaimSound, creatureResources, heroResources] = await Promise.all([(0,module$src$Environ.loadEnvironResources)(projection, loadTexture), Promise.all([loadSound(audioContext, "assets/Grunt1.mp3"), loadSound(audioContext, "assets/Grunt2.mp3"), loadSound(audioContext, "assets/Grunt3.mp3"), ]), loadSound(audioContext, "assets/Theres something here.mp3"), (0,module$src$Creature.loadCreatureResources)(loadTexture), (0,module$src$Hero.loadHeroResources)(loadTexture), 
+    ]);
+    let exclamation = null;
+    const charWInM = 405 / module$src$SpriteData.TEX_PIXELS_PER_METER;
+    const charSprite = heroResources.idleSprite;
+    const charWalkSprite = heroResources.walkSprite;
+    const charAxeSprite = heroResources.attackSprite;
+    let charSpriteMode = "right";
+    const hero = new module$src$Hero.Hero(2);
+    const room = (0,module$src$Scene.makeRoom)({resources:{creature:creatureResources, hero:heroResources, environ:environResources, }, roomTime:0, roomLeft:0, roomRight:12, roomTop:module$src$SpriteData.ROOM_HEIGHT, roomBottom:0, hero, });
+    const sparkSprite = makeSparkSprite(gl);
+    let mouseX = 0;
+    let mouseY = 0;
+    const particles = [];
+    let startTime = Date.now();
+    let timeDiff = 0;
+    let avgFps = -1;
+    let stepSize = 0;
+    function updateTime() {
+      const newTime = (Date.now() - startTime) / 1000;
+      stepSize = newTime - room.roomTime;
+      timeDiff = room.roomTime = newTime;
+      if (avgFps === -1) {
+        avgFps = 60;
+      } else {
+        avgFps = 1 / stepSize / 16 + 15 / 16 * avgFps;
+      }
+      fpsNode.innerHTML = `fps=${Math.round(avgFps)}`;
+    }
+    let charDx = 0;
+    let charFacingLeft = false;
+    const spawnHertz = 48;
+    let charFrameStart = 0;
+    let activeCharSprite = charWalkSprite;
+    let charFps = 12;
+    let fullScreenRequest = null;
+    document.addEventListener("fullscreenchange", event => {
+      if (!document.fullscreenElement) {
+        fullScreenRequest = null;
+      }
+    });
+    const shipLength = 100;
+    const wave1 = isFar => {
+      const time = timeDiff + (isFar ? 170 : 0);
+      return Math.sin(Math.PI * time / 8) / 2;
+    };
+    const wave2 = isFar => {
+      const time = timeDiff + (isFar ? 130 : 0);
+      return Math.sin(Math.PI * time / 3) / 8;
+    };
+    (0,module$src$Creature.spawnCreature)(room, hero.heroX + 2);
+    let shipAngle, normalX, normalZ, shipDz;
+    function movePieces() {
+      const bowY = wave1(false) + wave2(false);
+      const sternY = wave1(true) + wave2(true);
+      shipAngle = Math.asin((bowY - sternY) / shipLength);
+      normalZ = Math.cos(shipAngle);
+      normalX = Math.sin(shipAngle);
+      shipDz = (bowY + sternY) / 2;
+      let charSpeedX = 0;
+      if (activeCharSprite === charAxeSprite && !charAxeSprite.isFinished()) {
+      } else {
+        if (input.isPressed("attack")) {
+          activeCharSprite = charAxeSprite;
+          charAxeSprite.resetSprite(charSpriteMode, timeDiff);
+          if (exclamation) {
+            exclamation.stop();
+          }
+          const audioSource = audioContext.createBufferSource();
+          audioSource.buffer = gruntSounds[Math.floor(Math.random() * gruntSounds.length)];
+          audioSource.connect(audioContext.destination);
+          audioSource.start(0);
+        } else {
+          charDx = 1.2 * stepSize * input.getSignOfAction("left", "right");
+          let plannedX = hero.heroX + charDx;
+          if (plannedX < room.roomLeft + charWInM) {
+            charDx = room.roomLeft + charWInM - hero.heroX;
+          } else {
+            if (plannedX > room.roomRight - charWInM) {
+              charDx = room.roomRight - charWInM - hero.heroX;
+            }
+          }
+          if (charDx !== 0) {
+            hero.heroX += charDx;
+            charFacingLeft = charDx < 0;
+            if (activeCharSprite !== charWalkSprite) {
+              activeCharSprite = charWalkSprite;
+              charWalkSprite.resetSprite(charFacingLeft ? "left" : "right", timeDiff);
+            }
+          } else {
+            if (activeCharSprite !== charSprite) {
+              activeCharSprite = charSprite;
+              charSprite.resetSprite(charFacingLeft ? "left" : "right", timeDiff);
+            } else {
+              if (exclamation == null && charFrameStart < timeDiff - 4) {
+                exclamation = audioContext.createBufferSource();
+                exclamation.buffer = exclaimSound;
+                exclamation.connect(audioContext.destination);
+                exclamation.start(0);
+              }
+            }
+          }
+        }
+      }
+      activeCharSprite.updateTime(timeDiff);
+      const toSpawn = Math.floor(spawnHertz * timeDiff) - Math.floor(spawnHertz * (timeDiff - stepSize));
+      for (let i = 0; i < toSpawn; i++) {
+        const speed = Math.random() * 2 + 1.4;
+        let dy = 0.1 * Math.sin(2 * Math.PI * Math.random());
+        const frameData = activeCharSprite.frameData();
+        const flarePosition = frameData && frameData.flare;
+        if (!flarePosition) {
+          continue;
+        }
+        const x = hero.heroX + flarePosition.x * (charFacingLeft ? -1 : 1);
+        const z = flarePosition.z;
+        const angle = (Math.random() - 0.5) * (Math.PI / 4) + flarePosition.angle;
+        const dz = speed * Math.sin(angle);
+        const dx = speed * Math.cos(angle) + charDx / stepSize;
+        if (particles.length > 100) {
+          particles.pop();
+        }
+        particles.push({dead:false, x, y:0.01, z, dx, dy, dz, startTime:timeDiff, deathTime:timeDiff + 1.5, onFloor:false, });
+      }
+      const gravityZ = normalZ * 9.8 * stepSize;
+      const gravityX = normalX * 9.8 * stepSize;
+      const friction = 1 - 0.8 * stepSize;
+      particles.forEach(particle => {
+        const declaredDead = particle.dead;
+        if (!declaredDead && timeDiff < particle.deathTime) {
+          particle.x += particle.dx * stepSize;
+          particle.y += particle.dy * stepSize;
+          particle.z += particle.dz * stepSize;
+          let dz = particle.dz;
+          if (particle.onFloor) {
+            particle.dx *= friction;
+            particle.dy *= friction;
+          } else {
+            dz -= gravityZ;
+            particle.dx -= gravityX;
+            particle.dz = dz;
+          }
+          if (particle.x < room.roomLeft || particle.x > room.roomRight) {
+            particle.dead = true;
+          }
+          const y = particle.y;
+          if (y < -module$src$SpriteData.ROOM_DEPTH_RADIUS || y > module$src$SpriteData.ROOM_DEPTH_RADIUS) {
+            const reflectAgainst = y > 0 ? module$src$SpriteData.ROOM_DEPTH_RADIUS : -module$src$SpriteData.ROOM_DEPTH_RADIUS;
+            particle.y = reflectAgainst + (reflectAgainst - y);
+            particle.dy = -particle.dy;
+          }
+          const floorZ = room.roomBottom;
+          if (particle.z < floorZ) {
+            if (dz > -.01) {
+              particle.z = module$src$SpriteData.PIXELS_PER_METER;
+              particle.dz = floorZ;
+              particle.onFloor = true;
+            } else {
+              particle.z = floorZ - particle.z;
+              particle.dz = -.25 * dz;
+            }
+          }
+        } else {
+          if (!declaredDead) {
+            particle.dead = true;
+          }
+        }
+      });
+      particles.sort(sortParticles);
+      (0,module$src$Creature.processCreatures)(room);
+    }
+    function renderInCamera(gl, program, subcode) {
+      program.stack.push(projection.matrix);
+      const cameraX = Math.min(Math.max(hero.heroX, room.roomLeft + CAMERA_X_OFFSET), room.roomRight - CAMERA_X_OFFSET);
+      program.stack.pushTranslation(-cameraX, 0, -cameraZ);
+      program.stack.pushYRotation(shipAngle);
+      program.stack.pushTranslation(0, 0, shipDz);
+      subcode(gl, program);
+      program.stack.pop();
+      program.stack.pop();
+      program.stack.pop();
+    }
+    function renderInSceneContent(gl, program) {
+      const stack = program.stack;
+      const wall = room.environSprites.wallSpriteSet;
+      wall.bindTo(program);
+      wall.renderSpriteDatumPrebound("main", 0);
+      const floor = room.environSprites.floorSpriteSet;
+      floor.bindTo(program);
+      floor.renderSpriteDatumPrebound("main", 0);
+      const ceilingSprite = room.environSprites.ceilSpriteSet;
+      ceilingSprite.bindTo(program);
+      ceilingSprite.renderSpriteDatumPrebound("main", 0);
+      const sideSprite = room.environSprites.sideSpriteSet;
+      sideSprite.bindTo(program);
+      sideSprite.renderSpriteDatumPrebound("left", 0);
+      sideSprite.renderSpriteDatumPrebound("right", 0);
+      stack.pushTranslation(hero.heroX, 0, 0);
+      activeCharSprite.setMode(charFacingLeft ? "left" : "right");
+      activeCharSprite.renderSprite(program);
+      stack.pop();
+      (0,module$src$Creature.renderCreatures)(gl, program, room);
+      sparkSprite.bindTo(program);
+      particles.forEach(particle => {
+        if (!particle.dead) {
+          stack.pushTranslation(particle.x, particle.y, particle.z);
+          stack.pushYRotation((particle.dx >= 0 ? Math.PI : 0) + Math.atan(particle.dz / particle.dx));
+          sparkSprite.renderSpriteDatumPrebound("fading", Math.floor(12 * (timeDiff - particle.startTime)));
+          stack.pop();
+          stack.pop();
+        }
+      });
+    }
+    function renderMain(gl, program) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, canvasWidth, canvasHeight);
+      gl.disable(gl.BLEND);
+      gl.clearColor(0, 0, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.activeTexture(gl.TEXTURE1);
+      lighting.lightingTex().bindTexture();
+      gl.uniform1i(program.u["lighting"], 1);
+      gl.activeTexture(gl.TEXTURE0);
+      renderInCamera(gl, program, renderInSceneContent);
+    }
+    function renderStep() {
+      updateTime();
+      window.ambientLight = Math.max(0, Math.min(1, window.ambientLight + stepSize / 4 * input.getSignOfAction("lightDown", "lightUp")));
+      if (input.numPresses("showLights") % 2) {
+        debugShowLights = !debugShowLights;
+      }
+      if (!fullScreenRequest && input.isPressed("fullscreen")) {
+        fullScreenRequest = canvas.requestFullscreen();
+      }
+      cameraZ += stepSize * input.getSignOfAction("down", "up");
+      window["cameraZ"] = cameraZ;
+      movePieces();
+      lighting.renderLighting({renderInCamera, timeDiff, particles, lightsOn:debugShowLights, });
+      (0,module$src$swagl.doAnimationFrame)(program, renderMain);
+      requestAnimationFrame(renderStep);
+    }
+    requestAnimationFrame(renderStep);
+    canvas.onmousemove = event => {
+      mouseX = event.offsetX;
+      mouseY = event.offsetY;
+    };
+  }
+  function makeSparkSprite(gl) {
+    const FADE_STEPS = 18;
+    const TAIL_LEAD = 6;
+    const FADE_COEFFICIENT = 1 / FADE_STEPS / FADE_STEPS;
+    const colorVal = dropIndex => {
+      return Math.max(0, Math.min(255, Math.round(256 * (1 - FADE_COEFFICIENT * dropIndex * dropIndex))));
+    };
+    const bmp = [];
+    for (let repeatedRow = 0; repeatedRow < module$src$SpriteData.TEX_PIXEL_PER_PIXEL; repeatedRow++) {
+      for (let i = 0; i < FADE_STEPS; i++) {
+        for (let pixel = 0; pixel < 2; pixel++) {
+          let r, gb, alpha;
+          const pseudoframe = i + pixel * TAIL_LEAD;
+          if (pseudoframe < FADE_STEPS) {
+            r = 255;
+            gb = colorVal(pseudoframe);
+            alpha = 255;
+          } else {
+            r = 0;
+            gb = 0;
+            alpha = 0;
+          }
+          const a = colorVal(i + pixel * TAIL_LEAD);
+          const b = colorVal(i + pixel * TAIL_LEAD + 1);
+          for (let repeatedCol = 0; repeatedCol < module$src$SpriteData.TEX_PIXEL_PER_PIXEL; repeatedCol++) {
+            bmp.push(r, gb, gb, alpha);
+          }
+        }
+      }
+    }
+    const tex = (0,module$src$swagl.loadTextureFromRawBitmap)({name:"spark", width:2 * FADE_STEPS * module$src$SpriteData.TEX_PIXEL_PER_PIXEL, height:module$src$SpriteData.TEX_PIXEL_PER_PIXEL, gl, bmp:new Uint8Array(bmp), });
+    return new module$src$sprites.SpriteSet(tex, {"fading":(0,module$src$sprites.spriteSheet)({x:1 / module$src$SpriteData.PIXELS_PER_METER, width:.04, height:2 / module$src$SpriteData.PIXELS_PER_METER, texWidth:1 / FADE_STEPS, texHeight:1, numPerRow:FADE_STEPS, count:FADE_STEPS, }), });
+  }
+  function sortParticles(a, b) {
+    return a.dead ? b.dead ? 0 : 1 : b.dead ? -1 : a.y - b.y;
+  }
+  function loadSound(audioContext, url) {
+    return fetch(url).then(response => {
+      if (!response.ok) {
+        throw new Error(`failed to load ${url}`);
+      }
+      return response.arrayBuffer();
+    }).then(buffer => audioContext.decodeAudioData(buffer));
+  }
+  function sqr(val) {
+    return val * val;
+  }
+  function arctan(opposite, adjacent) {
+    if (adjacent > 0) {
+      return Math.atan(opposite / adjacent);
+    } else {
+      if (adjacent === 0) {
+        if (opposite > 0) {
+          return Math.PI / 2;
+        } else {
+          if (opposite === 0) {
+            return 0;
+          } else {
+            return -Math.PI / 2;
+          }
+        }
+      } else {
+        return Math.atan(opposite / adjacent) + Math.PI;
+      }
+    }
+  }
+  window.onload = onLoad;
+}, "src/exe.js", ["src/swagl.js", "src/webgames/GameLoop.js", "src/sprites.js", "src/webgames/Input.js", "src/lighting.js", "src/SpriteData.js", "src/Creature.js", "src/Scene.js", "src/Hero.js", "src/Environ.js"]);
+

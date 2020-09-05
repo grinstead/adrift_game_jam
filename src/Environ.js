@@ -119,17 +119,19 @@ export function makeRoomSprites(
   const roomLeft = -roomOriginX - projection.lipWidth;
   const roomRight = 2 * projection.lipWidth + roomLeft + roomWidth;
 
-  const wallHeightPercent = 1 - 648 / wallTex.h;
+  const wallTopY = 494 / wallTex.h;
+  const wallBottomY = 1016 / wallTex.h;
+  const wallHeightPercent = wallBottomY - wallTopY;
   const rightWallTex =
     (((wallHeightPercent * wallTex.h) / ROOM_HEIGHT) * roomWidth) / wallTex.w;
 
   const wallSpriteSet = new SpriteSet(wallTex, {
     // prettier-ignore
     "main": [[
-        roomRight, ROOM_DEPTH_RADIUS, ROOM_HEIGHT, rightWallTex, 1 - wallHeightPercent,
-        roomRight, ROOM_DEPTH_RADIUS, 0, rightWallTex, 1,
-        roomLeft, ROOM_DEPTH_RADIUS, ROOM_HEIGHT, 0, 1 - wallHeightPercent,
-        roomLeft, ROOM_DEPTH_RADIUS, 0, 0, 1,
+        roomRight, ROOM_DEPTH_RADIUS, ROOM_HEIGHT, rightWallTex, wallTopY,
+        roomRight, ROOM_DEPTH_RADIUS, 0, rightWallTex, wallBottomY,
+        roomLeft, ROOM_DEPTH_RADIUS, ROOM_HEIGHT, 0, wallTopY,
+        roomLeft, ROOM_DEPTH_RADIUS, 0, 0, wallBottomY,
       ]],
   });
 
