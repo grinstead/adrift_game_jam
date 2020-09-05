@@ -36,7 +36,6 @@ let FlarePosition;
  * All the states that the hero can be in
  * @typedef {Object} HeroState
  * @property {string} name - Useful for debugging
- * @property {Sprite} sprite - The active sprite
  * @property {function(Room):void} processStep - Perform the hero's code
  * @property {function(WebGL2RenderingContext,Program,Room):void} render - Render the hero
  */
@@ -54,10 +53,11 @@ export class Hero {
     this.signX = 1;
     /** @public {number} The character's speed (in meters per second) in the x-direction */
     this.speedX = 0;
+    /** @private {Sprite} The active sprite */
+    this.sprite = resources.makeIdleSprite("right", 0);
     /** @private {HeroState} The hero's active state */
     this.state = {
       name: "unstarted",
-      sprite: resources.makeIdleSprite("right", 0),
       processStep: (room) => this.changeState(room, heroStateNormal),
       renderSprite: () => {
         throw new Error("Hero did not get processed before rendering!");
@@ -81,7 +81,7 @@ export class Hero {
 
   /** @returns {?FlarePosition} */
   flarePosition() {
-    const data = this.state.sprite.frameData();
+    const data = this.sprite.frameData();
     return data ? data.flare : null;
   }
 
@@ -94,6 +94,15 @@ export class Hero {
   }
 
   /**
+   * Sets the sprite on the hero
+   * @param {SpriteBuilder} makeSprite
+   * @param {number} time
+   */
+  setSprite(makeSprite, time) {
+    this.sprite = makeSprite(this.directionMode(), time);
+  }
+
+  /**
    * Renders the sprite at the Hero's position
    * @param {WebGL2RenderingContext} gl
    * @param {Program} program
@@ -101,7 +110,7 @@ export class Hero {
   renderSprite(gl, program) {
     const stack = program.stack;
     stack.pushTranslation(this.heroX, 0, 0);
-    this.state.sprite.renderSprite(program);
+    this.sprite.renderSprite(program);
     stack.pop();
   }
 
@@ -124,7 +133,9 @@ export class Hero {
  * @param {Room} room
  */
 export function processHero(room) {
-  room.hero.state.processStep(room);
+  const hero = room.hero;
+  hero.sprite.updateTime(room.roomTime);
+  hero.state.processStep(room);
 }
 
 /**
@@ -151,12 +162,10 @@ export function renderHero(gl, program, room) {
 export function heroStateNormal(hero, room) {
   let isIdle = true;
 
+  hero.setSprite(room.resources.hero.makeIdleSprite, room.roomTime);
+
   const state = {
     name: "normal",
-    sprite: room.resources.hero.makeIdleSprite(
-      hero.directionMode(),
-      room.roomTime
-    ),
     processStep: (/** @type {Room} */ room) => {
       const { hero, roomTime, input } = room;
 
@@ -181,22 +190,14 @@ export function heroStateNormal(hero, room) {
         hero.heroX += charDx;
         if (isIdle) {
           isIdle = false;
-          state.sprite = room.resources.hero.makeWalkSprite(mode, roomTime);
-        } else {
-          const sprite = state.sprite;
-          sprite.setMode(mode);
-          sprite.updateTime(roomTime);
+          hero.setSprite(room.resources.hero.makeWalkSprite, roomTime);
         }
-      } else {
-        if (isIdle) {
-          const sprite = state.sprite;
-          sprite.setMode(mode);
-          sprite.updateTime(roomTime);
-        } else {
-          isIdle = true;
-          state.sprite = room.resources.hero.makeIdleSprite(mode, roomTime);
-        }
+      } else if (!isIdle) {
+        isIdle = true;
+        hero.setSprite(room.resources.hero.makeIdleSprite, roomTime);
       }
+
+      hero.sprite.setMode(mode);
     },
     render: null,
   };
@@ -211,19 +212,13 @@ export function heroStateNormal(hero, room) {
  * @returns {HeroState}
  */
 function heroStateAttacking(hero, room) {
-  const sprite = room.resources.hero.makeAttackSprite(
-    hero.directionMode(),
-    room.roomTime
-  );
-
+  hero.setSprite(room.resources.hero.makeAttackSprite, room.roomTime);
   hero.setSpeedX(0);
 
   return {
     name: "attacking",
-    sprite,
     processStep: (room) => {
-      sprite.updateTime(room.roomTime);
-      if (sprite.isFinished()) {
+      if (hero.sprite.isFinished()) {
         hero.changeState(room, heroStateNormal);
       }
     },
