@@ -163,6 +163,7 @@ export class SpriteSet {
  * @property {Array<string>} modes - All the modes the sprite can use, used to read directly from the SpriteSet's data field
  * @property {boolean|number} loops - The number of times a sprite loops, false (or 0) if it does not, and true if it loops forever
  * @property {Array<number> | number} frameTime - The time (in seconds) a frame (or each frame) should stay on screen
+ * @property {?Array<*>} perFrameData - If you have meta-data for each frame, you can supply it and query it directly from the Sprite's frameData() method
  */
 let SpriteDefinition;
 
@@ -205,6 +206,42 @@ export class Sprite {
     this._frameIndex = -1;
     /** @private {number} The time when we should switch frames, or -1 if we reached the last one */
     this._nextFrameTime = -1;
+    /** @private {?Array<*>} Extra data for each frame */
+    this._frameData = options.perFrameData;
+  }
+
+  /**
+   * Updates the time, which updates the frame position
+   * @param {number} time - The room time
+   * @returns {boolean} true if the frame changed (also returns true if the animation completes)
+   */
+  updateTime(time) {
+    let changed = false;
+
+    // check if we should advance the frame
+    let nextFrameTime = this._nextFrameTime;
+    while (nextFrameTime !== -1 && nextFrameTime <= time) {
+      changed = true;
+
+      const frameTimes = this._frameTimes;
+      const nextFrame = this._frameIndex + 1;
+      if (nextFrame === frameTimes.length) {
+        // check if we are in the last loop. This frame cleverly handles targetLoops === -1 (the infinite case)
+        if (this._currentLoop === this._targetLoops) {
+          // stay on this frame, but adjust the time to never advance
+          this._nextFrameTime = nextFrameTime = -1;
+        } else {
+          this._currentLoop++;
+          this._frameIndex = 0;
+          this._nextFrameTime = nextFrameTime = time + frameTimes[0];
+        }
+      } else {
+        this._frameIndex = nextFrame;
+        this._nextFrameTime = nextFrameTime = time + frameTimes[nextFrame];
+      }
+    }
+
+    return changed;
   }
 
   /**
@@ -224,10 +261,20 @@ export class Sprite {
   }
 
   /**
+   * Get the data for the sprite's current frame, as defined by the perFrameData
+   * option. If perFrameData was not supplied, then this returns undefined
+   * @returns {*} the data for that frame
+   */
+  frameData() {
+    const frameData = this._frameData;
+    return frameData != null ? frameData[this._frameIndex] : undefined;
+  }
+
+  /**
    * Returns whether the sprite has finished. Sprites that infinitely loop do not complete.
    * @return {boolean} Whether the sprite has finished
    */
-  isCompleted() {
+  isFinished() {
     return this._nextFrameTime === -1;
   }
 
@@ -251,42 +298,15 @@ export class Sprite {
   /**
    * Update's the Sprite's frame and renders
    * @param {Program} program
-   * @param {number} time - The room time
    */
-  renderSprite(program, time) {
+  renderSprite(program) {
     const mode = this._activeMode;
     if (mode == null) {
       throw new Error(`${this} tried rendering while inactive`);
     }
 
-    let frameIndex = this._frameIndex;
-
-    // check if we should advance the frame
-    const nextFrameTime = this._nextFrameTime;
-    if (nextFrameTime !== -1 && nextFrameTime <= time) {
-      const frameTimes = this._frameTimes;
-      const nextFrame = frameIndex + 1;
-      if (nextFrame === frameTimes.length) {
-        // check if we are in the last loop. This frame cleverly handles targetLoops === -1 (the infinite case)
-        if (this._currentLoop === this._targetLoops) {
-          // stay on this frame, but adjust the time to never advance
-          this._nextFrameTime = -1;
-        } else {
-          this._currentLoop++;
-
-          frameIndex = 0;
-          this._frameIndex = frameIndex;
-          this._nextFrameTime = time + frameTimes[frameIndex];
-        }
-      } else {
-        frameIndex = nextFrame;
-        this._frameIndex = frameIndex;
-        this._nextFrameTime = time + frameTimes[frameIndex];
-      }
-    }
-
     this._spriteSet.bindTo(program);
-    this._spriteSet.renderSpriteDatumPrebound(mode, frameIndex);
+    this._spriteSet.renderSpriteDatumPrebound(mode, this._frameIndex);
   }
 
   /**
@@ -354,6 +374,12 @@ export function makeSpriteType(options) {
   if (typeof frameTime !== "number" && frameTime.length !== numFrames) {
     throw new Error(
       `Sprite/${name} given ${frameTime.length} frame times for ${numFrames} frames`
+    );
+  }
+
+  if (options.frameData && options.frameData.length !== numFrames) {
+    throw new Error(
+      `Sprite/${name} given ${options.frameData.length} frame data points for ${numFrames} frames`
     );
   }
 

@@ -12,6 +12,7 @@ import {
   spriteSheet,
   flatSprite,
   makeSpriteType,
+  Sprite,
 } from "./sprites.js";
 import { InputManager } from "./webgames/Input.js";
 import { Lighting } from "./lighting.js";
@@ -30,7 +31,7 @@ import {
   processCreatures,
 } from "./Creature.js";
 import { makeRoom } from "./Scene.js";
-import { loadHeroResources, flarePositionsMap, Hero } from "./Hero.js";
+import { loadHeroResources, Hero } from "./Hero.js";
 import { loadEnvironResources } from "./Environ.js";
 
 const ATTACK_ORIGIN_X = 284;
@@ -195,8 +196,6 @@ void main() {
   const [
     environResources,
     floorTex,
-    charWalkTex,
-    charAxeTex,
     gruntSounds,
     exclaimSound,
     creatureResources,
@@ -208,16 +207,6 @@ void main() {
       gl,
       src: "assets/floor.png",
       name: "floor",
-    }),
-    loadTextureFromImgUrl({
-      gl,
-      src: "assets/Hero Walking with axe.png",
-      name: "walk",
-    }),
-    loadTextureFromImgUrl({
-      gl,
-      src: "assets/Axe Chop.png",
-      name: "attack",
     }),
     Promise.all([
       loadSound(audioContext, "assets/Grunt1.mp3"),
@@ -288,68 +277,9 @@ void main() {
   const flareX = (387 / charW - charCenter) * charWInM;
 
   const charSprite = heroResources.idleSprite;
-
-  const charWalkSprite = new SpriteSet(charWalkTex, {
-    // prettier-ignore
-    "right": characterSpriteSheet({
-      xPercent: 258 / 424,
-      widthInPixels: 424,
-      heightInPixels: 444,
-      texture: charWalkTex,
-      texPixelsPerUnit: TEX_PIXELS_PER_METER,
-      numPerRow: 2,
-      count: 8
-    }),
-    // prettier-ignore
-    "left": characterSpriteSheet({
-      xPercent: 1 - 258 / 424,
-      widthInPixels: 424,
-      heightInPixels: 444,
-      texture: charWalkTex,
-      texPixelsPerUnit: TEX_PIXELS_PER_METER,
-      numPerRow: 2,
-      count: 8,
-      reverseX: true,
-    }),
-  });
-
-  const charAxeSprite = new SpriteSet(charAxeTex, {
-    // prettier-ignore
-    "right": characterSpriteSheet({
-      xPercent: ATTACK_ORIGIN_X / ATTACK_WIDTH,
-      widthInPixels: ATTACK_WIDTH,
-      heightInPixels: ATTACK_HEIGHT,
-      texture: charAxeTex,
-      texPixelsPerUnit: TEX_PIXELS_PER_METER,
-      numPerRow: 3,
-      count: 5,
-    }),
-    // prettier-ignore
-    "left": characterSpriteSheet({
-      xPercent: 1 - ATTACK_ORIGIN_X / ATTACK_WIDTH,
-      widthInPixels: ATTACK_WIDTH,
-      heightInPixels: ATTACK_HEIGHT,
-      texture: charAxeTex,
-      texPixelsPerUnit: TEX_PIXELS_PER_METER,
-      numPerRow: 3,
-      count: 5,
-      reverseX: true,
-    }),
-  });
-
-  const lightingSprite = new SpriteSet(lighting.lightingTex(), {
-    // prettier-ignore
-    "main": [
-      flatSprite({
-        width: 2,
-        height: 1,
-        texStartX: 0,
-        texStartY: 0,
-        texEndX: 1,
-        texEndY: 1,
-      }),
-    ],
-  });
+  const charWalkSprite = heroResources.walkSprite;
+  const charAxeSprite = heroResources.attackSprite;
+  let charSpriteMode = "right";
 
   const hero = new Hero(4);
   const room = makeRoom({
@@ -430,15 +360,11 @@ void main() {
     shipDz = (bowY + sternY) / 2;
 
     let charSpeedX = 0;
-    if (
-      activeCharSprite === charAxeSprite &&
-      timeDiff - charFrameStart < 5 / charFps
-    ) {
+    if (activeCharSprite === charAxeSprite && !charAxeSprite.isFinished()) {
       // do nothing
     } else if (input.isPressed("attack")) {
       activeCharSprite = charAxeSprite;
-      charFrameStart = timeDiff;
-      charFps = 12;
+      charAxeSprite.resetSprite(charSpriteMode, timeDiff);
 
       if (exclamation) {
         exclamation.stop();
@@ -464,13 +390,13 @@ void main() {
         charFacingLeft = charDx < 0;
         if (activeCharSprite !== charWalkSprite) {
           activeCharSprite = charWalkSprite;
-          charFrameStart = timeDiff;
-          charFps = 8;
+          charWalkSprite.resetSprite(
+            charFacingLeft ? "left" : "right",
+            timeDiff
+          );
         }
       } else if (activeCharSprite !== charSprite) {
         activeCharSprite = charSprite;
-        charFrameStart = timeDiff;
-        charFps = 12;
         charSprite.resetSprite(charFacingLeft ? "left" : "right", timeDiff);
       } else if (exclamation == null && charFrameStart < timeDiff - 4) {
         exclamation = audioContext.createBufferSource();
@@ -480,6 +406,8 @@ void main() {
       }
     }
 
+    activeCharSprite.updateTime(timeDiff);
+
     const toSpawn =
       Math.floor(spawnHertz * timeDiff) -
       Math.floor(spawnHertz * (timeDiff - stepSize));
@@ -487,47 +415,13 @@ void main() {
       const speed = Math.random() * 2 + 1.4; // measured in meters per second
       let dy = 0.1 * Math.sin(2 * Math.PI * Math.random());
 
-      let x, z, baseAngle;
-      if (activeCharSprite === charSprite) {
-        const flarePosition = flarePositionsMap.get(charSprite.name())[
-          charSprite.frameIndex()
-        ];
-        x = hero.heroX + flarePosition.x * (charFacingLeft ? -1 : 1);
-        z = flarePosition.z; // assumes character is at 0
-        baseAngle = flarePosition.angle;
-      } else {
-        x =
-          hero.heroX +
-          (flareX - (charDx ? 0.05 : 0)) * (charFacingLeft ? -1 : 1);
-        z = (charH - 106) / TEX_PIXELS_PER_METER;
+      const frameData = activeCharSprite.frameData();
+      const flarePosition = frameData && frameData.flare;
+      if (!flarePosition) continue;
 
-        baseAngle = Math.PI / 2;
-
-        if (activeCharSprite === charAxeSprite) {
-          let charFrame = Math.floor(charFps * (timeDiff - charFrameStart));
-          const frameOriginPixelX =
-            ATTACK_WIDTH * (charFrame % 3) + ATTACK_ORIGIN_X;
-          const dataForFrame = FLARE_DURING_ATTACK[charFrame];
-          x =
-            hero.heroX +
-            ((dataForFrame.x1 - frameOriginPixelX) *
-              (charFacingLeft ? -1 : 1)) /
-              TEX_PIXELS_PER_METER;
-          dy = -Math.abs(dy);
-          z =
-            (ATTACK_HEIGHT -
-              (dataForFrame.y1 - ATTACK_HEIGHT * Math.floor(charFrame / 3))) /
-            TEX_PIXELS_PER_METER;
-          const denom =
-            (dataForFrame.x2 - dataForFrame.x1) * (charFacingLeft ? -1 : 1);
-          baseAngle = Math.atan((dataForFrame.y1 - dataForFrame.y2) / denom);
-          if (denom > 0) {
-            baseAngle += Math.PI;
-          }
-        }
-      }
-
-      const angle = (Math.random() - 0.5) * (Math.PI / 4) + baseAngle;
+      const x = hero.heroX + flarePosition.x * (charFacingLeft ? -1 : 1);
+      const z = flarePosition.z; // assumes character is at 0
+      const angle = (Math.random() - 0.5) * (Math.PI / 4) + flarePosition.angle;
       const dz = speed * Math.sin(angle);
       const dx = speed * Math.cos(angle) + charDx / stepSize;
 
@@ -538,7 +432,7 @@ void main() {
       particles.push({
         dead: false,
         x,
-        y: 0,
+        y: 0.01,
         z,
         dx,
         dy,
@@ -638,16 +532,8 @@ void main() {
     ceilingSprite.renderSpriteDatumPrebound("main", 0);
 
     stack.pushTranslation(hero.heroX, 0, 0);
-    if (activeCharSprite === charSprite) {
-      activeCharSprite.setMode(charFacingLeft ? "left" : "right");
-      activeCharSprite.renderSprite(program, timeDiff);
-    } else {
-      activeCharSprite.bindTo(program);
-      activeCharSprite.renderSpriteDatumPrebound(
-        charFacingLeft ? "left" : "right",
-        Math.floor(charFps * (timeDiff - charFrameStart))
-      );
-    }
+    activeCharSprite.setMode(charFacingLeft ? "left" : "right");
+    activeCharSprite.renderSprite(program);
     stack.pop();
 
     renderCreatures(gl, program, room);
