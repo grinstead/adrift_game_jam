@@ -14,6 +14,7 @@ import { Texture } from "./swagl.js";
  * @property {number} scaleY - The ratio between z coordinates in clip space to y coordinates in meters
  * @property {number} scaleX - The ratio between x coordinates in clip space to x coordinates in meters
  * @property {number} lipHeight - The height in meters of the floor and ceiling lips
+ * @property {number} lipWidth - The width in meters of the wall lips
  */
 export let ProjectionData;
 
@@ -22,6 +23,7 @@ export let ProjectionData;
  * @property {Texture} wallTex
  * @property {Texture} floorTex
  * @property {Texture} ceilTex
+ * @property {Texture} sideTex
  * @property {ProjectionData} projection
  */
 export let EnvironResources;
@@ -31,6 +33,7 @@ export let EnvironResources;
  * @property {SpriteSet} wallSpriteSet
  * @property {SpriteSet} floorSpriteSet
  * @property {SpriteSet} ceilSpriteSet
+ * @property {SpriteSet} sideSpriteSet
  */
 export let EnvironRoomSprites;
 
@@ -80,6 +83,7 @@ export function buildProjectionData(outputWidth, outputHeight) {
     scaleY,
     lipHeight:
       (clipSpaceY(LAYOUT_TARGETS.CEIL_LIP) * w1) / scaleY - ROOM_HEIGHT / 2,
+    lipWidth: 0.3, // made up
   };
 }
 
@@ -90,13 +94,14 @@ export function buildProjectionData(outputWidth, outputHeight) {
  * @returns {EnvironResources}
  */
 export async function loadEnvironResources(projection, loadTexture) {
-  const [wallTex, floorTex, ceilTex] = await Promise.all([
+  const [wallTex, floorTex, ceilTex, sideTex] = await Promise.all([
     loadTexture("wall", "assets/Back Wall.png"),
     loadTexture("floor", "assets/floor.png"),
     loadTexture("ceiling", "assets/ceiling.png"),
+    loadTexture("wall", "assets/side_wall.png"),
   ]);
 
-  return { projection, wallTex, floorTex, ceilTex };
+  return { projection, wallTex, floorTex, ceilTex, sideTex };
 }
 
 /**
@@ -107,12 +112,12 @@ export async function loadEnvironResources(projection, loadTexture) {
  * @returns {EnvironRoomSprites}
  */
 export function makeRoomSprites(
-  { wallTex, floorTex, ceilTex, projection },
+  { wallTex, floorTex, ceilTex, sideTex, projection },
   roomWidth,
   roomOriginX
 ) {
-  const roomLeft = -roomOriginX;
-  const roomRight = roomLeft + roomWidth;
+  const roomLeft = -roomOriginX - projection.lipWidth;
+  const roomRight = 2 * projection.lipWidth + roomLeft + roomWidth;
 
   const wallHeightPercent = 1 - 648 / wallTex.h;
   const rightWallTex =
@@ -128,7 +133,6 @@ export function makeRoomSprites(
       ]],
   });
 
-  // scale everything to the resolution of the back wall, because that's what I plugged in
   const floorBackground = 110 / floorTex.h;
   const floorForeground = 220 / floorTex.h;
   const rightFloorTex =
@@ -149,7 +153,6 @@ export function makeRoomSprites(
     ]],
   });
 
-  // scale everything to the resolution of the back wall, because that's what I plugged in
   const ceilBackground = 144 / ceilTex.h;
   const ceilForeground = 32 / ceilTex.h;
   const rightCeilTex =
@@ -170,5 +173,38 @@ export function makeRoomSprites(
     ]],
   });
 
-  return { wallSpriteSet, floorSpriteSet, ceilSpriteSet };
+  const sideLipX = 438 / sideTex.w;
+  const sideForegroundX = 318 / sideTex.w;
+  const sideForegroundHighY = 194 / sideTex.h;
+  const sideForegroundLowY = 1164 / sideTex.h;
+  const sideBackgroundX = 84 / sideTex.w;
+  const sideBackgroundHighY = 414 / sideTex.h;
+  const sideBackgroundLowY = 964 / sideTex.h;
+  // prettier-ignore
+  const sideLeftData = [
+    roomLeft, -ROOM_DEPTH_RADIUS, ROOM_HEIGHT, sideLipX, sideForegroundHighY,
+    roomLeft, -ROOM_DEPTH_RADIUS, 0, sideLipX, sideForegroundLowY,
+    roomLeft + projection.lipWidth, -ROOM_DEPTH_RADIUS, ROOM_HEIGHT, sideForegroundX, sideForegroundHighY,
+    roomLeft + projection.lipWidth, -ROOM_DEPTH_RADIUS, 0, sideForegroundX, sideForegroundLowY,
+    roomLeft + projection.lipWidth, ROOM_DEPTH_RADIUS, ROOM_HEIGHT, sideBackgroundX, sideBackgroundHighY,
+    roomLeft + projection.lipWidth, ROOM_DEPTH_RADIUS, 0, sideBackgroundX, sideBackgroundLowY,
+  ];
+  const sideRightData = [];
+  for (let i = 0; i < sideLeftData.length; i += 5) {
+    const x = sideLeftData[i + 0];
+    const y = sideLeftData[i + 1];
+    const z = sideLeftData[i + 2];
+    const texX = sideLeftData[i + 3];
+    const texY = sideLeftData[i + 4];
+    sideRightData.push(roomRight + (roomLeft - x), y, z, texX, texY);
+  }
+
+  const sideSpriteSet = new SpriteSet(sideTex, {
+    // prettier-ignore
+    "right": [sideRightData],
+    // prettier-ignore
+    "left": [sideLeftData],
+  });
+
+  return { wallSpriteSet, floorSpriteSet, ceilSpriteSet, sideSpriteSet };
 }

@@ -45,7 +45,7 @@ const FLARE_DURING_ATTACK = [
   { x1: 1025, y1: 934, x2: 976, y2: 962 },
 ];
 
-const CAMERA_X_OFFSET = 2;
+const CAMERA_X_OFFSET = 1;
 
 window.ambientLight = 0.1;
 
@@ -183,7 +183,7 @@ void main() {
   const charAxeSprite = heroResources.attackSprite;
   let charSpriteMode = "right";
 
-  const hero = new Hero(4);
+  const hero = new Hero(2);
   /** @type {Room} */
   const room = makeRoom({
     resources: {
@@ -435,6 +435,11 @@ void main() {
     const ceilingSprite = room.environSprites.ceilSpriteSet;
     ceilingSprite.bindTo(program);
     ceilingSprite.renderSpriteDatumPrebound("main", 0);
+
+    const sideSprite = room.environSprites.sideSpriteSet;
+    sideSprite.bindTo(program);
+    sideSprite.renderSpriteDatumPrebound("left", 0);
+    sideSprite.renderSpriteDatumPrebound("right", 0);
 
     stack.pushTranslation(hero.heroX, 0, 0);
     activeCharSprite.setMode(charFacingLeft ? "left" : "right");
