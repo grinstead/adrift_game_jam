@@ -25,6 +25,7 @@ let Tentacle;
  * @typedef {Object}
  * @property {SpriteSet} tentacleSprite
  * @property {function():Sprite} makeCreatureSprite
+ * @property {function():Sprite} makeCreatureAttackSprite
  */
 export let CreatureResources;
 
@@ -42,9 +43,10 @@ const mirrorX = new Float32Array([
  * @returns {CreatureResources}
  */
 export async function loadCreatureResources(loadTexture) {
-  const [creatureTex, tentacleTex] = await Promise.all([
+  const [creatureTex, tentacleTex, creatureAttackTex] = await Promise.all([
     loadTexture("creature", "assets/Enemy.png"),
     loadTexture("tentacle", "assets/Tentacle.png"),
+    loadTexture("creature_attack", "assets/enemy_bite.png"),
   ]);
 
   const creatureSpriteSet = new SpriteSet(creatureTex, {
@@ -60,6 +62,28 @@ export async function loadCreatureResources(loadTexture) {
       count: CREATURE_IDLE_FRAMES,
       reverseX: true,
     }),
+  });
+
+  // 260x520
+  const makeCreatureAttackSprite = makeSpriteType({
+    name: "creature_attack",
+    set: new SpriteSet(creatureAttackTex, {
+      // prettier-ignore
+      "bite": spriteSheet({
+        x: 2 * CREATURE_RADIUS,
+        z: 3 * CREATURE_RADIUS,
+        width: 4 * CREATURE_RADIUS,
+        height: 8 * CREATURE_RADIUS,
+        texHeight: 530 / creatureAttackTex.h,
+        texWidth: 278 / creatureAttackTex.w,
+        numPerRow: 7,
+        count: 42,
+        reverseX: true,
+      }),
+    }),
+    modes: ["bite"],
+    loops: true,
+    frameTime: 1 / 12,
   });
 
   const frameTimes = new Array(CREATURE_IDLE_FRAMES).fill(1 / 8);
@@ -119,7 +143,7 @@ export async function loadCreatureResources(loadTexture) {
     "wiggle": tentacleFrames,
   });
 
-  return { makeCreatureSprite, tentacleSprite };
+  return { makeCreatureSprite, makeCreatureAttackSprite, tentacleSprite };
 }
 
 /**
@@ -127,8 +151,11 @@ export async function loadCreatureResources(loadTexture) {
  */
 export class Creature {
   constructor(room, x, y, z) {
-    const sprite = room.resources.creature.makeCreatureSprite();
-    sprite.resetSprite("blink", room.roomTime);
+    // const sprite = room.resources.creature.makeCreatureSprite();
+    // sprite.resetSprite("blink", room.roomTime);
+
+    const sprite = room.resources.creature.makeCreatureAttackSprite();
+    sprite.resetSprite("bite", room.roomTime);
 
     /** @private {number} */
     this.startX = x;
@@ -151,6 +178,8 @@ export class Creature {
     ];
     /** @private {Sprite} */
     this.sprite = sprite;
+    // /** @private {Sprite} */
+    // this.attackSprite = sprite;
   }
 }
 
