@@ -1,6 +1,5 @@
 import { SpriteSet } from "./sprites.js";
 import {
-  TEX_PIXELS_PER_METER,
   ROOM_DEPTH_RADIUS,
   ROOM_HEIGHT,
   LAYOUT_TARGETS,
@@ -8,18 +7,27 @@ import {
 import { Texture } from "./swagl.js";
 
 /**
- * @typedef {Object} EnvironResources
- * @property {SpriteSet} wallSpriteSet
- */
-export let EnvironResources;
-
-/**
  * @typedef {Object} ProjectionData
  * @property {Float32Array} matrix - The projection matrix to apply
  * @property {number} wForeground - The w coordinate of vertices in the foreground
  * @property {number} wBackground - The w coordinate of vertices in the background
+ * @property {number} scaleY - The ratio between z coordinates in clip space to y coordinates in meters
+ * @property {number} scaleX - The ratio between x coordinates in clip space to x coordinates in meters
  */
 export let ProjectionData;
+
+/**
+ * @typedef {Object} EnvironResources
+ * @property {Texture} wallTex
+ * @property {ProjectionData} projection
+ */
+export let EnvironResources;
+
+/**
+ * @typedef {Object} EnvironRoomSprites
+ * @property {SpriteSet} wallSpriteSet
+ */
+export let EnvironRoomSprites;
 
 /**
  * Computes the projection (and some data associated with that) necessary to hit our layout targets
@@ -61,7 +69,7 @@ export function buildProjectionData(outputWidth, outputHeight) {
          0,      0,             0,         (w1 + w2) / 2,
   ]);
 
-  return { matrix, wForeground: w1, wBackground: w2 };
+  return { matrix, wForeground: w1, wBackground: w2, scaleX, scaleY };
 }
 
 /**
@@ -76,19 +84,6 @@ export async function loadEnvironResources(projection, loadTexture) {
     loadTexture("floor", "assets/floor.png"),
   ]);
 
-  const topOfWallTex = 648 / wallTex.h;
-
-  const wallWidth = 20;
-  const wallSpriteSet = new SpriteSet(wallTex, {
-    // prettier-ignore
-    "main": [[
-        wallWidth, ROOM_DEPTH_RADIUS, ROOM_HEIGHT, 1, topOfWallTex,
-        wallWidth, ROOM_DEPTH_RADIUS, 0, 1, 1,
-        0, ROOM_DEPTH_RADIUS, ROOM_HEIGHT, 0, topOfWallTex,
-        0, ROOM_DEPTH_RADIUS, 0, 0, 1,
-      ]],
-  });
-
   // const floorWidth = (2 * floorTex.w) / TEX_PIXELS_PER_METER;
   // const floorSpriteSet = new SpriteSet(floorTex, {
   //   // prettier-ignore
@@ -96,6 +91,33 @@ export async function loadEnvironResources(projection, loadTexture) {
   //     floorWidth, -ROOM_DEPTH_RADIUS,
   //   ]]
   // })
+
+  return { projection, wallTex };
+}
+
+/**
+ * Builds up some sprite data for the room
+ * @param {EnvironResources} resources
+ * @param {number} roomWidth The width of the room (in meters)
+ * @param {number} roomOriginX The x-coordinate (in meters, from the left-most portion of the room) the sprites will be drawn
+ * @returns {EnvironRoomSprites}
+ */
+export function makeRoomSprites(resources, roomWidth, roomOriginX) {
+  const projection = resources.projection;
+  const wallTex = resources.wallTex;
+  const topOfWallTex = 648 / wallTex.h;
+  const pixPerMeter = ((1 - topOfWallTex) * wallTex.h) / ROOM_HEIGHT;
+  const rightWallTex = (pixPerMeter * roomWidth) / wallTex.w;
+
+  const wallSpriteSet = new SpriteSet(wallTex, {
+    // prettier-ignore
+    "main": [[
+        roomWidth - roomOriginX, ROOM_DEPTH_RADIUS, ROOM_HEIGHT, rightWallTex, topOfWallTex,
+        roomWidth - roomOriginX, ROOM_DEPTH_RADIUS, 0, rightWallTex, 1,
+        -roomOriginX, ROOM_DEPTH_RADIUS, ROOM_HEIGHT, 0, topOfWallTex,
+        -roomOriginX, ROOM_DEPTH_RADIUS, 0, 0, 1,
+      ]],
+  });
 
   return { wallSpriteSet };
 }

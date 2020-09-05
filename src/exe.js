@@ -30,7 +30,7 @@ import {
   renderCreatures,
   processCreatures,
 } from "./Creature.js";
-import { makeRoom } from "./Scene.js";
+import { makeRoom, Room } from "./Scene.js";
 import { loadHeroResources, Hero } from "./Hero.js";
 import { loadEnvironResources, buildProjectionData } from "./Environ.js";
 
@@ -245,6 +245,7 @@ void main() {
   let charSpriteMode = "right";
 
   const hero = new Hero(4);
+  /** @type {Room} */
   const room = makeRoom({
     resources: {
       creature: creatureResources,
@@ -484,7 +485,7 @@ void main() {
   function renderInSceneContent(gl, program) {
     const stack = program.stack;
 
-    const wall = environResources.wallSpriteSet;
+    const wall = room.environSprites.wallSpriteSet;
     wall.bindTo(program);
     wall.renderSpriteDatumPrebound("main", 0);
 
