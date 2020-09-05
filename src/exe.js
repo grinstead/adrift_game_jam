@@ -190,8 +190,6 @@ void main() {
     fpsNode.innerHTML = `fps=${Math.round(avgFps)}`;
   }
 
-  let charDx = 0;
-  let charFacingLeft = false;
   const spawnHertz = 48;
 
   let fullScreenRequest = null;
@@ -237,7 +235,7 @@ void main() {
       const flarePosition = hero.flarePosition();
       if (!flarePosition) continue;
 
-      const x = hero.heroX + flarePosition.x * (charFacingLeft ? -1 : 1);
+      const x = hero.heroX + flarePosition.x * hero.signX;
       const z = flarePosition.z; // assumes character is at 0
       const angle = (Math.random() - 0.5) * (Math.PI / 4) + flarePosition.angle;
       const dz = speed * Math.sin(angle);
