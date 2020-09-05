@@ -8,6 +8,7 @@ import {
 } from "./swagl.js";
 import { SpriteSet, Sprite } from "./sprites.js";
 import { WALL_META } from "./SpriteData.js";
+import { Room } from "./Scene.js";
 
 const COMPRESSION = 4;
 
@@ -137,7 +138,7 @@ void main() {
     });
   }
 
-  renderLighting(scene) {
+  renderLighting(renderInCamera, room) {
     const gl = this._program.gl;
     const tex = this._targetTex;
 
@@ -146,7 +147,7 @@ void main() {
     gl.viewport(0, 0, tex.w, tex.h);
 
     doAnimationFrame(this._program, (gl, program) => {
-      renderLightingToTexture(gl, program, this, scene);
+      renderLightingToTexture(gl, program, renderInCamera, this, room);
     });
   }
 
@@ -162,27 +163,28 @@ void main() {
  *
  * @param {WebGL2RenderingContext} gl
  * @param {Program} program
+ * @param {function(WebGL2RenderingContext,Program,function():void):void} renderInCamera
  * @param {Lighting} lighting
- * @param {Object} scene
+ * @param {Room} room
  */
-function renderLightingToTexture(gl, program, lighting, scene) {
+function renderLightingToTexture(gl, program, renderInCamera, lighting, room) {
   gl.blendFunc(gl.ONE, gl.ONE);
 
-  if (scene.lightsOn) {
+  if (room.lightsOn) {
     gl.clearColor(0, 0, 0, 1);
   } else {
     gl.clearColor(0, 0, 0, window.ambientLight);
   }
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  scene.renderInCamera(gl, program, () => {
+  renderInCamera(gl, program, () => {
     const fade = lighting._fade;
     fade.bindTo(program);
 
     const thresholder = program.u["threshold"];
-    const time = scene.timeDiff;
+    const time = room.roomTime;
 
-    scene.particles.forEach((particle) => {
+    room.sparks.forEach((particle) => {
       if (!particle.dead) {
         const startTime = particle.startTime;
         const percentPassed =

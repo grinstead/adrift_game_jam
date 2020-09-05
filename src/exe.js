@@ -2,7 +2,6 @@ import {
   Program,
   Shader,
   loadTextureFromImgUrl,
-  loadTextureFromRawBitmap,
   doAnimationFrame,
 } from "./swagl.js";
 import { SpriteSet, spriteSheet } from "./sprites.js";
@@ -25,6 +24,7 @@ import { makeRoom, Room } from "./Scene.js";
 import { loadHeroResources, Hero, renderHero, processHero } from "./Hero.js";
 import { loadEnvironResources, buildProjectionData } from "./Environ.js";
 import { AudioManager } from "./webgames/Audio.js";
+import { processFlare, makeSparkSprite, renderSparks } from "./Flare.js";
 
 const CAMERA_X_OFFSET = 1;
 
@@ -154,6 +154,7 @@ void main() {
       creature: creatureResources,
       hero: heroResources,
       environ: environResources,
+      sparkSprite: makeSparkSprite(gl),
     },
     input,
     audio: audioManager,
@@ -165,12 +166,8 @@ void main() {
     hero,
   });
 
-  const sparkSprite = makeSparkSprite(gl);
-
   let mouseX = 0;
   let mouseY = 0;
-
-  const particles = [];
 
   let startTime = Date.now();
   let timeDiff = 0;
@@ -188,8 +185,6 @@ void main() {
     }
     fpsNode.innerHTML = `fps=${Math.round(avgFps)}`;
   }
-
-  const spawnHertz = 48;
 
   let fullScreenRequest = null;
   document.addEventListener("fullscreenchange", (event) => {
@@ -223,92 +218,7 @@ void main() {
     shipDz = (bowY + sternY) / 2;
 
     processHero(room);
-
-    const toSpawn =
-      Math.floor(spawnHertz * timeDiff) -
-      Math.floor(spawnHertz * (timeDiff - stepSize));
-    for (let i = 0; i < toSpawn; i++) {
-      const speed = Math.random() * 2 + 1.4; // measured in meters per second
-      let dy = 0.1 * Math.sin(2 * Math.PI * Math.random());
-
-      const flarePosition = hero.flarePosition();
-      if (!flarePosition) continue;
-
-      const x = hero.heroX + flarePosition.x * hero.signX;
-      const z = flarePosition.z; // assumes character is at 0
-      const angle = (Math.random() - 0.5) * (Math.PI / 4) + flarePosition.angle;
-      const dz = speed * Math.sin(angle);
-      const dx = speed * Math.cos(angle) + hero.speedX;
-
-      if (particles.length > 100) {
-        particles.pop();
-      }
-
-      particles.push({
-        dead: false,
-        x,
-        y: 0.01,
-        z,
-        dx,
-        dy,
-        dz,
-        startTime: timeDiff,
-        deathTime: timeDiff + 1.5,
-        onFloor: false,
-      });
-    }
-
-    const gravityZ = normalZ * 9.8 * stepSize;
-    const gravityX = normalX * 9.8 * stepSize;
-
-    // move all the particles
-    const friction = 1 - 0.8 * stepSize;
-    particles.forEach((particle) => {
-      const declaredDead = particle.dead;
-      if (!declaredDead && timeDiff < particle.deathTime) {
-        particle.x += particle.dx * stepSize;
-        particle.y += particle.dy * stepSize;
-        particle.z += particle.dz * stepSize;
-
-        let dz = particle.dz;
-        if (particle.onFloor) {
-          particle.dx *= friction;
-          particle.dy *= friction;
-        } else {
-          dz -= gravityZ;
-          particle.dx -= gravityX;
-          particle.dz = dz;
-        }
-
-        if (particle.x < room.roomLeft || particle.x > room.roomRight) {
-          particle.dead = true;
-        }
-
-        const y = particle.y;
-        if (y < -ROOM_DEPTH_RADIUS || y > ROOM_DEPTH_RADIUS) {
-          const reflectAgainst = y > 0 ? ROOM_DEPTH_RADIUS : -ROOM_DEPTH_RADIUS;
-          particle.y = reflectAgainst + (reflectAgainst - y);
-          particle.dy = -particle.dy;
-        }
-
-        const floorZ = room.roomBottom;
-        if (particle.z < floorZ) {
-          if (dz > -0.01) {
-            particle.z = PIXELS_PER_METER;
-            particle.dz = floorZ;
-            particle.onFloor = true;
-          } else {
-            particle.z = floorZ - particle.z;
-            particle.dz = -0.25 * dz;
-          }
-        }
-      } else if (!declaredDead) {
-        particle.dead = true;
-      }
-    });
-
-    particles.sort(sortParticles);
-
+    processFlare(room);
     processCreatures(room);
   }
 
@@ -361,24 +271,7 @@ void main() {
 
     renderHero(gl, program, room);
     renderCreatures(gl, program, room);
-
-    sparkSprite.bindTo(program);
-    particles.forEach((particle) => {
-      if (!particle.dead) {
-        stack.pushTranslation(particle.x, particle.y, particle.z);
-        stack.pushYRotation(
-          (particle.dx >= 0 ? Math.PI : 0) +
-            Math.atan(particle.dz / particle.dx)
-        );
-
-        sparkSprite.renderSpriteDatumPrebound(
-          "fading",
-          Math.floor(12 * (timeDiff - particle.startTime))
-        );
-        stack.pop();
-        stack.pop();
-      }
-    });
+    renderSparks(gl, program, room);
   }
 
   function renderMain(gl, program) {
@@ -418,6 +311,7 @@ void main() {
 
     if (input.numPresses("showLights") % 2) {
       debugShowLights = !debugShowLights;
+      room.lightsOn = debugShowLights;
     }
 
     if (!fullScreenRequest && input.isPressed("fullscreen")) {
@@ -426,12 +320,7 @@ void main() {
 
     movePieces();
 
-    lighting.renderLighting({
-      renderInCamera,
-      timeDiff,
-      particles,
-      lightsOn: debugShowLights,
-    });
+    lighting.renderLighting(renderInCamera, room);
     doAnimationFrame(program, renderMain);
     requestAnimationFrame(renderStep);
   }
@@ -451,79 +340,6 @@ void main() {
     mouseX = event.offsetX;
     mouseY = event.offsetY;
   };
-}
-
-// makes a fading sprite for sparks
-function makeSparkSprite(gl) {
-  const FADE_STEPS = 18;
-  const TAIL_LEAD = 6; // the tail is 8 this many frames ahead
-  const FADE_COEFFICIENT = 1 / FADE_STEPS / FADE_STEPS;
-
-  const colorVal = (dropIndex) => {
-    return Math.max(
-      0,
-      Math.min(
-        255,
-        Math.round(256 * (1 - FADE_COEFFICIENT * dropIndex * dropIndex))
-      )
-    );
-  };
-
-  const bmp = [];
-  for (let repeatedRow = 0; repeatedRow < TEX_PIXEL_PER_PIXEL; repeatedRow++) {
-    for (let i = 0; i < FADE_STEPS; i++) {
-      for (let pixel = 0; pixel < 2; pixel++) {
-        let r, gb, alpha;
-
-        const pseudoframe = i + pixel * TAIL_LEAD;
-        if (pseudoframe < FADE_STEPS) {
-          r = 255;
-          gb = colorVal(pseudoframe);
-          alpha = 255;
-        } else {
-          r = 0;
-          gb = 0;
-          alpha = 0;
-        }
-
-        const a = colorVal(i + pixel * TAIL_LEAD);
-        const b = colorVal(i + pixel * TAIL_LEAD + 1);
-        for (
-          let repeatedCol = 0;
-          repeatedCol < TEX_PIXEL_PER_PIXEL;
-          repeatedCol++
-        ) {
-          bmp.push(r, gb, gb, alpha);
-        }
-      }
-    }
-  }
-
-  const tex = loadTextureFromRawBitmap({
-    name: "spark",
-    width: 2 * FADE_STEPS * TEX_PIXEL_PER_PIXEL,
-    height: TEX_PIXEL_PER_PIXEL,
-    gl,
-    bmp: new Uint8Array(bmp),
-  });
-
-  return new SpriteSet(tex, {
-    // prettier-ignore
-    "fading": spriteSheet({
-      x: 1 / PIXELS_PER_METER,
-      width: .04,
-      height: 2 / PIXELS_PER_METER,
-      texWidth: 1 / FADE_STEPS,
-      texHeight: 1,
-      numPerRow: FADE_STEPS,
-      count: FADE_STEPS,
-    }),
-  });
-}
-
-// dead particles to the back, otherwise sort by depth so that alpha blending could ideally work
-function sortParticles(a, b) {
-  return a.dead ? (b.dead ? 0 : 1) : b.dead ? -1 : a.y - b.y;
 }
 
 window.onload = onLoad;
