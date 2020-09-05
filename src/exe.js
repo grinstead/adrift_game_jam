@@ -24,6 +24,7 @@ import {
 import { makeRoom, Room } from "./Scene.js";
 import { loadHeroResources, Hero, renderHero, processHero } from "./Hero.js";
 import { loadEnvironResources, buildProjectionData } from "./Environ.js";
+import { AudioManager } from "./webgames/Audio.js";
 
 const CAMERA_X_OFFSET = 1;
 
@@ -130,31 +131,23 @@ void main() {
     TEX_PIXELS_PER_METER
   );
 
-  const audioContext = new AudioContext();
+  const audioManager = new AudioManager();
 
   const loadTexture = (name, url) => {
     return loadTextureFromImgUrl({ gl, name, src: url });
   };
 
+  const loadSound = (url) => audioManager.loadSound(url);
+
   const [
     environResources,
-    gruntSounds,
-    exclaimSound,
     creatureResources,
     heroResources,
   ] = await Promise.all([
     loadEnvironResources(projection, loadTexture),
-    Promise.all([
-      loadSound(audioContext, "assets/Grunt1.mp3"),
-      loadSound(audioContext, "assets/Grunt2.mp3"),
-      loadSound(audioContext, "assets/Grunt3.mp3"),
-    ]),
-    loadSound(audioContext, "assets/Theres something here.mp3"),
     loadCreatureResources(loadTexture),
-    loadHeroResources(loadTexture),
+    loadHeroResources(loadTexture, loadSound),
   ]);
-
-  let exclamation = null;
 
   const hero = new Hero(heroResources, 2);
   const room = makeRoom({
@@ -164,6 +157,7 @@ void main() {
       environ: environResources,
     },
     input,
+    audio: audioManager,
     roomTime: 0,
     roomLeft: 0,
     roomRight: 12,
@@ -232,59 +226,6 @@ void main() {
     shipDz = (bowY + sternY) / 2;
 
     processHero(room);
-
-    // let charSpeedX = 0;
-    // if (activeCharSprite === charAxeSprite && !charAxeSprite.isFinished()) {
-    //   // do nothing
-    // } else if (input.isPressed("attack")) {
-    //   activeCharSprite = charAxeSprite;
-    //   charAxeSprite.resetSprite(charSpriteMode, timeDiff);
-
-    //   if (exclamation) {
-    //     exclamation.stop();
-    //   }
-
-    //   const audioSource = audioContext.createBufferSource();
-    //   audioSource.buffer =
-    //     gruntSounds[Math.floor(Math.random() * gruntSounds.length)];
-    //   audioSource.connect(audioContext.destination);
-    //   audioSource.start(0);
-    // } else {
-    //   // move character
-    //   charDx = 1.2 * stepSize * input.getSignOfAction("left", "right");
-    //   let plannedX = hero.heroX + charDx;
-    //   if (plannedX < room.roomLeft + charWInM) {
-    //     charDx = room.roomLeft + charWInM - hero.heroX;
-    //   } else if (plannedX > room.roomRight - charWInM) {
-    //     charDx = room.roomRight - charWInM - hero.heroX;
-    //   }
-
-    //   hero.setSpeedX(charDx);
-
-    //   if (hero.speedX) {
-    //     hero.heroX += hero.speedX;
-    //     if (activeCharSprite !== charWalkSprite) {
-    //       activeCharSprite = charWalkSprite;
-    //       charWalkSprite.resetSprite(
-    //         hero.isFacingLeft() ? "left" : "right",
-    //         timeDiff
-    //       );
-    //     }
-    //   } else if (activeCharSprite !== charSprite) {
-    //     activeCharSprite = charSprite;
-    //     charSprite.resetSprite(
-    //       hero.isFacingLeft() ? "left" : "right",
-    //       timeDiff
-    //     );
-    //   } else if (exclamation == null && charFrameStart < timeDiff - 4) {
-    //     exclamation = audioContext.createBufferSource();
-    //     exclamation.buffer = exclaimSound;
-    //     exclamation.connect(audioContext.destination);
-    //     exclamation.start(0);
-    //   }
-    // }
-
-    // activeCharSprite.updateTime(timeDiff);
 
     const toSpawn =
       Math.floor(spawnHertz * timeDiff) -
@@ -582,35 +523,6 @@ function makeSparkSprite(gl) {
 // dead particles to the back, otherwise sort by depth so that alpha blending could ideally work
 function sortParticles(a, b) {
   return a.dead ? (b.dead ? 0 : 1) : b.dead ? -1 : a.y - b.y;
-}
-
-function loadSound(audioContext, url) {
-  return fetch(url)
-    .then((response) => {
-      if (!response.ok) throw new Error(`failed to load ${url}`);
-      return response.arrayBuffer();
-    })
-    .then((buffer) => audioContext.decodeAudioData(buffer));
-}
-
-function sqr(val) {
-  return val * val;
-}
-
-function arctan(opposite, adjacent) {
-  if (adjacent > 0) {
-    return Math.atan(opposite / adjacent);
-  } else if (adjacent === 0) {
-    if (opposite > 0) {
-      return Math.PI / 2;
-    } else if (opposite === 0) {
-      return 0; // dunno what is best here
-    } else {
-      return -Math.PI / 2;
-    }
-  } else {
-    return Math.atan(opposite / adjacent) + Math.PI;
-  }
 }
 
 window.onload = onLoad;

@@ -6,6 +6,7 @@ import {
   makeRoomSprites,
 } from "./Environ.js";
 import { InputManager } from "./webgames/Input.js";
+import { AudioManager } from "./webgames/Audio.js";
 
 /**
  * The basic resources used in the game
@@ -21,6 +22,7 @@ let Resources;
  * @typedef {Object} Room
  * @property {Resources} resources
  * @property {InputManager} input - The inputs the user is giving
+ * @property {AudioManager} audio - The audio context for the game
  * @property {Array<Creature>} creatures - All the enemy black spot creatures
  * @property {number} roomTime - The time (in seconds, accurate to ms) since the start of the room
  * @property {number} stepSize - The time (in seconds, accurate to ms) since the last render
@@ -38,6 +40,7 @@ export let Room;
  * @param {Object} options
  * @param {Resources} options.resources - Whatever various resources were loaded up
  * @param {InputManager} options.input - The inputs the user is giving
+ * @param {AudioManager} options.audio - The audio context for the game
  * @param {number} options.roomTime - The time (in seconds, accurate to ms) since the start of the room
  * @param {number} options.roomLeft - The x coordinate of the left-most portion of the room
  * @param {number} options.roomRight - The x coordinate of the right-most portion of the room
@@ -52,6 +55,7 @@ export function makeRoom(options) {
   return {
     resources,
     input: options.input,
+    audio: options.audio,
     creatures: [],
     roomTime: options.roomTime,
     stepSize: 0,

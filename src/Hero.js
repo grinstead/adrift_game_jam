@@ -8,6 +8,7 @@ import {
 import { Texture, Program } from "./swagl.js";
 import { HERO_HEIGHT } from "./SpriteData.js";
 import { arctan } from "./webgames/math.js";
+import { Room } from "./Scene.js";
 
 // The hero's scaling is off, but it is self-consistent
 const HERO_PIXELS_PER_METER = 434 / HERO_HEIGHT;
@@ -19,6 +20,7 @@ const charWInM = 405 / HERO_PIXELS_PER_METER;
  * @property {SpriteBuilder} makeIdleSprite
  * @property {SpriteBuilder} makeWalkSprite
  * @property {SpriteBuilder} makeAttackSprite
+ * @property {Array<AudioBuffer>} grunts
  */
 export let HeroResources;
 
@@ -215,6 +217,9 @@ function heroStateAttacking(hero, room) {
   hero.setSprite(room.resources.hero.makeAttackSprite, room.roomTime);
   hero.setSpeedX(0);
 
+  const grunts = room.resources.hero.grunts;
+  room.audio.playSound(hero, grunts[Math.floor(Math.random() * grunts.length)]);
+
   return {
     name: "attacking",
     processStep: (room) => {
@@ -229,13 +234,19 @@ function heroStateAttacking(hero, room) {
 /**
  * Loads up all the creature resources
  * @param {function(string,string):Promise<Texture>} loadTexture
+ * @param {function(string):Promise<AudioBuffer>} loadSound
  * @returns {HeroResources}
  */
-export async function loadHeroResources(loadTexture) {
-  const [idleTex, walkTex, attackTex] = await Promise.all([
+export async function loadHeroResources(loadTexture, loadSound) {
+  const [idleTex, walkTex, attackTex, grunts] = await Promise.all([
     loadTexture("hero_idle", "assets/Hero Breathing with axe.png"),
     loadTexture("hero_walk", "assets/Hero Walking with axe.png"),
     loadTexture("hero_attack", "assets/Axe Chop.png"),
+    Promise.all([
+      loadSound("assets/Grunt1.mp3"),
+      loadSound("assets/Grunt2.mp3"),
+      loadSound("assets/Grunt3.mp3"),
+    ]),
   ]);
 
   // const flareDataToPosition =
@@ -310,7 +321,7 @@ export async function loadHeroResources(loadTexture) {
     ],
   });
 
-  return { makeIdleSprite, makeWalkSprite, makeAttackSprite };
+  return { makeIdleSprite, makeWalkSprite, makeAttackSprite, grunts };
 }
 
 /**
