@@ -151,11 +151,11 @@ export async function loadCreatureResources(loadTexture) {
  */
 export class Creature {
   constructor(room, x, y, z) {
-    // const sprite = room.resources.creature.makeCreatureSprite();
-    // sprite.resetSprite("blink", room.roomTime);
+    const sprite = room.resources.creature.makeCreatureSprite();
+    sprite.resetSprite("blink", room.roomTime);
 
-    const sprite = room.resources.creature.makeCreatureAttackSprite();
-    sprite.resetSprite("bite", room.roomTime);
+    // const sprite = room.resources.creature.makeCreatureAttackSprite();
+    // sprite.resetSprite("bite", room.roomTime);
 
     /** @private {number} */
     this.startX = x;
@@ -201,6 +201,8 @@ export function processCreatures(room) {
   room.creatures.forEach((creature) => {
     creature.x = creature.startX + Math.sin(roomTime);
     const speed = 0.5 * Math.cos(roomTime);
+
+    creature.sprite.updateTime(room.roomTime);
 
     if (roomTime > creature.nextTentacleMove) {
       let index = creature.nextTentacleIndex;
@@ -251,7 +253,7 @@ export function renderCreatures(gl, program, room) {
     }
 
     stack.pushYRotation(angle);
-    creature.sprite.renderSprite(program, roomTime);
+    creature.sprite.renderSprite(program);
     stack.pop();
     if (needsMirror) stack.pop();
     stack.pop();
