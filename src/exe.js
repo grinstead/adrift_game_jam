@@ -158,7 +158,6 @@ void main() {
 
   const [
     environResources,
-    floorTex,
     gruntSounds,
     exclaimSound,
     creatureResources,
@@ -166,11 +165,6 @@ void main() {
     heroResources,
   ] = await Promise.all([
     loadEnvironResources(projection, loadTexture),
-    loadTextureFromImgUrl({
-      gl,
-      src: "assets/floor.png",
-      name: "floor",
-    }),
     Promise.all([
       loadSound(audioContext, "assets/Grunt1.mp3"),
       loadSound(audioContext, "assets/Grunt2.mp3"),
@@ -184,35 +178,11 @@ void main() {
 
   let exclamation = null;
 
-  const floorDims = {
-    top: 220 / floorTex.h,
-    w: floorTex.w / TEX_PIXELS_PER_METER,
-    h: 70 / TEX_PIXELS_PER_METER,
-    boundary: (512 - 70) / floorTex.h,
-  };
-
-  // I divided the texture by 2
-  floorDims.top /= 2;
-  floorDims.w *= 2;
-  floorDims.boundary /= 2;
-
-  const floor = new SpriteSet(floorTex, {
-    // prettier-ignore
-    "main": [[
-        floorDims.w, -ROOM_DEPTH_RADIUS, -floorDims.h, 1,                  1,
-                  0, -ROOM_DEPTH_RADIUS, -floorDims.h, 0,                  1,
-        floorDims.w, -ROOM_DEPTH_RADIUS,            0, 1, floorDims.boundary,
-                  0, -ROOM_DEPTH_RADIUS,            0, 0, floorDims.boundary,
-        floorDims.w,  ROOM_DEPTH_RADIUS,            0, 1,      floorDims.top,
-                  0,  ROOM_DEPTH_RADIUS,            0, 0,      floorDims.top,
-      ]],
-  });
-
   const ceilDims = {
     edgeY: 62,
     wallY: 288,
     w: ceilingTex.w / TEX_PIXELS_PER_METER,
-    h: floorDims.h,
+    h: 70 / TEX_PIXELS_PER_METER,
   };
 
   // I divided the texture by 2
@@ -489,6 +459,7 @@ void main() {
     wall.bindTo(program);
     wall.renderSpriteDatumPrebound("main", 0);
 
+    const floor = room.environSprites.floorSpriteSet;
     floor.bindTo(program);
     floor.renderSpriteDatumPrebound("main", 0);
 

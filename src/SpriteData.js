@@ -21,10 +21,10 @@ export const WALL_META = {
  */
 export const LAYOUT_TARGETS = {
   // y values, measured in pixels, centered on the forward most point of the ceiling
-  CEIL_PAD: -70,
+  CEIL_LIP: -70,
   CEIL_FOREGROUND: 0,
   CEIL_BACKGROUND: 216,
   FLOOR_BACKGROUND: 752,
   FLOOR_FOREGROUND: 968,
-  FLOOR_PAD: 1038,
+  FLOOR_LIP: 1038,
 };

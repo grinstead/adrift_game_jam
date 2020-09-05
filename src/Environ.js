@@ -13,12 +13,14 @@ import { Texture } from "./swagl.js";
  * @property {number} wBackground - The w coordinate of vertices in the background
  * @property {number} scaleY - The ratio between z coordinates in clip space to y coordinates in meters
  * @property {number} scaleX - The ratio between x coordinates in clip space to x coordinates in meters
+ * @property {number} lipHeight - The height in meters of the floor and ceiling lips
  */
 export let ProjectionData;
 
 /**
  * @typedef {Object} EnvironResources
  * @property {Texture} wallTex
+ * @property {Texture} floorTex
  * @property {ProjectionData} projection
  */
 export let EnvironResources;
@@ -26,6 +28,7 @@ export let EnvironResources;
 /**
  * @typedef {Object} EnvironRoomSprites
  * @property {SpriteSet} wallSpriteSet
+ * @property {SpriteSet} floorSpriteSet
  */
 export let EnvironRoomSprites;
 
@@ -42,8 +45,6 @@ export function buildProjectionData(outputWidth, outputHeight) {
   const clipSpaceY = (layoutTargetY) =>
     (layoutMiddleY - layoutTargetY) / outputHeight;
 
-  // this is the vertical "radius" of the room, in meters
-  // const Ry = ROOM_HEIGHT / 2;
   // this is the y position (in clip space) of the middle of the ceiling
   const Ry = clipSpaceY(
     (LAYOUT_TARGETS.CEIL_FOREGROUND + LAYOUT_TARGETS.CEIL_BACKGROUND) / 2
@@ -69,7 +70,15 @@ export function buildProjectionData(outputWidth, outputHeight) {
          0,      0,             0,         (w1 + w2) / 2,
   ]);
 
-  return { matrix, wForeground: w1, wBackground: w2, scaleX, scaleY };
+  return {
+    matrix,
+    wForeground: w1,
+    wBackground: w2,
+    scaleX,
+    scaleY,
+    lipHeight:
+      (clipSpaceY(LAYOUT_TARGETS.CEIL_LIP) * w1) / scaleY - ROOM_HEIGHT / 2,
+  };
 }
 
 /**
@@ -84,15 +93,7 @@ export async function loadEnvironResources(projection, loadTexture) {
     loadTexture("floor", "assets/floor.png"),
   ]);
 
-  // const floorWidth = (2 * floorTex.w) / TEX_PIXELS_PER_METER;
-  // const floorSpriteSet = new SpriteSet(floorTex, {
-  //   // prettier-ignore
-  //   "main": [[
-  //     floorWidth, -ROOM_DEPTH_RADIUS,
-  //   ]]
-  // })
-
-  return { projection, wallTex };
+  return { projection, wallTex, floorTex };
 }
 
 /**
@@ -102,22 +103,48 @@ export async function loadEnvironResources(projection, loadTexture) {
  * @param {number} roomOriginX The x-coordinate (in meters, from the left-most portion of the room) the sprites will be drawn
  * @returns {EnvironRoomSprites}
  */
-export function makeRoomSprites(resources, roomWidth, roomOriginX) {
-  const projection = resources.projection;
-  const wallTex = resources.wallTex;
-  const topOfWallTex = 648 / wallTex.h;
-  const pixPerMeter = ((1 - topOfWallTex) * wallTex.h) / ROOM_HEIGHT;
-  const rightWallTex = (pixPerMeter * roomWidth) / wallTex.w;
+export function makeRoomSprites(
+  { wallTex, floorTex, projection },
+  roomWidth,
+  roomOriginX
+) {
+  const roomLeft = -roomOriginX;
+  const roomRight = roomLeft + roomWidth;
+
+  const wallHeightPercent = 1 - 648 / wallTex.h;
+  const rightWallTex =
+    (((wallHeightPercent * wallTex.h) / ROOM_HEIGHT) * roomWidth) / wallTex.w;
 
   const wallSpriteSet = new SpriteSet(wallTex, {
     // prettier-ignore
     "main": [[
-        roomWidth - roomOriginX, ROOM_DEPTH_RADIUS, ROOM_HEIGHT, rightWallTex, topOfWallTex,
-        roomWidth - roomOriginX, ROOM_DEPTH_RADIUS, 0, rightWallTex, 1,
-        -roomOriginX, ROOM_DEPTH_RADIUS, ROOM_HEIGHT, 0, topOfWallTex,
-        -roomOriginX, ROOM_DEPTH_RADIUS, 0, 0, 1,
+        roomRight, ROOM_DEPTH_RADIUS, ROOM_HEIGHT, rightWallTex, 1 - wallHeightPercent,
+        roomRight, ROOM_DEPTH_RADIUS, 0, rightWallTex, 1,
+        roomLeft, ROOM_DEPTH_RADIUS, ROOM_HEIGHT, 0, 1 - wallHeightPercent,
+        roomLeft, ROOM_DEPTH_RADIUS, 0, 0, 1,
       ]],
   });
 
-  return { wallSpriteSet };
+  // scale everything to the resolution of the back wall, because that's what I plugged in
+  const floorBackground = 110 / floorTex.h;
+  const floorForeground = 220 / floorTex.h;
+  const rightFloorTex =
+    ((((floorForeground - floorBackground) * floorTex.h) /
+      (2 * ROOM_DEPTH_RADIUS)) *
+      roomWidth) /
+    floorTex.w;
+
+  const floorSpriteSet = new SpriteSet(floorTex, {
+    // prettier-ignore
+    "main": [[
+      roomRight, -ROOM_DEPTH_RADIUS, -projection.lipHeight, rightFloorTex, 1,
+      roomLeft, -ROOM_DEPTH_RADIUS, -projection.lipHeight, 0, 1,
+      roomRight, -ROOM_DEPTH_RADIUS, 0, rightFloorTex, floorForeground,
+      roomLeft, -ROOM_DEPTH_RADIUS, 0, 0, floorForeground,
+      roomRight, ROOM_DEPTH_RADIUS, 0, rightFloorTex, floorBackground,
+      roomLeft, ROOM_DEPTH_RADIUS, 0, 0, floorBackground,
+    ]],
+  });
+
+  return { wallSpriteSet, floorSpriteSet };
 }
