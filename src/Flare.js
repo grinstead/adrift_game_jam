@@ -29,7 +29,7 @@ export let SparkParticle;
  * @param {Room} room
  */
 export function processFlare(room) {
-  const { roomTime, stepSize, hero, sparks } = room;
+  const { roomTime, stepSize, hero, sparks, roomBottom } = room;
 
   // spawn any missing particles
   const toSpawn =
@@ -43,7 +43,7 @@ export function processFlare(room) {
     if (!flarePosition) break;
 
     const x = hero.heroX + flarePosition.x * hero.signX;
-    const z = flarePosition.z; // assumes character is at 0
+    const z = flarePosition.z + hero.heroZ;
     const angle = (Math.random() - 0.5) * (Math.PI / 4) + flarePosition.angle;
     const dz = speed * Math.sin(angle);
     const dx = speed * Math.cos(angle) + hero.speedX;
@@ -55,7 +55,7 @@ export function processFlare(room) {
     sparks.push({
       dead: false,
       x,
-      y: 0.01,
+      y: hero.heroY + 0.01,
       z,
       dx,
       dy,
@@ -69,6 +69,7 @@ export function processFlare(room) {
   // TODO: restore
   const normalZ = 1;
   const normalX = 0;
+  const floorZ = room.roomBottom;
 
   const gravityZ = normalZ * 9.8 * stepSize;
   const gravityX = normalX * 9.8 * stepSize;
@@ -103,14 +104,13 @@ export function processFlare(room) {
         particle.dy = -particle.dy;
       }
 
-      const floorZ = room.roomBottom;
       if (particle.z < floorZ) {
         if (dz > -0.01) {
-          particle.z = PIXELS_PER_METER;
-          particle.dz = floorZ;
+          particle.z = floorZ;
+          particle.dz = 0;
           particle.onFloor = true;
         } else {
-          particle.z = floorZ - particle.z;
+          particle.z = floorZ + floorZ - particle.z;
           particle.dz = -0.25 * dz;
         }
       }

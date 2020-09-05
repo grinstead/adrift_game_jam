@@ -193,14 +193,14 @@ void main() {
 
   const shipLength = 100;
   const wave1 = (isFar) => {
-    const time = room.roomTime + (isFar ? 170 : 0);
-    return Math.sin((Math.PI * time) / 8) / 2;
-    // return 0;
+    // const time = room.roomTime + (isFar ? 170 : 0);
+    // return Math.sin((Math.PI * time) / 8) / 2;
+    return 0;
   };
   const wave2 = (isFar) => {
-    const time = room.roomTime + (isFar ? 130 : 0);
-    return Math.sin((Math.PI * time) / 3) / 8;
-    // return 0;
+    // const time = room.roomTime + (isFar ? 130 : 0);
+    // return Math.sin((Math.PI * time) / 3) / 8;
+    return 0;
   };
 
   let shipAngle, normalX, normalZ, shipDz;
@@ -242,6 +242,7 @@ void main() {
   function renderInSceneContent(gl, program) {
     const stack = program.stack;
 
+    stack.pushTranslation(0, 0, room.roomBottom);
     const wall = room.environSprites.wallSpriteSet;
     wall.bindTo(program);
     wall.renderSpriteDatumPrebound("main", 0);
@@ -264,10 +265,13 @@ void main() {
     ladderSprite.bindTo(program);
     ladderSprite.renderSpriteDatumPrebound("main", 0);
     stack.pop();
+    stack.pop();
 
     renderHero(gl, program, room);
     renderCreatures(gl, program, room);
     renderSparks(gl, program, room);
+
+    stack.pop();
   }
 
   function renderMain(gl, program) {
@@ -293,7 +297,20 @@ void main() {
     // );
   }
 
-  function renderStep() {
+  function gameLoop() {
+    if (input.isPressed("lightUp")) {
+      world.switchToRoom("r1");
+    } else if (input.isPressed("lightDown")) {
+      world.switchToRoom("r0");
+    }
+
+    if (room !== world.activeRoom) {
+      room = world.activeRoom;
+      room.roomTimeOffset = Date.now() / 1000 - 1 / 60 - room.roomTime;
+      hero.heroZ = room.roomBottom;
+      cameraZ = room.roomBottom + ROOM_HEIGHT / 2;
+    }
+
     updateTime();
 
     if (input.numPresses("showLights") % 2) {
@@ -309,10 +326,12 @@ void main() {
 
     lighting.renderLighting(renderInCamera, room);
     doAnimationFrame(program, renderMain);
-    requestAnimationFrame(renderStep);
+
+    // loop
+    requestAnimationFrame(gameLoop);
   }
 
-  requestAnimationFrame(renderStep);
+  requestAnimationFrame(gameLoop);
 
   // function logicStep() {
   //   program.runInFrame(renderStep);

@@ -52,6 +52,10 @@ export class Hero {
   constructor(resources, x) {
     /** @type {number} The x position of the hero */
     this.heroX = x;
+    /** @type {number} The z position of the hero's feet */
+    this.heroY = 0;
+    /** @type {number} The z position of the hero's feet */
+    this.heroZ = 0;
     /** @type {number} -1 if the hero is facing left, 1 if the hero is facing right */
     this.signX = 1;
     /** @type {number} The character's speed (in meters per second) in the x-direction */
@@ -110,10 +114,11 @@ export class Hero {
    * Renders the sprite at the Hero's position
    * @param {WebGL2RenderingContext} gl
    * @param {Program} program
+   * @param {Room} room
    */
-  renderSprite(gl, program) {
+  renderSprite(gl, program, room) {
     const stack = program.stack;
-    stack.pushTranslation(this.heroX, 0, 0);
+    stack.pushTranslation(this.heroX, this.heroY, this.heroZ);
     this.sprite.renderSprite(program);
     stack.pop();
   }
@@ -153,7 +158,7 @@ export function renderHero(gl, program, room) {
   if (render) {
     render(gl, program, room);
   } else {
-    room.hero.renderSprite(gl, program);
+    room.hero.renderSprite(gl, program, room);
   }
 }
 
@@ -241,24 +246,21 @@ function heroStateAttacking(hero, room) {
 function heroStateClimbing(hero, room) {
   hero.setSprite(room.resources.hero.makeClimbingSprite, room.roomTime, "up");
   hero.setSpeedX(0);
+  hero.heroY = ROOM_DEPTH_RADIUS;
 
   return {
     name: "climbing",
     processStep: (room) => {
       if (hero.sprite.isFinished()) {
+        hero.heroY = 0;
+        hero.heroZ = room.roomBottom;
         hero.changeState(room, heroStateNormal);
+      } else {
+        hero.heroZ =
+          room.roomBottom + 0.3 * Math.min(5, hero.sprite.frameIndex());
       }
     },
-    render: (gl, program) => {
-      const stack = program.stack;
-      stack.pushTranslation(
-        0,
-        ROOM_DEPTH_RADIUS,
-        0.3 * Math.min(5, hero.sprite.frameIndex())
-      );
-      hero.renderSprite(gl, program);
-      stack.pop();
-    },
+    render: null,
   };
 }
 

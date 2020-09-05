@@ -33,7 +33,6 @@ let Resources;
  * @property {number} stepSize - The time (in seconds, accurate to ms) since the last render
  * @property {number} roomLeft - The x coordinate of the left-most portion of the room
  * @property {number} roomRight - The x coordinate of the right-most portion of the room
- * @property {number} roomTop - The z coordinate of the top-most portion of the room (ie. the ceiling)
  * @property {number} roomBottom - The z coordinate of the lowest-most portion of the room (ie. the floor)
  * @property {EnvironRoomSprites} environSprites
  * @property {Array<SparkParticle>} sparks
@@ -59,7 +58,6 @@ export let RoomKernel;
  * @param {string} options.name - The name of the room
  * @param {number} options.roomLeft - The x coordinate of the left-most portion of the room
  * @param {number} options.roomRight - The x coordinate of the right-most portion of the room
- * @param {number} options.roomTop - The z coordinate of the top-most portion of the room (ie. the ceiling)
  * @param {number} options.roomBottom - The z coordinate of the lowest-most portion of the room (ie. the floor)
  * @returns {Room}
  */
@@ -73,11 +71,10 @@ export function makeRoom(options) {
     audio: kernel.audio,
     creatures: [],
     roomTime: 0,
-    roomTimeOffset: Date.now() / 1000,
+    roomTimeOffset: Date.now() / 1000 - 1 / 60,
     stepSize: 0,
     roomLeft,
     roomRight,
-    roomTop: options.roomTop,
     roomBottom: options.roomBottom,
     environSprites: makeRoomSprites(
       kernel.resources.environ,

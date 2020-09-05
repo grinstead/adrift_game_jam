@@ -11,6 +11,22 @@ export class World {
     /** @type {Room} The active room */
     this.activeRoom = startRoom;
   }
+
+  /**
+   * @param {string} roomName
+   */
+  switchToRoom(roomName) {
+    if (this.activeRoom.name === roomName) return;
+
+    const rooms = this.rooms;
+    let newRoom = rooms.get(roomName);
+    if (!newRoom) {
+      newRoom = initRoom(this.kernel, roomName);
+      rooms.set(roomName, newRoom);
+    }
+
+    this.activeRoom = newRoom;
+  }
 }
 
 /**
@@ -28,19 +44,30 @@ export function initWorld(kernel) {
  */
 function initRoom(kernel, name) {
   switch (name) {
-    case "r0":
+    case "r0": {
       const room = makeRoom({
         kernel,
         name,
         roomLeft: 0,
         roomRight: 12,
-        roomTop: ROOM_HEIGHT,
         roomBottom: 0,
       });
 
       spawnCreature(room, kernel.hero.heroX + 2);
 
       return room;
+    }
+    case "r1": {
+      const room = makeRoom({
+        kernel,
+        name,
+        roomLeft: -12,
+        roomRight: 2,
+        roomBottom: ROOM_HEIGHT + 2,
+      });
+
+      return room;
+    }
     default:
       throw new Error(`Unrecognized room name "${name}"`);
   }

@@ -125,16 +125,16 @@ export async function loadEnvironResources(projection, loadTexture) {
  * Builds up some sprite data for the room
  * @param {EnvironResources} resources
  * @param {number} roomWidth The width of the room (in meters)
- * @param {number} roomOriginX The x-coordinate (in meters, from the left-most portion of the room) the sprites will be drawn
+ * @param {number} trueRoomLeft The x-coordinate (in meters, from the left-most portion of the room) the sprites will be drawn
  * @returns {EnvironRoomSprites}
  */
 export function makeRoomSprites(
   { wallTex, floorTex, ceilTex, sideTex, projection },
   roomWidth,
-  roomOriginX
+  trueRoomLeft
 ) {
-  const roomLeft = -roomOriginX - projection.lipWidth;
-  const roomRight = 2 * projection.lipWidth + roomLeft + roomWidth;
+  const roomLeft = trueRoomLeft - projection.lipWidth;
+  const roomRight = trueRoomLeft + roomWidth + projection.lipWidth;
 
   const wallTopY = 494 / wallTex.h;
   const wallBottomY = 1016 / wallTex.h;
