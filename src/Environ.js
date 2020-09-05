@@ -1,9 +1,10 @@
-import { SpriteSet } from "./sprites";
+import { SpriteSet } from "./sprites.js";
 import {
   TEX_PIXELS_PER_METER,
   ROOM_DEPTH_RADIUS,
   ROOM_HEIGHT,
-} from "./SpriteData";
+} from "./SpriteData.js";
+import { Texture } from "./swagl.js";
 
 /**
  * @typedef {Object}

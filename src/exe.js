@@ -44,6 +44,8 @@ const FLARE_DURING_ATTACK = [
   { x1: 1025, y1: 934, x2: 976, y2: 962 },
 ];
 
+const CAMERA_X_OFFSET = 2;
+
 async function onLoad() {
   const fpsNode = document.getElementById("fps");
   const canvas = document.getElementById("canvas");
@@ -345,7 +347,18 @@ void main() {
     ],
   });
 
-  const room = makeRoom({ creature: creatureResources });
+  const room = makeRoom({
+    resources: {
+      creature: creatureResources,
+      hero: heroResources,
+      environ: environResources,
+    },
+    roomTime: 0,
+    roomLeft: 0,
+    roomRight: 8,
+    roomTop: ROOM_HEIGHT,
+    roomBottom: 0,
+  });
 
   const sparkSprite = makeSparkSprite(gl);
 
@@ -433,8 +446,14 @@ void main() {
       audioSource.start(0);
     } else {
       // move character
-      charSpeedX = 1.2 * input.getSignOfAction("left", "right");
-      charDx = charSpeedX * stepSize;
+      charDx = 1.2 * stepSize * input.getSignOfAction("left", "right");
+      let plannedX = charX + charDx;
+      if (plannedX < room.roomLeft + charWInM) {
+        charDx = room.roomLeft + charWInM - charX;
+      } else if (plannedX > room.roomRight - charWInM) {
+        charDx = room.roomRight - charWInM - charX;
+      }
+
       if (charDx !== 0) {
         charX += charDx;
         charFacingLeft = charDx < 0;
@@ -503,7 +522,7 @@ void main() {
 
       const angle = (Math.random() - 0.5) * (Math.PI / 4) + baseAngle;
       const dz = speed * Math.sin(angle);
-      const dx = speed * Math.cos(angle) + charSpeedX;
+      const dx = speed * Math.cos(angle) + charDx / stepSize;
 
       if (particles.length > 100) {
         particles.pop();
@@ -545,6 +564,10 @@ void main() {
           particle.dz = dz;
         }
 
+        if (particle.x < room.roomLeft || particle.x > room.roomRight) {
+          particle.dead = true;
+        }
+
         const y = particle.y;
         if (y < -ROOM_DEPTH_RADIUS || y > ROOM_DEPTH_RADIUS) {
           const reflectAgainst = y > 0 ? ROOM_DEPTH_RADIUS : -ROOM_DEPTH_RADIUS;
@@ -552,13 +575,14 @@ void main() {
           particle.dy = -particle.dy;
         }
 
-        if (particle.z < 0) {
+        const floorZ = room.roomBottom;
+        if (particle.z < floorZ) {
           if (dz > -0.01) {
             particle.z = PIXELS_PER_METER;
-            particle.dz = 0;
+            particle.dz = floorZ;
             particle.onFloor = true;
           } else {
-            particle.z = -particle.z;
+            particle.z = floorZ - particle.z;
             particle.dz = -0.25 * dz;
           }
         }
@@ -576,7 +600,11 @@ void main() {
     program.stack.push(projection);
 
     // set the camera
-    program.stack.pushTranslation(-charX, 0, -cameraZ);
+    const cameraX = Math.min(
+      Math.max(charX, room.roomLeft + CAMERA_X_OFFSET),
+      room.roomRight - CAMERA_X_OFFSET
+    );
+    program.stack.pushTranslation(-cameraX, 0, -cameraZ);
 
     // rock the boat
     program.stack.pushYRotation(shipAngle);
