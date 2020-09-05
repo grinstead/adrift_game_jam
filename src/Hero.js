@@ -48,14 +48,15 @@ export class Hero {
   /**
    * @param {HeroResources} resources
    * @param {number} x
+   * @param {number} z
    */
-  constructor(resources, x) {
+  constructor(resources, x, z) {
     /** @type {number} The x position of the hero */
     this.heroX = x;
     /** @type {number} The z position of the hero's feet */
     this.heroY = 0;
     /** @type {number} The z position of the hero's feet */
-    this.heroZ = 0;
+    this.heroZ = z;
     /** @type {number} -1 if the hero is facing left, 1 if the hero is facing right */
     this.signX = 1;
     /** @type {number} The character's speed (in meters per second) in the x-direction */

@@ -20,7 +20,7 @@ import {
   renderCreatures,
   processCreatures,
 } from "./Creature.js";
-import { makeRoom, Room } from "./Scene.js";
+import { makeRoom, Room, offsetAFrameFrom } from "./Scene.js";
 import { loadHeroResources, Hero, renderHero, processHero } from "./Hero.js";
 import { loadEnvironResources, buildProjectionData } from "./Environ.js";
 import { AudioManager } from "./webgames/Audio.js";
@@ -148,7 +148,6 @@ void main() {
     loadHeroResources(loadTexture, loadSound),
   ]);
 
-  const hero = new Hero(heroResources, 2);
   const kernel = {
     resources: {
       creature: creatureResources,
@@ -158,7 +157,6 @@ void main() {
     },
     input,
     audio: audioManager,
-    hero,
   };
 
   const world = initWorld(kernel);
@@ -223,7 +221,7 @@ void main() {
 
     // set the camera
     const cameraX = Math.min(
-      Math.max(hero.heroX, room.roomLeft + CAMERA_X_OFFSET),
+      Math.max(room.hero.heroX, room.roomLeft + CAMERA_X_OFFSET),
       room.roomRight - CAMERA_X_OFFSET
     );
     program.stack.pushTranslation(-cameraX, 0, -cameraZ);
@@ -306,8 +304,7 @@ void main() {
 
     if (room !== world.activeRoom) {
       room = world.activeRoom;
-      room.roomTimeOffset = Date.now() / 1000 - 1 / 60 - room.roomTime;
-      hero.heroZ = room.roomBottom;
+      room.roomTimeOffset = offsetAFrameFrom(room.roomTime);
       cameraZ = room.roomBottom + ROOM_HEIGHT / 2;
     }
 

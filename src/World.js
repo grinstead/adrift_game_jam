@@ -53,7 +53,9 @@ function initRoom(kernel, name) {
         roomBottom: 0,
       });
 
-      spawnCreature(room, kernel.hero.heroX + 2);
+      const hero = room.hero;
+      hero.heroX = room.roomLeft + 4;
+      spawnCreature(room, hero.heroX + 2);
 
       return room;
     }

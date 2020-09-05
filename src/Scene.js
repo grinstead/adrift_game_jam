@@ -37,7 +37,7 @@ let Resources;
  * @property {EnvironRoomSprites} environSprites
  * @property {Array<SparkParticle>} sparks
  * @property {boolean} lightsOn
- * @property {Hero} hero
+ * @property {Hero} hero - The hero character for the room
  */
 export let Room;
 
@@ -47,7 +47,6 @@ export let Room;
  * @property {Resources} resources - Whatever various resources were loaded up
  * @property {InputManager} input - The inputs the user is giving
  * @property {AudioManager} audio - The audio context for the game
- * @property {Hero} hero - The hero character
  */
 export let RoomKernel;
 
@@ -62,7 +61,7 @@ export let RoomKernel;
  * @returns {Room}
  */
 export function makeRoom(options) {
-  const { roomLeft, roomRight, kernel } = options;
+  const { roomLeft, roomRight, roomBottom, kernel } = options;
 
   return {
     name: options.name,
@@ -71,11 +70,11 @@ export function makeRoom(options) {
     audio: kernel.audio,
     creatures: [],
     roomTime: 0,
-    roomTimeOffset: Date.now() / 1000 - 1 / 60,
+    roomTimeOffset: offsetAFrameFrom(0),
     stepSize: 0,
     roomLeft,
     roomRight,
-    roomBottom: options.roomBottom,
+    roomBottom,
     environSprites: makeRoomSprites(
       kernel.resources.environ,
       roomRight - roomLeft,
@@ -83,6 +82,14 @@ export function makeRoom(options) {
     ),
     sparks: [],
     lightsOn: false,
-    hero: kernel.hero,
+    hero: new Hero(
+      kernel.resources.hero,
+      (roomRight + roomLeft) / 2,
+      roomBottom
+    ),
   };
+}
+
+export function offsetAFrameFrom(time) {
+  return Date.now() / 1000 - 1 / 60 - time;
 }
