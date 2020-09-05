@@ -50,11 +50,11 @@ export class Hero {
    * @param {number} x
    */
   constructor(resources, x) {
-    /** @public {number} The x position of the hero */
+    /** @type {number} The x position of the hero */
     this.heroX = x;
-    /** @public {number} -1 if the hero is facing left, 1 if the hero is facing right */
+    /** @type {number} -1 if the hero is facing left, 1 if the hero is facing right */
     this.signX = 1;
-    /** @public {number} The character's speed (in meters per second) in the x-direction */
+    /** @type {number} The character's speed (in meters per second) in the x-direction */
     this.speedX = 0;
     /** @private {Sprite} The active sprite */
     this.sprite = resources.makeIdleSprite("right", 0);

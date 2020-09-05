@@ -25,6 +25,7 @@ import { loadHeroResources, Hero, renderHero, processHero } from "./Hero.js";
 import { loadEnvironResources, buildProjectionData } from "./Environ.js";
 import { AudioManager } from "./webgames/Audio.js";
 import { processFlare, makeSparkSprite, renderSparks } from "./Flare.js";
+import { initWorld } from "./World.js";
 
 const CAMERA_X_OFFSET = 1;
 
@@ -60,7 +61,6 @@ async function onLoad() {
   let cameraZ = ROOM_HEIGHT / 2;
 
   const projection = buildProjectionData(width, height);
-  console.log(projection);
 
   const gl = canvas.getContext("webgl2", { antialias: false, alpha: false });
   gl.enable(gl.BLEND);
@@ -149,7 +149,7 @@ void main() {
   ]);
 
   const hero = new Hero(heroResources, 2);
-  const room = makeRoom({
+  const kernel = {
     resources: {
       creature: creatureResources,
       hero: heroResources,
@@ -158,25 +158,23 @@ void main() {
     },
     input,
     audio: audioManager,
-    roomTime: 0,
-    roomLeft: 0,
-    roomRight: 12,
-    roomTop: ROOM_HEIGHT,
-    roomBottom: 0,
     hero,
-  });
+  };
+
+  const world = initWorld(kernel);
+  let room = world.activeRoom;
 
   let mouseX = 0;
   let mouseY = 0;
 
-  let startTime = Date.now();
-  let timeDiff = 0;
   let avgFps = -1;
   let stepSize = 0;
   function updateTime() {
-    const newTime = (Date.now() - startTime) / 1000;
-    room.stepSize = stepSize = newTime - room.roomTime;
-    room.roomTime = timeDiff = newTime;
+    const newTime = Date.now() / 1000 - room.roomTimeOffset;
+    const stepSize = newTime - room.roomTime;
+
+    room.stepSize = stepSize;
+    room.roomTime = newTime;
 
     if (avgFps === -1) {
       avgFps = 60;
@@ -195,17 +193,15 @@ void main() {
 
   const shipLength = 100;
   const wave1 = (isFar) => {
-    const time = timeDiff + (isFar ? 170 : 0);
+    const time = room.roomTime + (isFar ? 170 : 0);
     return Math.sin((Math.PI * time) / 8) / 2;
     // return 0;
   };
   const wave2 = (isFar) => {
-    const time = timeDiff + (isFar ? 130 : 0);
+    const time = room.roomTime + (isFar ? 130 : 0);
     return Math.sin((Math.PI * time) / 3) / 8;
     // return 0;
   };
-
-  spawnCreature(room, hero.heroX + 2);
 
   let shipAngle, normalX, normalZ, shipDz;
   function movePieces() {
@@ -299,15 +295,6 @@ void main() {
 
   function renderStep() {
     updateTime();
-
-    window.ambientLight = Math.max(
-      0,
-      Math.min(
-        1,
-        window.ambientLight +
-          (stepSize / 4) * input.getSignOfAction("lightDown", "lightUp")
-      )
-    );
 
     if (input.numPresses("showLights") % 2) {
       debugShowLights = !debugShowLights;

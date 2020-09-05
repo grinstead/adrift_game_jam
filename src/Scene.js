@@ -29,6 +29,7 @@ let Resources;
  * @property {AudioManager} audio - The audio context for the game
  * @property {Array<Creature>} creatures - All the enemy black spot creatures
  * @property {number} roomTime - The time (in seconds, accurate to ms) since the start of the room
+ * @property {number} roomTimeOffset - The time to subtract from Date.now() to get roomTime
  * @property {number} stepSize - The time (in seconds, accurate to ms) since the last render
  * @property {number} roomLeft - The x coordinate of the left-most portion of the room
  * @property {number} roomRight - The x coordinate of the right-most portion of the room
@@ -42,42 +43,49 @@ let Resources;
 export let Room;
 
 /**
+ *
+ * @typedef {Object} RoomKernel
+ * @property {Resources} resources - Whatever various resources were loaded up
+ * @property {InputManager} input - The inputs the user is giving
+ * @property {AudioManager} audio - The audio context for the game
+ * @property {Hero} hero - The hero character
+ */
+export let RoomKernel;
+
+/**
  * Makes a room data structure object
  * @param {Object} options
+ * @param {RoomKernel} options.kernel
  * @param {string} options.name - The name of the room
- * @param {Resources} options.resources - Whatever various resources were loaded up
- * @param {InputManager} options.input - The inputs the user is giving
- * @param {AudioManager} options.audio - The audio context for the game
- * @param {number} options.roomTime - The time (in seconds, accurate to ms) since the start of the room
  * @param {number} options.roomLeft - The x coordinate of the left-most portion of the room
  * @param {number} options.roomRight - The x coordinate of the right-most portion of the room
  * @param {number} options.roomTop - The z coordinate of the top-most portion of the room (ie. the ceiling)
  * @param {number} options.roomBottom - The z coordinate of the lowest-most portion of the room (ie. the floor)
- * @param {Hero} options.hero - The hero character
  * @returns {Room}
  */
 export function makeRoom(options) {
-  const { resources, roomLeft, roomRight } = options;
+  const { roomLeft, roomRight, kernel } = options;
 
   return {
     name: options.name,
-    resources,
-    input: options.input,
-    audio: options.audio,
+    resources: kernel.resources,
+    input: kernel.input,
+    audio: kernel.audio,
     creatures: [],
-    roomTime: options.roomTime,
+    roomTime: 0,
+    roomTimeOffset: Date.now() / 1000,
     stepSize: 0,
     roomLeft,
     roomRight,
     roomTop: options.roomTop,
     roomBottom: options.roomBottom,
     environSprites: makeRoomSprites(
-      options.resources.environ,
+      kernel.resources.environ,
       roomRight - roomLeft,
       roomLeft
     ),
     sparks: [],
     lightsOn: false,
-    hero: options.hero,
+    hero: kernel.hero,
   };
 }
