@@ -424,9 +424,6 @@ void main() {
       fullScreenRequest = canvas.requestFullscreen();
     }
 
-    cameraZ += stepSize * input.getSignOfAction("down", "up");
-    window["cameraZ"] = cameraZ;
-
     movePieces();
 
     lighting.renderLighting({

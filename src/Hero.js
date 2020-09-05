@@ -6,7 +6,7 @@ import {
   SpriteBuilder,
 } from "./sprites.js";
 import { Texture, Program } from "./swagl.js";
-import { HERO_HEIGHT } from "./SpriteData.js";
+import { HERO_HEIGHT, ROOM_DEPTH_RADIUS } from "./SpriteData.js";
 import { arctan } from "./webgames/math.js";
 import { Room } from "./Scene.js";
 
@@ -20,6 +20,7 @@ const charWInM = 405 / HERO_PIXELS_PER_METER;
  * @property {SpriteBuilder} makeIdleSprite
  * @property {SpriteBuilder} makeWalkSprite
  * @property {SpriteBuilder} makeAttackSprite
+ * @property {SpriteBuilder} makeClimbingSprite
  * @property {Array<AudioBuffer>} grunts
  */
 export let HeroResources;
@@ -99,9 +100,10 @@ export class Hero {
    * Sets the sprite on the hero
    * @param {SpriteBuilder} makeSprite
    * @param {number} time
+   * @param {string=} mode - the initial sprite mode, defaults to the direction
    */
-  setSprite(makeSprite, time) {
-    this.sprite = makeSprite(this.directionMode(), time);
+  setSprite(makeSprite, time, mode = this.directionMode()) {
+    this.sprite = makeSprite(mode, time);
   }
 
   /**
@@ -171,6 +173,11 @@ export function heroStateNormal(hero, room) {
     processStep: (/** @type {Room} */ room) => {
       const { hero, roomTime, input } = room;
 
+      if (input.isPressed("up")) {
+        hero.changeState(room, heroStateClimbing);
+        return;
+      }
+
       if (input.isPressed("attack")) {
         hero.changeState(room, heroStateAttacking);
         return;
@@ -231,6 +238,30 @@ function heroStateAttacking(hero, room) {
   };
 }
 
+function heroStateClimbing(hero, room) {
+  hero.setSprite(room.resources.hero.makeClimbingSprite, room.roomTime, "up");
+  hero.setSpeedX(0);
+
+  return {
+    name: "climbing",
+    processStep: (room) => {
+      if (hero.sprite.isFinished()) {
+        hero.changeState(room, heroStateNormal);
+      }
+    },
+    render: (gl, program) => {
+      const stack = program.stack;
+      stack.pushTranslation(
+        0,
+        ROOM_DEPTH_RADIUS,
+        0.3 * Math.min(5, hero.sprite.frameIndex())
+      );
+      hero.renderSprite(gl, program);
+      stack.pop();
+    },
+  };
+}
+
 /**
  * Loads up all the creature resources
  * @param {function(string,string):Promise<Texture>} loadTexture
@@ -238,10 +269,11 @@ function heroStateAttacking(hero, room) {
  * @returns {HeroResources}
  */
 export async function loadHeroResources(loadTexture, loadSound) {
-  const [idleTex, walkTex, attackTex, grunts] = await Promise.all([
+  const [idleTex, walkTex, attackTex, climbingTex, grunts] = await Promise.all([
     loadTexture("hero_idle", "assets/Hero Breathing with axe.png"),
     loadTexture("hero_walk", "assets/Hero Walking with axe.png"),
     loadTexture("hero_attack", "assets/Axe Chop.png"),
+    loadTexture("hero_climbing", "assets/Climbing Up.png"),
     Promise.all([
       loadSound("assets/Grunt1.mp3"),
       loadSound("assets/Grunt2.mp3"),
@@ -249,79 +281,114 @@ export async function loadHeroResources(loadTexture, loadSound) {
     ]),
   ]);
 
-  // const flareDataToPosition =
-  const makeIdleSprite = makeHeroSpriteType({
-    name: "hero_idle",
-    tex: idleTex,
-    widthPx: 405,
-    heightPx: 434,
-    xPx: 220,
-    yPx: 434,
-    frameCount: 16,
-    loops: true,
-    frameTime: 1 / 12,
-    flareData: [
-      { tx: 388, ty: 104, bx: 385, by: 170 },
-      { tx: 792, ty: 105, bx: 790, by: 170 },
-      { tx: 1198, ty: 105, bx: 1195, by: 169 },
-      { tx: 1602, ty: 106, bx: 1600, by: 170 },
-      { tx: 2008, ty: 106, bx: 2005, by: 172 },
-      { tx: 388, ty: 539, bx: 385, by: 604 },
-      { tx: 794, ty: 540, bx: 790, by: 605 },
-      { tx: 1196, ty: 539, bx: 1196, by: 604 },
-      { tx: 1602, ty: 539, bx: 1602, by: 604 },
-      { tx: 2009, ty: 541, bx: 2007, by: 604 },
-      { tx: 386, ty: 974, bx: 385, by: 1036 },
-      { tx: 792, ty: 972, bx: 790, by: 1033 },
-      { tx: 1198, ty: 974, bx: 1196, by: 1038 },
-      { tx: 1602, ty: 972, bx: 1601, by: 1036 },
-      { tx: 2010, ty: 974, bx: 2005, by: 1044 },
-      { tx: 386, ty: 1406, bx: 385, by: 1477 },
-    ],
-  });
+  return {
+    grunts,
 
-  const makeWalkSprite = makeHeroSpriteType({
-    name: "hero_walk",
-    tex: walkTex,
-    widthPx: 424,
-    heightPx: 444,
-    xPx: 258,
-    yPx: 444,
-    frameCount: 8,
-    loops: true,
-    frameTime: 1 / 8,
-    flareData: [
-      { tx: 408, ty: 110, bx: 404, by: 166 },
-      { tx: 830, ty: 110, bx: 829, by: 166 },
-      { tx: 408, ty: 554, bx: 404, by: 614 },
-      { tx: 830, ty: 554, bx: 829, by: 614 },
-      { tx: 408, ty: 998, bx: 404, by: 1055 },
-      { tx: 830, ty: 998, bx: 829, by: 1055 },
-      { tx: 408, ty: 1444, bx: 404, by: 1500 },
-      { tx: 830, ty: 1444, bx: 829, by: 1500 },
-    ],
-  });
+    makeIdleSprite: makeHeroSpriteType({
+      name: "hero_idle",
+      tex: idleTex,
+      widthPx: 405,
+      heightPx: 434,
+      xPx: 220,
+      yPx: 434,
+      frameCount: 16,
+      loops: true,
+      frameTime: 1 / 12,
+      flareData: [
+        { tx: 388, ty: 104, bx: 385, by: 170 },
+        { tx: 792, ty: 105, bx: 790, by: 170 },
+        { tx: 1198, ty: 105, bx: 1195, by: 169 },
+        { tx: 1602, ty: 106, bx: 1600, by: 170 },
+        { tx: 2008, ty: 106, bx: 2005, by: 172 },
+        { tx: 388, ty: 539, bx: 385, by: 604 },
+        { tx: 794, ty: 540, bx: 790, by: 605 },
+        { tx: 1196, ty: 539, bx: 1196, by: 604 },
+        { tx: 1602, ty: 539, bx: 1602, by: 604 },
+        { tx: 2009, ty: 541, bx: 2007, by: 604 },
+        { tx: 386, ty: 974, bx: 385, by: 1036 },
+        { tx: 792, ty: 972, bx: 790, by: 1033 },
+        { tx: 1198, ty: 974, bx: 1196, by: 1038 },
+        { tx: 1602, ty: 972, bx: 1601, by: 1036 },
+        { tx: 2010, ty: 974, bx: 2005, by: 1044 },
+        { tx: 386, ty: 1406, bx: 385, by: 1477 },
+      ],
+    }),
 
-  const makeAttackSprite = makeHeroSpriteType({
-    name: "hero_attack",
-    tex: attackTex,
-    widthPx: 644,
-    heightPx: 565,
-    xPx: 284,
-    yPx: 565,
-    frameCount: 5,
-    loops: false,
-    frameTime: 1 / 12,
-    flareData: [
-      { tx: 422, ty: 285, bx: 415, by: 353 },
-      { tx: 936, ty: 367, bx: 868, by: 380 },
-      { tx: 1507, ty: 311, bx: 1469, by: 318 },
-      { tx: 162, ty: 948, bx: 206, by: 943 },
-      { tx: 1025, ty: 934, bx: 976, by: 962 },
-    ],
-  });
+    makeWalkSprite: makeHeroSpriteType({
+      name: "hero_walk",
+      tex: walkTex,
+      widthPx: 424,
+      heightPx: 444,
+      xPx: 258,
+      yPx: 444,
+      frameCount: 8,
+      loops: true,
+      frameTime: 1 / 8,
+      flareData: [
+        { tx: 408, ty: 110, bx: 404, by: 166 },
+        { tx: 830, ty: 110, bx: 829, by: 166 },
+        { tx: 408, ty: 554, bx: 404, by: 614 },
+        { tx: 830, ty: 554, bx: 829, by: 614 },
+        { tx: 408, ty: 998, bx: 404, by: 1055 },
+        { tx: 830, ty: 998, bx: 829, by: 1055 },
+        { tx: 408, ty: 1444, bx: 404, by: 1500 },
+        { tx: 830, ty: 1444, bx: 829, by: 1500 },
+      ],
+    }),
 
-  return { makeIdleSprite, makeWalkSprite, makeAttackSprite, grunts };
+    makeAttackSprite: makeHeroSpriteType({
+      name: "hero_attack",
+      tex: attackTex,
+      widthPx: 644,
+      heightPx: 565,
+      xPx: 284,
+      yPx: 565,
+      frameCount: 5,
+      loops: false,
+      frameTime: 1 / 12,
+      flareData: [
+        { tx: 422, ty: 285, bx: 415, by: 353 },
+        { tx: 936, ty: 367, bx: 868, by: 380 },
+        { tx: 1507, ty: 311, bx: 1469, by: 318 },
+        { tx: 162, ty: 948, bx: 206, by: 943 },
+        { tx: 1025, ty: 934, bx: 976, by: 962 },
+      ],
+    }),
+
+    makeClimbingSprite: makeHeroSpriteType({
+      name: "hero_climbing_up",
+      tex: climbingTex,
+      widthPx: 222,
+      heightPx: 412,
+      xPx: 110,
+      yPx: 412,
+      frameCount: 8,
+      loops: false,
+      frameTime: 1 / 8,
+      flareData: [
+        { tx: 128, ty: 60, bx: 65, by: 54 },
+        { tx: 329, ty: 155, bx: 277, by: 148 },
+        { tx: 579, ty: 58, bx: 518, by: 56 },
+        { tx: 772, ty: 157, bx: 721, by: 156 },
+        { tx: 95, ty: 575, bx: 65, by: 567 },
+        { tx: 337, ty: 472, bx: 286, by: 465 },
+        null,
+        null,
+      ],
+      singleMode: "up",
+      scale: 1.4,
+    }),
+  };
+
+  // flare climbing up (reversed)
+  // { tx: 545, ty: 571, bx: 499, by: 570 },
+  // { tx: 357, ty: 472, bx: 296, by: 472 },
+  // { tx: 102, ty: 568, bx: 52, by: 564 },
+  // { tx: 797, ty: 55, bx: 732, by: 55 },
+  // { tx: 551, ty: 159, bx: 500, by: 151 },
+  // null,
+  // null,
+  // null,
 }
 
 /**
@@ -336,19 +403,23 @@ export async function loadHeroResources(loadTexture, loadSound) {
  * @param {number} options.frameCount - The number of frames
  * @param {*} options.loops
  * @param {*} options.frameTime
+ * @param {number=} options.scale - If the character needs to be scaled a bit
+ * @param {string=} options.singleMode
  * @param {?Array<{tx: number, ty: number, bx: number, by: number}>} options.flareData - The positions in pixels of the (T)ip and (B)ase of the flare (per frame)
  */
 function makeHeroSpriteType(options) {
   const { tex, widthPx, heightPx, xPx, yPx, frameCount } = options;
 
+  const pxPerMeter = HERO_PIXELS_PER_METER / (options.scale || 1);
+
   // assumes things are standard-ly packed, which has been true so far
   const numPerRow = Math.floor(tex.w / widthPx);
 
   const spriteSheetOptions = {
-    x: xPx / HERO_PIXELS_PER_METER,
-    z: (heightPx - yPx) / HERO_PIXELS_PER_METER,
-    width: widthPx / HERO_PIXELS_PER_METER,
-    height: heightPx / HERO_PIXELS_PER_METER,
+    x: xPx / pxPerMeter,
+    z: (heightPx - yPx) / pxPerMeter,
+    width: widthPx / pxPerMeter,
+    height: heightPx / pxPerMeter,
     texWidth: widthPx / tex.w,
     texHeight: heightPx / tex.h,
 
@@ -358,29 +429,41 @@ function makeHeroSpriteType(options) {
 
   const perFrameData =
     options.flareData &&
-    options.flareData.map(({ tx, ty, bx, by }, index) => {
+    options.flareData.map((data, index) => {
+      if (!data) return { flare: null };
+
+      const { tx, ty, bx, by } = data;
       const row = Math.floor(index / numPerRow);
       const col = index % numPerRow;
       return {
         flare: {
-          x: (tx - (col * widthPx + xPx)) / HERO_PIXELS_PER_METER,
-          z: (row * heightPx + yPx - ty) / HERO_PIXELS_PER_METER,
+          x: (tx - (col * widthPx + xPx)) / pxPerMeter,
+          z: (row * heightPx + yPx - ty) / pxPerMeter,
           angle: arctan(-(ty - by), tx - bx),
         },
       };
     });
 
-  const spriteSet = new SpriteSet(tex, {
-    // prettier-ignore
-    "right": spriteSheet(spriteSheetOptions),
-    // prettier-ignore
-    "left": spriteSheet({ ...spriteSheetOptions, reverseX: true }),
-  });
+  let spriteSet, modes;
+  if (options.singleMode) {
+    modes = [options.singleMode];
+    spriteSet = new SpriteSet(tex, {
+      [options.singleMode]: spriteSheet(spriteSheetOptions),
+    });
+  } else {
+    modes = ["left", "right"];
+    spriteSet = new SpriteSet(tex, {
+      // prettier-ignore
+      "right": spriteSheet(spriteSheetOptions),
+      // prettier-ignore
+      "left": spriteSheet({ ...spriteSheetOptions, reverseX: true }),
+    });
+  }
 
   return makeSpriteType({
     name: options.name,
     set: spriteSet,
-    modes: ["left", "right"],
+    modes,
     loops: options.loops,
     frameTime: options.frameTime,
     perFrameData,
