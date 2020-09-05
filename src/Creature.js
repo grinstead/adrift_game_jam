@@ -28,6 +28,14 @@ let Tentacle;
  */
 export let CreatureResources;
 
+// prettier-ignore
+const mirrorX = new Float32Array([
+  -1, 0, 0, 0,
+  0, 1, 0, 0,
+  0, 0, 1, 0,
+  0, 0, 0, 1,
+]);
+
 /**
  * Loads up all the creature resources
  * @param {function(string,string):Promise<Texture>} loadTexture
@@ -50,6 +58,7 @@ export async function loadCreatureResources(loadTexture) {
       texHeight: (2 * CREATURE_RADIUS_PIXELS) / creatureTex.h,
       numPerRow: 2,
       count: CREATURE_IDLE_FRAMES,
+      reverseX: true,
     }),
   });
 
@@ -197,10 +206,25 @@ export function renderCreatures(gl, program, room) {
   const { tentacleSprite } = room.resources.creature;
 
   const roomTime = room.roomTime;
+  const { x: focusX, z: focusZ } = room.hero.getGoodFocusPoint();
 
   room.creatures.forEach((creature) => {
-    stack.pushTranslation(creature.x, creature.y, creature.z);
+    const x = creature.x;
+    const z = creature.z;
+
+    stack.pushTranslation(x, creature.y, z);
+
+    let needsMirror = focusX < x;
+    let angle = arctan(focusZ - z, focusX - x);
+    if (needsMirror) {
+      stack.push(mirrorX);
+      angle = Math.PI - angle;
+    }
+
+    stack.pushYRotation(angle);
     creature.sprite.renderSprite(program, roomTime);
+    stack.pop();
+    if (needsMirror) stack.pop();
     stack.pop();
   });
 

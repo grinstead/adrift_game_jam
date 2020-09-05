@@ -1,5 +1,5 @@
 import { Creature, CreatureResources } from "./Creature.js";
-import { HeroResources } from "./Hero.js";
+import { HeroResources, Hero } from "./Hero.js";
 import { EnvironResources } from "./Environ.js";
 
 /**
@@ -33,6 +33,7 @@ export let Room;
  * @property {number} options.roomRight - The x coordinate of the right-most portion of the room
  * @property {number} options.roomTop - The z coordinate of the top-most portion of the room (ie. the ceiling)
  * @property {number} options.roomBottom - The z coordinate of the lowest-most portion of the room (ie. the floor)
+ * @property {Hero} options.hero - The hero character
  */
 export function makeRoom(options) {
   return {
@@ -43,5 +44,6 @@ export function makeRoom(options) {
     roomRight: options.roomRight,
     roomTop: options.roomTop,
     roomBottom: options.roomBottom,
+    hero: options.hero,
   };
 }

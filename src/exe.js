@@ -30,7 +30,7 @@ import {
   processCreatures,
 } from "./Creature.js";
 import { makeRoom } from "./Scene.js";
-import { loadHeroResources, flarePositionsMap } from "./Hero.js";
+import { loadHeroResources, flarePositionsMap, Hero } from "./Hero.js";
 import { loadEnvironResources } from "./Environ.js";
 
 const ATTACK_ORIGIN_X = 284;
@@ -46,7 +46,7 @@ const FLARE_DURING_ATTACK = [
 
 const CAMERA_X_OFFSET = 2;
 
-window.ambientLight = 0.2;
+window.ambientLight = 0.1;
 
 async function onLoad() {
   const fpsNode = document.getElementById("fps");
@@ -351,6 +351,7 @@ void main() {
     ],
   });
 
+  const hero = new Hero(4);
   const room = makeRoom({
     resources: {
       creature: creatureResources,
@@ -359,9 +360,10 @@ void main() {
     },
     roomTime: 0,
     roomLeft: 0,
-    roomRight: 8,
+    roomRight: 12,
     roomTop: ROOM_HEIGHT,
     roomBottom: 0,
+    hero,
   });
 
   const sparkSprite = makeSparkSprite(gl);
@@ -388,7 +390,6 @@ void main() {
     fpsNode.innerHTML = `fps=${Math.round(avgFps)}`;
   }
 
-  let charX = 4;
   let charDx = 0;
   let charFacingLeft = false;
   const spawnHertz = 48;
@@ -416,7 +417,7 @@ void main() {
     // return 0;
   };
 
-  spawnCreature(room, charX + 2);
+  spawnCreature(room, hero.heroX + 2);
 
   let shipAngle, normalX, normalZ, shipDz;
   function movePieces() {
@@ -451,15 +452,15 @@ void main() {
     } else {
       // move character
       charDx = 1.2 * stepSize * input.getSignOfAction("left", "right");
-      let plannedX = charX + charDx;
+      let plannedX = hero.heroX + charDx;
       if (plannedX < room.roomLeft + charWInM) {
-        charDx = room.roomLeft + charWInM - charX;
+        charDx = room.roomLeft + charWInM - hero.heroX;
       } else if (plannedX > room.roomRight - charWInM) {
-        charDx = room.roomRight - charWInM - charX;
+        charDx = room.roomRight - charWInM - hero.heroX;
       }
 
       if (charDx !== 0) {
-        charX += charDx;
+        hero.heroX += charDx;
         charFacingLeft = charDx < 0;
         if (activeCharSprite !== charWalkSprite) {
           activeCharSprite = charWalkSprite;
@@ -491,11 +492,13 @@ void main() {
         const flarePosition = flarePositionsMap.get(charSprite.name())[
           charSprite.frameIndex()
         ];
-        x = charX + flarePosition.x * (charFacingLeft ? -1 : 1);
+        x = hero.heroX + flarePosition.x * (charFacingLeft ? -1 : 1);
         z = flarePosition.z; // assumes character is at 0
         baseAngle = flarePosition.angle;
       } else {
-        x = charX + (flareX - (charDx ? 0.05 : 0)) * (charFacingLeft ? -1 : 1);
+        x =
+          hero.heroX +
+          (flareX - (charDx ? 0.05 : 0)) * (charFacingLeft ? -1 : 1);
         z = (charH - 106) / TEX_PIXELS_PER_METER;
 
         baseAngle = Math.PI / 2;
@@ -506,7 +509,7 @@ void main() {
             ATTACK_WIDTH * (charFrame % 3) + ATTACK_ORIGIN_X;
           const dataForFrame = FLARE_DURING_ATTACK[charFrame];
           x =
-            charX +
+            hero.heroX +
             ((dataForFrame.x1 - frameOriginPixelX) *
               (charFacingLeft ? -1 : 1)) /
               TEX_PIXELS_PER_METER;
@@ -605,7 +608,7 @@ void main() {
 
     // set the camera
     const cameraX = Math.min(
-      Math.max(charX, room.roomLeft + CAMERA_X_OFFSET),
+      Math.max(hero.heroX, room.roomLeft + CAMERA_X_OFFSET),
       room.roomRight - CAMERA_X_OFFSET
     );
     program.stack.pushTranslation(-cameraX, 0, -cameraZ);
@@ -634,7 +637,7 @@ void main() {
     ceilingSprite.bindTo(program);
     ceilingSprite.renderSpriteDatumPrebound("main", 0);
 
-    stack.pushTranslation(charX, 0, 0);
+    stack.pushTranslation(hero.heroX, 0, 0);
     if (activeCharSprite === charSprite) {
       activeCharSprite.setMode(charFacingLeft ? "left" : "right");
       activeCharSprite.renderSprite(program, timeDiff);

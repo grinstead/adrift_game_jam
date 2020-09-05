@@ -28,6 +28,17 @@ let FlarePosition;
  */
 export const flarePositionsMap = new Map();
 
+export class Hero {
+  constructor(x) {
+    this.heroX = x;
+  }
+
+  /** Enemies will stare at this point, very intimidating! */
+  getGoodFocusPoint() {
+    return { x: this.heroX, z: HERO_HEIGHT - 0.1 };
+  }
+}
+
 /**
  * Loads up all the creature resources
  * @param {function(string,string):Promise<Texture>} loadTexture
