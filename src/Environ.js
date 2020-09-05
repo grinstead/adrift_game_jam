@@ -21,6 +21,7 @@ export let ProjectionData;
  * @typedef {Object} EnvironResources
  * @property {Texture} wallTex
  * @property {Texture} floorTex
+ * @property {Texture} ceilTex
  * @property {ProjectionData} projection
  */
 export let EnvironResources;
@@ -29,6 +30,7 @@ export let EnvironResources;
  * @typedef {Object} EnvironRoomSprites
  * @property {SpriteSet} wallSpriteSet
  * @property {SpriteSet} floorSpriteSet
+ * @property {SpriteSet} ceilSpriteSet
  */
 export let EnvironRoomSprites;
 
@@ -88,12 +90,13 @@ export function buildProjectionData(outputWidth, outputHeight) {
  * @returns {EnvironResources}
  */
 export async function loadEnvironResources(projection, loadTexture) {
-  const [wallTex, floorTex] = await Promise.all([
+  const [wallTex, floorTex, ceilTex] = await Promise.all([
     loadTexture("wall", "assets/Back Wall.png"),
     loadTexture("floor", "assets/floor.png"),
+    loadTexture("ceiling", "assets/ceiling.png"),
   ]);
 
-  return { projection, wallTex, floorTex };
+  return { projection, wallTex, floorTex, ceilTex };
 }
 
 /**
@@ -104,7 +107,7 @@ export async function loadEnvironResources(projection, loadTexture) {
  * @returns {EnvironRoomSprites}
  */
 export function makeRoomSprites(
-  { wallTex, floorTex, projection },
+  { wallTex, floorTex, ceilTex, projection },
   roomWidth,
   roomOriginX
 ) {
@@ -146,5 +149,26 @@ export function makeRoomSprites(
     ]],
   });
 
-  return { wallSpriteSet, floorSpriteSet };
+  // scale everything to the resolution of the back wall, because that's what I plugged in
+  const ceilBackground = 144 / ceilTex.h;
+  const ceilForeground = 32 / ceilTex.h;
+  const rightCeilTex =
+    ((((ceilForeground - ceilBackground) * ceilTex.h) /
+      (2 * ROOM_DEPTH_RADIUS)) *
+      roomWidth) /
+    ceilTex.w;
+
+  const ceilSpriteSet = new SpriteSet(ceilTex, {
+    // prettier-ignore
+    "main": [[
+      roomRight, -ROOM_DEPTH_RADIUS, ROOM_HEIGHT + projection.lipHeight, rightCeilTex, 0,
+      roomLeft, -ROOM_DEPTH_RADIUS, ROOM_HEIGHT + projection.lipHeight, 0, 0,
+      roomRight, -ROOM_DEPTH_RADIUS, ROOM_HEIGHT, rightCeilTex, ceilForeground,
+      roomLeft, -ROOM_DEPTH_RADIUS, ROOM_HEIGHT, 0, ceilForeground,
+      roomRight, ROOM_DEPTH_RADIUS, ROOM_HEIGHT, rightCeilTex, ceilBackground,
+      roomLeft, ROOM_DEPTH_RADIUS, ROOM_HEIGHT, 0, ceilBackground,
+    ]],
+  });
+
+  return { wallSpriteSet, floorSpriteSet, ceilSpriteSet };
 }

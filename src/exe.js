@@ -161,7 +161,6 @@ void main() {
     gruntSounds,
     exclaimSound,
     creatureResources,
-    ceilingTex,
     heroResources,
   ] = await Promise.all([
     loadEnvironResources(projection, loadTexture),
@@ -172,42 +171,12 @@ void main() {
     ]),
     loadSound(audioContext, "assets/Theres something here.mp3"),
     loadCreatureResources(loadTexture),
-    loadTexture("ceiling", "assets/ceiling.png"),
     loadHeroResources(loadTexture),
   ]);
 
   let exclamation = null;
 
-  const ceilDims = {
-    edgeY: 62,
-    wallY: 288,
-    w: ceilingTex.w / TEX_PIXELS_PER_METER,
-    h: 70 / TEX_PIXELS_PER_METER,
-  };
-
-  // I divided the texture by 2
-  ceilDims.edgeY /= 2;
-  ceilDims.wallY /= 2;
-  ceilDims.w *= 2;
-
-  // prettier-ignore
-  const ceilingSprite = new SpriteSet(ceilingTex, {
-    "main": [[
-      ceilDims.w, -ROOM_DEPTH_RADIUS, ROOM_HEIGHT + ceilDims.h, 1, 0,
-               0, -ROOM_DEPTH_RADIUS, ROOM_HEIGHT + ceilDims.h, 0, 0,
-      ceilDims.w, -ROOM_DEPTH_RADIUS, ROOM_HEIGHT, 1, ceilDims.edgeY / ceilingTex.h,
-               0, -ROOM_DEPTH_RADIUS, ROOM_HEIGHT, 0, ceilDims.edgeY / ceilingTex.h,
-      ceilDims.w,  ROOM_DEPTH_RADIUS, ROOM_HEIGHT, 1, ceilDims.wallY / ceilingTex.h,
-               0,  ROOM_DEPTH_RADIUS, ROOM_HEIGHT, 0, ceilDims.wallY / ceilingTex.h,
-      ]],
-  });
-
-  const charW = 405;
-  const charH = 434;
-  const charCenter = 220 / charW;
-
-  const charWInM = charW / TEX_PIXELS_PER_METER;
-  const flareX = (387 / charW - charCenter) * charWInM;
+  const charWInM = 405 / TEX_PIXELS_PER_METER;
 
   const charSprite = heroResources.idleSprite;
   const charWalkSprite = heroResources.walkSprite;
@@ -463,6 +432,7 @@ void main() {
     floor.bindTo(program);
     floor.renderSpriteDatumPrebound("main", 0);
 
+    const ceilingSprite = room.environSprites.ceilSpriteSet;
     ceilingSprite.bindTo(program);
     ceilingSprite.renderSpriteDatumPrebound("main", 0);
 
