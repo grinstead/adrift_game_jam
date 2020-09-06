@@ -3,6 +3,8 @@ import {
   ROOM_DEPTH_RADIUS,
   ROOM_HEIGHT,
   LAYOUT_TARGETS,
+  TEX_PIXELS_PER_METER,
+  LADDER_Y,
 } from "./SpriteData.js";
 import { Texture } from "./swagl.js";
 
@@ -13,6 +15,8 @@ import { Texture } from "./swagl.js";
  * @property {number} wBackground - The w coordinate of vertices in the background
  * @property {number} scaleY - The ratio between z coordinates in clip space to y coordinates in meters
  * @property {number} scaleX - The ratio between x coordinates in clip space to x coordinates in meters
+ * @property {number} widthPx - The number of pixels wide the canvas is
+ * @property {number} heightPx - The number of pixels wide the canvas is
  * @property {number} lipHeight - The height in meters of the floor and ceiling lips
  * @property {number} lipWidth - The width in meters of the wall lips
  */
@@ -25,6 +29,7 @@ export let ProjectionData;
  * @property {Texture} ceilTex
  * @property {Texture} sideTex
  * @property {SpriteSet} ladderSprite
+ * @property {SpriteSet} setPieces
  * @property {ProjectionData} projection
  */
 export let EnvironResources;
@@ -82,6 +87,8 @@ export function buildProjectionData(outputWidth, outputHeight) {
     wBackground: w2,
     scaleX,
     scaleY,
+    widthPx: outputWidth,
+    heightPx: outputHeight,
     lipHeight:
       (clipSpaceY(LAYOUT_TARGETS.CEIL_LIP) * w1) / scaleY - ROOM_HEIGHT / 2,
     lipWidth: 0.3, // made up
@@ -95,30 +102,67 @@ export function buildProjectionData(outputWidth, outputHeight) {
  * @returns {EnvironResources}
  */
 export async function loadEnvironResources(projection, loadTexture) {
-  const [ladderTex, wallTex, floorTex, ceilTex, sideTex] = await Promise.all([
+  const [
+    ladderTex,
+    wallTex,
+    floorTex,
+    ceilTex,
+    sideTex,
+    variousTex,
+  ] = await Promise.all([
     loadTexture("ladder", "assets/ladder.png"),
     loadTexture("wall", "assets/Back Wall.png"),
     loadTexture("floor", "assets/floor.png"),
     loadTexture("ceiling", "assets/ceiling.png"),
     loadTexture("wall", "assets/side_wall.png"),
+    loadTexture("set_pieces", "assets/set_pieces.png"),
   ]);
 
-  const ladderWidth = (ladderTex.w * ROOM_HEIGHT) / ladderTex.h;
   const ladderSprite = new SpriteSet(ladderTex, {
     // prettier-ignore
-    "main": [flatSprite({
-      x: ladderWidth / 2,
-      y: -ROOM_DEPTH_RADIUS,
-      width: ladderWidth,
-      height: ROOM_HEIGHT,
-      texStartX: 0,
-      texStartY: .5,
-      texEndX: 1,
-      texEndY: 1,
-    })],
+    "main": [
+      setPiece(projection, ladderTex, {
+        xPx: ladderTex.w,
+        yPx: ladderTex.h,
+        widthPx: ladderTex.w,
+        heightPx: ladderTex.h,
+        offsetY: LADDER_Y,
+        offsetZ: ROOM_HEIGHT / 2,
+      })
+    ],
   });
 
-  return { projection, wallTex, floorTex, ceilTex, sideTex, ladderSprite };
+  const setPieceData = {};
+  setPieceData["barrel1"] = [
+    setPiece(projection, variousTex, {
+      xPx: 370,
+      yPx: 270,
+      widthPx: 338,
+      heightPx: 222,
+      offsetY: ROOM_DEPTH_RADIUS,
+    }),
+  ];
+  setPieceData["upperHatch"] = [
+    setPiece(projection, variousTex, {
+      xPx: 2036,
+      yPx: 725,
+      widthPx: 345,
+      heightPx: 311,
+      offsetY: LADDER_Y,
+    }),
+  ];
+
+  const setPieces = new SpriteSet(variousTex, setPieceData);
+
+  return {
+    projection,
+    wallTex,
+    floorTex,
+    ceilTex,
+    sideTex,
+    ladderSprite,
+    setPieces,
+  };
 }
 
 /**
@@ -225,5 +269,130 @@ export function makeRoomSprites(
     "left": [sideLeftData],
   });
 
-  return { wallSpriteSet, floorSpriteSet, ceilSpriteSet, sideSpriteSet };
+  return {
+    wallSpriteSet,
+    floorSpriteSet,
+    ceilSpriteSet,
+    sideSpriteSet,
+  };
+}
+
+/**
+ * @param {ProjectionData} projection
+ * @param {Texture} tex
+ * @param {Object} data
+ * @param {number=} data.offsetX - The offset from the center
+ * @param {number=} data.offsetY - The offset from the center
+ * @param {number=} data.offsetZ - The offset from the center
+ * @param {number} data.xPx - The right of the image
+ * @param {number} data.yPx - The bottom of the image
+ * @param {number} data.widthPx - The width in the image
+ * @param {number} data.heightPx - The height in the image
+ * @param {number=} data.rescale - number
+ * @returns {Array<number>} the final coordinate data
+ */
+function setPiece(
+  projection,
+  tex,
+  {
+    offsetX = 0,
+    offsetY = 0,
+    offsetZ = 0,
+    xPx,
+    yPx,
+    widthPx,
+    heightPx,
+    rescale = 1,
+  }
+) {
+  const imgTop = (yPx - heightPx) / tex.h;
+  const imgBottom = yPx / tex.h;
+  const imgLeft = (xPx - widthPx) / tex.w;
+  const imgRight = xPx / tex.w;
+
+  const xCenterPx = (xPx + widthPx) / 2;
+  const yCenterPx = (yPx + heightPx) / 2;
+
+  const halfWidth = (rescale * widthPx) / TEX_PIXELS_PER_METER / 2;
+  const halfHeight = (rescale * heightPx) / TEX_PIXELS_PER_METER / 2;
+
+  const { scaleX, scaleY } = projection;
+
+  // in clip-space
+  const centerW = wAt(projection, offsetY);
+  const centerX = (offsetX * scaleX) / centerW;
+  const centerY = (offsetZ * scaleY) / centerW;
+  const Rx = widthPx / projection.widthPx / 2;
+  const Ry = heightPx / projection.heightPx / 2;
+  const left = centerX - Rx;
+  const right = centerX + Rx;
+  const top = centerY + Ry;
+  const bottom = centerY - Ry;
+
+  const x1 = (left * centerW) / scaleX;
+  const x2 = (right * centerW) / scaleX;
+  const z1 = (top * centerW) / scaleY;
+  const z2 = (bottom * centerW) / scaleY;
+
+  // prettier-ignore
+  return [
+    x1, offsetY, z1, imgLeft, imgTop,
+    x2, offsetY, z1, imgRight, imgTop,
+    x1, offsetY, z2, imgLeft, imgBottom,
+    x2, offsetY, z2, imgRight, imgBottom,
+  ];
+
+  // const origin = { x: offsetX, y: offsetY, z: offsetZ };
+
+  // if (offsetZ) {
+  //   throw new Error("not yet supported");
+  // } else {
+  //   const halfWidth =
+  //     (2 * wAtCenter * leftX * rightX) / projection.scaleX +
+  //     (leftX + rightX) * origin.x;
+  //   const Rw =
+  //     ((origin.x + halfWidth) * projection.scaleX) / rightX - wAtCenter;
+
+  //   const x1 = origin.x - halfWidth;
+  //   const x2 = origin.x + halfWidth;
+  //   const y1 = wToY(projection, wAtCenter - Rw);
+  //   const y2 = wToY(projection, wAtCenter + Rw);
+
+  //   // prettier-ignore
+  //   return [
+  //     x1, y1, 0, imgLeft, imgTop,
+  //     x2, y1, 1, imgRight, imgTop,
+  //     x1, y2, 0, imgLeft, imgBottom,
+  //     x2, y2, 1, imgRight, imgBottom,
+  //   ];
+}
+
+/**
+ *
+ * @param {ProjectionData} projection
+ * @param {number} y - The y-coordinate (in meters)
+ * @returns {number}
+ */
+function wAt(projection, y) {
+  const p = (y + ROOM_DEPTH_RADIUS) / (2 * ROOM_DEPTH_RADIUS);
+  return projection.wForeground * (1 - p) + projection.wBackground * p;
+}
+
+function wToY(projection, w) {
+  const p =
+    (w - projection.wForeground) /
+    (projection.wBackground - projection.wForeground);
+  return 2 * ROOM_DEPTH_RADIUS * p - ROOM_DEPTH_RADIUS;
+}
+
+/**
+ * Creates a normal vector (meaning scales so that magnitude is 1)
+ * @param {number} x
+ * @param {number} y
+ * @param {number} z
+ * @returns {{x: number, y: number, z: number}}
+ */
+function makeNorm(x, y, z) {
+  const mag = Math.sqrt(x * x + y * y + z * z);
+  return { x: x / mag, y: y / mag, z: z / mag };
 }

@@ -6,7 +6,7 @@ import {
   SpriteBuilder,
 } from "./sprites.js";
 import { Texture, Program } from "./swagl.js";
-import { HERO_HEIGHT, ROOM_DEPTH_RADIUS } from "./SpriteData.js";
+import { HERO_HEIGHT, ROOM_DEPTH_RADIUS, LADDER_Y } from "./SpriteData.js";
 import { arctan } from "./webgames/math.js";
 import { Room, Transition } from "./Scene.js";
 
@@ -251,7 +251,7 @@ function heroStateAttacking(hero, room) {
 function heroStateClimbing(hero, room) {
   hero.setSprite(room.resources.hero.makeClimbingSprite, room.roomTime, "up");
   hero.setSpeedX(0);
-  hero.heroY = ROOM_DEPTH_RADIUS;
+  hero.heroY = LADDER_Y;
 
   room.transition = {
     roomName: "r1",
