@@ -46,7 +46,7 @@ export class World {
  * @param {RoomKernel} kernel
  */
 export function initWorld(kernel) {
-  return new World(kernel, initRoom(kernel, "sixth"));
+  return new World(kernel, initRoom(kernel, "start"));
 }
 
 /**
@@ -145,11 +145,11 @@ function initRoom(kernel, name) {
       room.interactables.push(
         new LightSwitch(23),
         new Ladder(10, "fourth"),
-        new Hatch(25, "sixth")
+        new Hatch(25, "final")
       );
       return room;
     }
-    case "sixth": {
+    case "final": {
       const room = makeRoom({
         kernel,
         name,

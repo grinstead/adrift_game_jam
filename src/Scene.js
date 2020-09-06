@@ -51,6 +51,8 @@ export let Transition;
  * @property {number} locks - non-zero if the creatures are bypassed
  * @property {number} ambientLight - 0 to 1
  * @property {Array<Object>} interactables - Things the hero can interact with (eg. a light switch)
+ * @property {boolean} heroDead
+ * @property {number} suppression
  */
 export let Room;
 
@@ -105,6 +107,8 @@ export function makeRoom(options) {
     locks: 0,
     ambientLight: options.ambientLight,
     interactables: [],
+    heroDead: false,
+    suppression: 0,
   };
 }
 

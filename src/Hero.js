@@ -30,6 +30,7 @@ const charWInM = 1;
  * @property {Array<AudioBuffer>} grunts
  * @property {AudioBuffer} footSteps
  * @property {AudioBuffer} lightSwitchSound
+ * @property {Array<AudioBuffer>} heroDeadSounds
  */
 export let HeroResources;
 
@@ -214,7 +215,11 @@ export function heroStateNormal(hero, room) {
               return true;
             }
           } else if (interactable instanceof Ladder) {
-            if (upDown === 1 && Math.abs(hero.heroX - interactable.x) < 0.4) {
+            if (
+              room.name !== "final" &&
+              upDown === 1 &&
+              Math.abs(hero.heroX - interactable.x) < 0.4
+            ) {
               hero.changeState(room, heroStateClimbing, interactable);
               return true;
             }
@@ -477,6 +482,7 @@ export async function loadHeroResources(loadTexture, loadSound) {
     switchTex,
     grunts,
     lightSwitchSound,
+    heroDeadSounds,
   ] = await Promise.all([
     loadTexture("hero_idle", "assets/Hero Breathing with axe.png"),
     loadTexture("hero_walk", "assets/Hero Walking with axe.png"),
@@ -490,6 +496,11 @@ export async function loadHeroResources(loadTexture, loadSound) {
       loadSound("assets/Grunt3.mp3"),
     ]),
     loadSound("assets/light.mp3"),
+    Promise.all([
+      loadSound("assets/Hero Dying 1.mp3"),
+      loadSound("assets/Hero Dying 2.mp3"),
+      loadSound("assets/Hero Dying 3.mp3"),
+    ]),
   ]);
 
   const enterHatch = {
@@ -639,6 +650,7 @@ export async function loadHeroResources(loadTexture, loadSound) {
       flareData: null,
     }),
     lightSwitchSound,
+    heroDeadSounds,
   };
 
   // flare climbing up (reversed)

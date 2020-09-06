@@ -25,6 +25,8 @@ import { AudioManager } from "./webgames/Audio.js";
 import { processFlare, makeSparkSprite, renderSparks } from "./Flare.js";
 import { initWorld, cameraPositionForRoom, updateRoomTime } from "./World.js";
 
+let runGameLoop = () => {};
+
 function skipIntro() {
   const intro = document.getElementById("intro");
   intro.remove();
@@ -46,6 +48,8 @@ function skipIntro() {
   fullscreen.addEventListener("click", () => {
     canvas.requestFullscreen();
   });
+
+  requestAnimationFrame(runGameLoop);
 }
 
 function prepareSkipButton() {
@@ -426,17 +430,35 @@ void main() {
       window["lightsOn"] = debugShowLights;
     }
 
+    if (room.name === "fifth") {
+      room.ambientLight = Math.max(0, 0.2 * (1 - room.roomTime / 5));
+    }
+    if (room.name === "final") {
+      if (!room.heroDead && room.roomTime > 32) {
+        room.heroDead = true;
+        room.audio.playSound(room, room.resources.hero.heroDeadSounds[1]);
+      }
+
+      const p = Math.min(1, room.roomTime / 30);
+      if (p === 1 && room.suppression !== 1) {
+        room.audio.playSound(room, room.resources.creature.enemyNoticeSound);
+      }
+      room.suppression = p * p;
+    }
+
     rooms.forEach((room) => processRoom(room));
 
     // Todo: lighting
     lighting.renderLighting(renderInCamera, rooms);
     doAnimationFrame(program, (gl, program) => renderMain(gl, program, rooms));
 
-    // loop
-    requestAnimationFrame(gameLoop);
+    if (!room.heroDead) {
+      // loop
+      requestAnimationFrame(gameLoop);
+    }
   }
 
-  requestAnimationFrame(gameLoop);
+  runGameLoop = gameLoop;
 
   // function logicStep() {
   //   program.runInFrame(renderStep);

@@ -450,9 +450,9 @@ function creatureStateAttack(creature, room) {
         const heroDistance = distanceFromHero(creature, room);
 
         // TODO not sure how much space to give for the hero to avoid the attack
-        if (heroDistance < 1.5) {
-          console.warn("Kill / hurt the hero");
-        }
+        // if (heroDistance < 1) {
+        //   room.heroDead = true;
+        // }
       } else if (sprite.isFinished()) {
         // Back to hunting
         creature.changeState(room, creatureStateHunting);

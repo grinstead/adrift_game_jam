@@ -32,10 +32,12 @@ export let SparkParticle;
 export function processFlare(room) {
   const { roomTime, stepSize, hero, sparks, roomBottom } = room;
 
+  const spawnHertz = SPAWN_HERTZ * (1 - room.suppression);
+
   // spawn any missing particles
   const toSpawn =
-    Math.floor(SPAWN_HERTZ * roomTime) -
-    Math.floor(SPAWN_HERTZ * (roomTime - stepSize));
+    Math.floor(spawnHertz * roomTime) -
+    Math.floor(spawnHertz * (roomTime - stepSize));
   for (let i = 0; i < toSpawn; i++) {
     const speed = Math.random() * 2 + 1.4; // measured in meters per second
     let dy = 0.1 * Math.sin(2 * Math.PI * Math.random());
