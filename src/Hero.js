@@ -10,7 +10,7 @@ import { HERO_HEIGHT, ROOM_DEPTH_RADIUS, LADDER_Y } from "./SpriteData.js";
 import { arctan } from "./webgames/math.js";
 import { Room, Transition } from "./Scene.js";
 import { deathByAxe } from "./Creature.js";
-import { LightSwitch } from "./Interactables.js";
+import { LightSwitch, Hatch } from "./Interactables.js";
 
 // The hero's scaling is off, but it is self-consistent
 const HERO_PIXELS_PER_METER = 434 / HERO_HEIGHT;
@@ -190,14 +190,21 @@ export function heroStateNormal(hero, room) {
     processStep: (/** @type {Room} */ room) => {
       const { hero, roomTime, input } = room;
 
-      if (input.isPressed("up")) {
+      const upDown = input.getSignOfAction("down", "up");
+      if (upDown) {
         const didInteract = room.interactables.some((interactable) => {
           if (interactable instanceof LightSwitch) {
             if (
+              upDown === 1 &&
               !interactable.on &&
               Math.abs(hero.heroX - interactable.x) < 0.2
             ) {
               hero.changeState(room, heroStateFlipSwitch, interactable);
+              return true;
+            }
+          } else if (interactable instanceof Hatch) {
+            if (upDown === -1) {
+              hero.changeState(room, heroStateDescending, interactable);
               return true;
             }
           }
@@ -332,6 +339,27 @@ function heroStateClimbing(hero, room) {
     onExit: () => {
       hero.heroY = 0;
       hero.heroZ = room.roomBottom;
+    },
+  };
+}
+
+function heroStateDescending(hero, room, hatch) {
+  hero.setSpeedX(0);
+  hero.heroX = hatch.x;
+  hero.setSprite(
+    room.resources.hero.makeEnterHatchSprite,
+    room.roomTime,
+    "enter"
+  );
+
+  room.transition = hatch.getTransition();
+
+  return {
+    name: "descending",
+    processStep: (room) => {
+      if (hero.sprite.isFinished()) {
+        hero.changeState(room, heroStateNormal);
+      }
     },
   };
 }
