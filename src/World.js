@@ -5,6 +5,8 @@ import { LightSwitch, Hatch, Ladder } from "./Interactables.js";
 
 const CAMERA_X_OFFSET = 1;
 
+const TOP_ROOM_BASE = 80;
+
 export class World {
   constructor(kernel, startRoom) {
     /** @private {RoomKernel} */
@@ -44,7 +46,7 @@ export class World {
  * @param {RoomKernel} kernel
  */
 export function initWorld(kernel) {
-  return new World(kernel, initRoom(kernel, "start"));
+  return new World(kernel, initRoom(kernel, "sixth"));
 }
 
 /**
@@ -60,7 +62,7 @@ function initRoom(kernel, name) {
         name,
         roomRight: 5,
         roomLeft: -5,
-        roomBottom: 20,
+        roomBottom: TOP_ROOM_BASE,
         ambientLight: 0.4,
       });
       room.hero.heroX = -1;
@@ -74,17 +76,17 @@ function initRoom(kernel, name) {
         kernel,
         name,
         roomRight: 5,
-        roomLeft: -15,
-        roomBottom: 15,
+        roomLeft: -10,
+        roomBottom: TOP_ROOM_BASE - 5,
         ambientLight: 0.4,
       });
 
       room.interactables.push(
         new LightSwitch(1),
         new Ladder(3, "start"),
-        new Hatch(-10, "third")
+        new Hatch(-7, "third")
       );
-      spawnCreature(room, -8);
+      spawnCreature(room, -4);
 
       return room;
     }
@@ -92,48 +94,72 @@ function initRoom(kernel, name) {
       const room = makeRoom({
         kernel,
         name,
-        roomRight: 10,
-        roomLeft: -12,
-        roomBottom: 10,
+        roomRight: 5,
+        roomLeft: -10,
+        roomBottom: TOP_ROOM_BASE - 10,
         ambientLight: 0.4,
       });
 
       room.interactables.push(
-        new LightSwitch(6),
-        new Ladder(-10, "second"),
-        new Hatch(8, "r0")
+        new LightSwitch(2),
+        new Ladder(-7, "second"),
+        new Hatch(3, "fourth")
       );
       spawnCreature(room, 0);
 
       return room;
     }
-    case "r0": {
+    case "fourth": {
       const room = makeRoom({
         kernel,
         name,
-        roomLeft: 0,
         roomRight: 12,
-        roomBottom: 0,
-        ambientLight: 0.1,
+        roomLeft: 0,
+        roomBottom: TOP_ROOM_BASE - 15,
+        ambientLight: 0.2,
       });
 
-      const hero = room.hero;
-      hero.heroX = room.roomLeft + 4;
-      spawnCreature(room, hero.heroX + 2);
+      spawnCreature(room, 1.5);
+      spawnCreature(room, 9);
 
+      room.interactables.push(
+        new LightSwitch(6),
+        new Ladder(3, "third"),
+        new Hatch(10, "fifth")
+      );
       return room;
     }
-    case "r1": {
+    case "fifth": {
       const room = makeRoom({
         kernel,
         name,
-        roomLeft: -12,
-        roomRight: 10,
-        roomBottom: ROOM_HEIGHT + 3,
+        roomRight: 28,
+        roomLeft: 7,
+        roomBottom: TOP_ROOM_BASE - 20,
         ambientLight: 0,
       });
 
-      spawnCreature(room, 0);
+      spawnCreature(room, 20);
+      spawnCreature(room, 25);
+
+      room.interactables.push(
+        new LightSwitch(23),
+        new Ladder(10, "fourth"),
+        new Hatch(25, "sixth")
+      );
+      return room;
+    }
+    case "sixth": {
+      const room = makeRoom({
+        kernel,
+        name,
+        roomLeft: 10,
+        roomRight: 45,
+        roomBottom: TOP_ROOM_BASE - 25,
+        ambientLight: 0,
+      });
+
+      room.interactables.push(new Ladder(25, "fifth"));
 
       return room;
     }

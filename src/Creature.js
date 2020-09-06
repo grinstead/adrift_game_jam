@@ -336,10 +336,6 @@ function creatureStateNormal(creature, room) {
   return {
     name: "creature_normal",
     processStep: () => {
-      const roomTime = room.roomTime;
-      creature.x = creature.startX + Math.sin(roomTime);
-      creature.speed = 0.5 * Math.cos(roomTime);
-
       const heroDistance = distanceFromHero(creature, room);
       if (heroDistance < CREATURE_HUNTING_DISTANCE) {
         // Hero got too close, hunting time!
@@ -359,15 +355,10 @@ function creatureStateNormal(creature, room) {
       stack.pushTranslation(x, creature.y, z);
 
       let needsMirror = heroPoint.x < x;
-      let angle = arctan(heroPoint.z - z, heroPoint.x - x);
       if (needsMirror) {
         stack.push(mirrorX);
-        angle = Math.PI - angle;
       }
-
-      stack.pushYRotation(angle);
       creature.sprite.renderSprite(program);
-      stack.pop();
       if (needsMirror) stack.pop();
       stack.pop();
     },
@@ -532,7 +523,14 @@ function creatureStateDeathByAxe(creature, room) {
  */
 export function spawnCreature(room, x) {
   room.creatures.push(
-    new Creature(room, x, 0, room.roomBottom + 3 * CREATURE_RADIUS)
+    new Creature(
+      room,
+      x,
+      0,
+      room.roomBottom +
+        2 * CREATURE_RADIUS +
+        Math.random() * 2 * CREATURE_RADIUS
+    )
   );
 }
 /**

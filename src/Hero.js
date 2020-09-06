@@ -15,7 +15,7 @@ import { LightSwitch, Hatch, Ladder } from "./Interactables.js";
 // The hero's scaling is off, but it is self-consistent
 const HERO_PIXELS_PER_METER = 434 / HERO_HEIGHT;
 
-const charWInM = 405 / HERO_PIXELS_PER_METER;
+const charWInM = 1;
 
 /**
  * @typedef {Object} HeroResources
