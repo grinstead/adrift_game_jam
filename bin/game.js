@@ -1,57 +1,2872 @@
-'use strict';class aa{constructor(a,b,c){this.name=c;this.ca=`${b}${c}`;switch(a){case "uniform":this.type=1;if("u_"!==b)throw Error(`uniform field "${this.ca}" invalid, must start with u_`);break;case "in":this.type=2;if("a_"!==b)throw Error(`in field "${this.ca}" invalid, must start with a_`);break;default:throw Error("Impossible");}}}function ba(a){const b=[];a.split("\n").forEach(c=>{(c=/^\s*(in|uniform)\s(?:\w+\s)*([ua]_)(\w+);/.exec(c))&&b.push(new aa(c[1],c[2],c[3]))});return b}
-const ca=new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);function da(a,b){a.h.uniformMatrix4fv(a.m,!1,b);a.a.push(b)}function z(a,b,c,e=0){var d=a.a;d=d.length?d[d.length-1]:ca;da(a,new Float32Array([d[0],d[1],d[2],d[3],d[4],d[5],d[6],d[7],d[8],d[9],d[10],d[11],b*d[0]+c*d[4]+e*d[8]+d[12],b*d[1]+c*d[5]+e*d[9]+d[13],b*d[2]+c*d[6]+e*d[10]+d[14],b*d[3]+c*d[7]+e*d[11]+d[15]]))}function C(a,b){const c=Math.cos(b);b=Math.sin(b);a.push(new Float32Array([c,0,b,0,0,1,0,0,-b,0,c,0,0,0,0,1]))}
-class ea{constructor(a,b){this.h=a;this.m=b;this.a=[];a.uniformMatrix4fv(b,!1,ca)}depth(){return this.a.length}pop(){return this.a.pop()}push(a){var b=this.a;0===b.length?da(this,a):(b=b[b.length-1],da(this,new Float32Array([a[0]*b[0]+a[1]*b[4]+a[2]*b[8]+a[3]*b[12],a[0]*b[1]+a[1]*b[5]+a[2]*b[9]+a[3]*b[13],a[0]*b[2]+a[1]*b[6]+a[2]*b[10]+a[3]*b[14],a[0]*b[3]+a[1]*b[7]+a[2]*b[11]+a[3]*b[15],a[4]*b[0]+a[5]*b[4]+a[6]*b[8]+a[7]*b[12],a[4]*b[1]+a[5]*b[5]+a[6]*b[9]+a[7]*b[13],a[4]*b[2]+a[5]*b[6]+a[6]*b[10]+
-a[7]*b[14],a[4]*b[3]+a[5]*b[7]+a[6]*b[11]+a[7]*b[15],a[8]*b[0]+a[9]*b[4]+a[10]*b[8]+a[11]*b[12],a[8]*b[1]+a[9]*b[5]+a[10]*b[9]+a[11]*b[13],a[8]*b[2]+a[9]*b[6]+a[10]*b[10]+a[11]*b[14],a[8]*b[3]+a[9]*b[7]+a[10]*b[11]+a[11]*b[15],a[12]*b[0]+a[13]*b[4]+a[14]*b[8]+a[15]*b[12],a[12]*b[1]+a[13]*b[5]+a[14]*b[9]+a[15]*b[13],a[12]*b[2]+a[13]*b[6]+a[14]*b[10]+a[15]*b[14],a[12]*b[3]+a[13]*b[7]+a[14]*b[11]+a[15]*b[15]])))}}
-class D{constructor(a,b){this.name=a.name;var c=this.h=a.h;a=this.type=a.type;switch(a){case "vertex":var e=this.h.VERTEX_SHADER;break;case "fragment":e=this.h.FRAGMENT_SHADER;break;default:throw Error(`Unrecognized shader type "${a}"`);}e=this.a=c.createShader(e);c.shaderSource(e,b);c.compileShader(e);if(!c.getShaderParameter(e,c.COMPILE_STATUS))throw b=`Failed to compile ${this.name} ${a}-shader: ${c.getShaderInfoLog(e)}`,c.deleteShader(e),Error(b);this.ab=ba(b)}}
-function fa(a,...b){const c=a.h,e=a.Ca;b.forEach(d=>{a.Pa.push(d);c.attachShader(e,d.a)});return a}class ha{constructor(a){this.name=a.name;this.Y=a.Y;a=this.h=a.h;this.a=!1;this.Ca=a.createProgram();this.Pa=[];this.U={};this.$={};this.stack=null}link(){if(this.a)return this;var a=this.h,b=this.Ca;a.linkProgram(b);if(!a.getProgramParameter(b,a.LINK_STATUS)){var c=`Failed to link ${this.name} program: ${a.getProgramInfoLog(b)}`;a.deleteProgram(b);throw Error(c);}this.a=!0;return this}}
-function ia(a,b){var c=a.h,e=a.Ca;c.useProgram(e);for(var d={},h={},g=a.Pa,f=0;f<g.length;f++)for(var k=g[f].ab,l=0;l<k.length;l++){var n=k[l];1===n.type?n.ca in d||(d[n.name]=c.getUniformLocation(e,n.ca)):n.ca in h||(h[n.name]=c.getAttribLocation(e,n.ca))}a.U=d;a.$=h;if(e=a.Y)if(e in a.U)a.stack=new ea(c,a.U[e]);else throw Error(`No anchor point "${e}" in program`);try{b(c,a)}finally{a.U={},a.$={},a.stack=null}}
-class ja{constructor(a,b,c,e,d){this.h=a;this.name=b;this.w=c;this.i=e;this.a=d(a)}bindTexture(){this.h.bindTexture(this.h.TEXTURE_2D,this.a)}}function la(a){return(new Promise((b,c)=>{const e=new Image;e.onload=()=>void b(e);e.onerror=()=>{c(Error(`failed to load ${a.src}`))};e.mode="no-cors";e.src=a.src})).then(b=>{const c=b.naturalWidth,e=b.naturalHeight;return new ja(a.h,a.name,c,e,ma(d=>{d.texImage2D(d.TEXTURE_2D,0,d.RGBA,c,e,0,d.RGBA,d.UNSIGNED_BYTE,b)}))})}
-function na(a){const b=a.width,c=a.height;return new ja(a.h,a.name,b,c,ma(e=>{e.texImage2D(e.TEXTURE_2D,0,e.RGBA,b,c,0,e.RGBA,e.UNSIGNED_BYTE,a.Fa,0)}))}function oa(a){return new ja(a.h,a.name,a.width,a.height,()=>a.T)}
-function ma(a){return b=>{const c=b.createTexture();b.bindTexture(b.TEXTURE_2D,c);a(b);b.texParameteri(b.TEXTURE_2D,b.TEXTURE_MAG_FILTER,b.NEAREST);b.texParameteri(b.TEXTURE_2D,b.TEXTURE_MIN_FILTER,b.NEAREST);b.texParameteri(b.TEXTURE_2D,b.TEXTURE_WRAP_S,b.REPEAT);b.texParameteri(b.TEXTURE_2D,b.TEXTURE_WRAP_T,b.REPEAT);b.bindTexture(b.TEXTURE_2D,null);return c}};function E(a,b,c){a=a.m;null!=c?a.set(b,c):a.delete(b)}function G(a,b){b=a.m.get(b);const c=a.a;return!!b&&!!b.some(e=>(e=c.get(e))?(e.ra=0,null!=e.va):!1)}function pa(a){const b=a.m.get("showLights");if(b){const c=a.a;return b.reduce((e,d)=>(d=c.get(d))?(e+=d.ra,d.ra=0,e):e,0)}return 0}function qa(a){const b=G(a,"left")?1:0;return(G(a,"right")?1:0)-b}
-class ra{constructor(a){this.a=new Map;this.m=new Map;a.addEventListener("keydown",b=>{sa(this,b,!0)});a.addEventListener("keyup",b=>{sa(this,b,!1)});a.onblur=()=>{this.a.clear()};a.onfocus=()=>{this.a.clear()}}}function sa(a,b,c){b=b.key;a=a.a;const e=a.get(b);c?null==e?a.set(b,{va:Date.now(),ra:1}):(null==e.va&&(e.va=Date.now()),e.ra++):null!=e&&(e.va=null)};function I(a,b){const c=a.a.h;let e=a.m;null!=e?c.bindBuffer(c.ARRAY_BUFFER,e):(a.m=e=c.createBuffer(),c.bindBuffer(c.ARRAY_BUFFER,e),c.bufferData(c.ARRAY_BUFFER,a.P,c.STATIC_DRAW));c.activeTexture(c.TEXTURE0);a.a.bindTexture();c.uniform1i(b.U.texture,0);c.enableVertexAttribArray(b.$.texturePosition);c.vertexAttribPointer(b.$.texturePosition,2,c.FLOAT,!1,20,12);c.enableVertexAttribArray(b.$.position);c.vertexAttribPointer(b.$.position,3,c.FLOAT,!1,20,0)}
-function K(a,b,c){if(!a.data.hasOwnProperty(b))throw Error(`Can not render unknown "${b}"`);b=a.data[b];a=a.a.h;const e=b.Da;a.drawArrays(a.TRIANGLE_STRIP,e[c%e.length],b.Ab)}
-class L{constructor(a,b){this.a=a;this.m=null;a=this.data={};const c=[];let e=0;for(const d in b){const h=b[d],g=[],f=h.length;if(0===f)throw Error("Sprite declared with 0 points");const k=h[0].length;if(0==k)throw Error("Sprite declared with list of length 5 (must be non-zero multiple of 5)");const l=k/5;for(let n=0;n<f;n++){const q=h[n];if(q.length!==k)throw Error("Sprite declared with inconsistent lengths of elements");g.push(e);c.push.apply(c,q);e+=l}a[d]={Sb:this,name:d,Da:g,Ab:l}}this.P=new Float32Array(c)}}
-function ta(a,b){for(var c=a.K;-1!==c&&c<=b;){c=a.P;const e=a.J+1;e===c.length?a.m===a.rb?a.K=c=-1:(a.m++,a.J=0,a.K=c=b+c[0]):(a.J=e,a.K=c=b+c[e])}}function ua(a,b){if(b!==a.a){if(!a.ua.includes(b))throw Error(`${a} does not have mode ${b}`);a.a=b}}
-class va{constructor(a,b,c,e){const d=a.H;this.xa=a.name;this.ua=a.ma;this.a=c;this.rb="number"===typeof d?d:d?-1:0;this.Sa=a.set;this.P=b;this.J=this.m=0;this.K=e+b[0];this.ob=a.Bb}ta(){const a=this.ob;return null!=a?a[this.J]:void 0}fa(a){I(this.Sa,a);K(this.Sa,this.a,this.J)}name(){return this.xa}toString(){return`Sprite/${this.xa}`}}
-function M(a){const b=a.name,c=a.G,e=a.set.data;let d=-1;a.ma.forEach(g=>{const f=e[g];if(!f)throw Error(`Sprite/${b} has non-existent mode ${g}`);if(-1===d)d=f.Da.length;else if(d!==f.Da.length)throw Error(`Sprite/${b} has inconsistent frame counts`);});if(-1===d)throw Error(`Sprite/${b} given 0 modes`);if("number"!==typeof c&&c.length!==d)throw Error(`Sprite/${b} given ${c.length} frame times for ${d} frames`);if(a.ta&&a.ta.length!==d)throw Error(`Sprite/${b} given ${a.ta.length} frame data points for ${d} frames`);
-const h="number"===typeof c?Array(d).fill(c):c;return(g,f)=>new va(a,h,g,f)}function N({x:a=0,y:b=0,z:c=0,width:e,height:d,ja:h,ia:g,ea:f,count:k,Zb:l=0,$b:n=0,ac:q=h,Yb:m=g,ga:u=!1}){const r=[];for(let v=0;v<k;v++){const A=l+v%f*q,H=n+Math.floor(v/f)*m;r.push(Aa({x:a,y:b,z:c,width:e,height:d,Mb:A,Kb:A+h,Nb:H,Lb:H+g,ga:u}))}return r}
-function Aa({x:a=0,y:b=0,z:c=0,width:e,height:d,depth:h=0,Mb:g,Nb:f,Kb:k,Lb:l,ga:n=!1}){n?(n=k,k=a-e):(n=g,g=k,k=-a,a=e-a);return[a,-b,-c,g,l,k,-b,-c,n,l,a,h-b,d-c,g,f,k,h-b,d-c,n,f]};function Ba(a,b){return 0<b?Math.atan(a/b):0===b?0<a?Math.PI/2:0===a?0:-Math.PI/2:Math.atan(a/b)+Math.PI};const Ca=new Float32Array([-1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
-async function Da(a,b){const [c,e,d,h,g]=await Promise.all([a("creature","assets/Enemy.png"),a("tentacle","assets/Tentacle.png"),a("creature_attack","assets/enemy_bite.png"),b("assets/Enemy Dying.mp3"),a("creature_death","assets/Enemy Dying.png")]);var f=new L(c,{blink:N({x:.25,z:.25,width:.5,height:.5,ja:108/c.w,ia:108/c.i,ea:2,count:6,ga:!0})});a=M({name:"creature_attack",set:new L(d,{bite:N({x:.5,z:.75,width:1,height:2,ia:530/d.i,ja:278/d.w,ea:7,count:42,ga:!0})}),ma:["bite"],H:!0,G:1/12});b=M({name:"creature_death",
-set:new L(g,{left:N({x:330/(460/1.8),y:.375,z:0,width:660/(460/1.8),height:1.8,ja:660/g.w,ia:460/g.i,ea:3,count:12}),right:N({x:1.32,y:.375,z:0,width:2.64,height:1.8,ja:660/g.w,ia:450/g.i,ea:3,count:12,ga:!0})}),ma:["left","right"],H:!1,G:.125});var k=Array(6).fill(.125);k[0]=4;f=M({name:"creature_normal",set:f,ma:["blink"],H:!0,G:k});k=[];var l=92,n=-22;const q=Math.sqrt(l*l+n*n);l/=q;n/=q;for(let m=0;29>m;m++){const u=m%5,r=Math.floor(m/5),v=[],A=(H,T)=>{const U=100*H,V=77*T-48;v.push((U*l+V*n)/
-q,H,(U*-n+V*l)/360,100*(u+H)/e.w,77*(r+T)/e.i)};A(1,1);A(0,1);A(1,0);A(0,0);k.push(v)}k=new L(e,{wiggle:k});return{vb:f,Vb:a,ub:b,Jb:k,gb:h}}class Ea{constructor(a,b,c,e){const d=a.o.qa.vb("blink",a.l),h=a.u;this.x=this.P=b;this.y=c;this.z=e;this.a=this.m=0;this.oa=[O(0,b,c,-1,1,h),O(1,b,c,-1,-1,h),O(2,b,c,1,1,h),O(3,b,c,1,-1,h)];this.v=d;this.state=Fa(this,a)}F(a,b){const c=this.state.Ka;c&&c();this.state=b=b(this,a);b.I(a)}S(a,b,c){this.v=a(c,b)}}
-function Fa(a,b){return{name:"creature_normal",I:()=>{var c=b.l;a.x=a.P+Math.sin(c);var e=.5*Math.cos(c);c=b.l;if(c>a.m){var d=a.a;a.a=(d+1)%a.oa.length;d=a.oa[d];e=a.x+.225*e+d.mb;.05<Math.abs(e-d.Aa)&&(a.m=c+.125,d.Wa=c+.125,d.Ta=d.Aa,d.Ua=d.La,d.Va=d.Ma,d.Aa=e,d.La=a.y+d.nb,d.Ma=b.u)}},Z:(c,e,d)=>{c=e.stack;const h=a.x,g=a.z;z(c,h,a.y,g);let f=d.x<h;d=Ba(d.z-g,d.x-h);f&&(c.push(Ca),d=Math.PI-d);C(c,d);a.v.fa(e);c.pop();f&&c.pop();c.pop()}}}
-function Ga(a,b){Ha(b.audio,a,b.o.qa.gb);const c=b.o.qa.ub(b.j.s<a.x?"left":"right",b.l);a.v=c;return{name:"creature_death",I:()=>{1<c.J&&a.oa.length&&(a.oa=[]);-1===c.K&&b.N.splice(b.N.indexOf(a),1)},Z:(e,d)=>{console.log("DEATH");e=d.stack;z(e,a.x,a.y,b.u);c.fa(d);e.pop()}}}function Ia(a){const b=a.l;a.N.forEach(c=>{ta(c.v,b);c.state.I(a)})}
-function Ja(a,b,c){const e=b.stack,d=c.o.qa.Jb,h=c.l,g=Ka(c.j);c.N.forEach(f=>{f.state.Z(a,b,g)});I(d,b);c.N.forEach(f=>{const k=f.z-.1875;f.oa.forEach(l=>{var n=f.x+l.bb,q=f.y+l.cb;let m=l.Aa,u=l.La,r=l.Ma;var v=l.Wa;h<v&&(v=1-(v-h)/.125,m=La(v,l.Ta,n,m),u=La(v,l.Ua,q,u),r=La(v,l.Va,k,r));n-=m;q-=u;v=k-r;const A=Math.sqrt(n*n+q*q+v*v);z(e,m,u,r);C(e,Ba(v,n));e.push(new Float32Array([A,0,0,0,0,q,0,0,0,0,1,0,0,0,0,1]));K(d,"wiggle",Math.abs((Math.floor(24*Date.now()/1E3)+l.kb)%57+1-29));e.pop();e.pop();
-e.pop()})})}function O(a,b,c,e,d,h){const g=.4*e;d=.1*d;b+=g;c+=d;return{index:a,bb:.05*e,cb:0,mb:g,nb:d,Wa:0,Ta:b,Ua:c,Va:h,Aa:b,La:c,Ma:h,kb:0}}function La(a,b,c,e){return a*(a*e+(1-a)*c)+(1-a)*(a*c+(1-a)*b)};class Ma{constructor(a){this.a=!1;this.x=a}Z(a,b,c){a=b.stack;const e=c.o.Ga.qb;z(a,this.x,0,c.u);I(e,b);K(e,this.a?"on":"off",0);a.pop()}};const Na=434/1.8,Q=405/Na;function Ka(a){return{x:a.s,z:a.X+1.8-.1}}function Oa(a){return(a=a.v.ta())?a.Ra:null}function R(a,b){a.$a=b;0!==b&&(a.na=Math.sign(b))}
-class Pa{constructor(a,b,c){this.s=b;this.wa=0;this.X=c;this.na=1;this.$a=0;this.v=a.Ja("right",0);this.state={name:"unstarted",I:e=>this.F(e,S),Z:()=>{throw Error("Hero did not get processed before rendering!");}}}S(a,b,c=-1===this.na?"left":"right"){this.v=a(c,b)}fa(a,b){a=b.stack;z(a,this.s,this.wa,this.X);this.v.fa(b);a.pop()}F(a,b,c){const e=this.state.Ka;e&&e();this.state=b=b(this,a,c);b.I(a)}}function Qa(a,b,c){const e=c.j.state.Z;e?e(a,b):c.j.fa(a,b)}
-function S(a,b){let c=!0;a.S(b.o.j.Ja,b.l);return{name:"normal",I:e=>{const d=e.j,h=e.l;var g=e.input;if(!G(g,"up")||!e.Ha.some(k=>{if(k instanceof Ma&&!k.a&&.2>Math.abs(d.s-k.x))return d.F(e,Ra,k),!0}))if("r0"===e.name&&G(g,"up"))d.F(e,Sa);else if(G(g,"attack"))d.F(e,Ta);else{g=1.2*e.Ba*qa(g);var f=d.s+g;f<e.L+Q?g=e.L+Q-d.s:f>e.M-Q&&(g=e.M-Q-d.s);R(d,g/e.Ba);f=-1===d.na?"left":"right";g?(d.s+=g,c&&(c=!1,d.S(e.o.j.yb,h))):c||(c=!0,d.S(e.o.j.Ja,h));ua(d.v,f)}}}}
-function Ta(a,b){const c=a.s+300/Na*a.na;var e=b.N.find(d=>.4>Math.abs(c-d.x));e&&"creature_death"!==e.state.name&&e.F(b,Ga);a.S(b.o.j.sb,b.l);R(a,0);e=b.o.j.lb;Ha(b.audio,a,e[Math.floor(Math.random()*e.length)]);return{name:"attacking",I:d=>{-1===a.v.K&&a.F(d,S)}}}function Ra(a,b,c){a.S(b.o.j.xb,b.l,"main");R(a,0);a.s=c.x;return{name:"switch_on",I:()=>{!c.a&&6<=a.v.J&&(Ha(b.audio,c,b.o.j.pb),b.ya=!0,c.a=!0);-1===a.v.K&&a.F(b,S)}}}
-function Sa(a,b){a.S(b.o.j.tb,b.l,"up");R(a,0);a.wa=.55;b.transition={Na:"r1",bc:"up",Ya:Date.now()/1E3,Za:1};return{name:"climbing",I:c=>{-1===a.v.K?a.F(c,S):a.X=c.u+.3*Math.min(5,a.v.J)},Ka:()=>{a.wa=0;a.X=b.u}}}
-function Ua(a,b){const c=b.l;a.S(b.o.j.wb,b.l,"exit");R(a,0);b.Ia++;return{name:"entering_hatch",I:()=>{const e=a.v;if(b.l<c+1){var d=b.l;if(!e.ua.includes("exit"))throw Error(`${e} does not have mode ${"exit"}`);e.m=0;e.a="exit";e.J=0;e.K=d+e.P[0]}else-1===e.K?a.F(b,S):a.X=b.u+([-.5,-.5,-.3,-.3][a.v.J]||0)},Z:(e,d)=>{b.l<c+1||a.fa(e,d)},Ka:()=>{b.Ia--;a.X=b.u}}}
-async function Va(a,b){const [c,e,d,h,g,f,k,l]=await Promise.all([a("hero_idle","assets/Hero Breathing with axe.png"),a("hero_walk","assets/Hero Walking with axe.png"),a("hero_attack","assets/Axe Chop.png"),a("hero_climbing","assets/Climbing Up.png"),a("hero_hatch","assets/climbing_in.png"),a("hero_light","assets/Hero flipping Switch.png"),Promise.all([b("assets/Grunt1.mp3"),b("assets/Grunt2.mp3"),b("assets/Grunt3.mp3")]),b("assets/light.mp3")]);a={name:"hero_hatch_enter",T:g,B:350,A:406,C:161,D:479,
-ba:6,H:!1,G:.125,W:[{f:201,g:137,b:172,c:175},{f:422,g:246,b:461,c:259},{f:67,g:659,b:113,c:651},{f:419,g:658,b:462,c:648},{f:80,g:1041,b:106,c:1067},null],ha:"enter"};return{lb:k,Ja:W({name:"hero_idle",T:c,B:405,A:434,C:220,D:434,ba:16,H:!0,G:1/12,W:[{f:388,g:104,b:385,c:170},{f:792,g:105,b:790,c:170},{f:1198,g:105,b:1195,c:169},{f:1602,g:106,b:1600,c:170},{f:2008,g:106,b:2005,c:172},{f:388,g:539,b:385,c:604},{f:794,g:540,b:790,c:605},{f:1196,g:539,b:1196,c:604},{f:1602,g:539,b:1602,c:604},{f:2009,
-g:541,b:2007,c:604},{f:386,g:974,b:385,c:1036},{f:792,g:972,b:790,c:1033},{f:1198,g:974,b:1196,c:1038},{f:1602,g:972,b:1601,c:1036},{f:2010,g:974,b:2005,c:1044},{f:386,g:1406,b:385,c:1477}]}),yb:W({name:"hero_walk",T:e,B:424,A:444,C:258,D:444,ba:8,H:!0,G:.125,W:[{f:408,g:110,b:404,c:166},{f:830,g:110,b:829,c:166},{f:408,g:554,b:404,c:614},{f:830,g:554,b:829,c:614},{f:408,g:998,b:404,c:1055},{f:830,g:998,b:829,c:1055},{f:408,g:1444,b:404,c:1500},{f:830,g:1444,b:829,c:1500}]}),sb:W({name:"hero_attack",
-T:d,B:644,A:565,C:284,D:565,ba:5,H:!1,G:1/12,W:[{f:422,g:285,b:415,c:353},{f:936,g:367,b:868,c:380},{f:1507,g:311,b:1469,c:318},{f:162,g:948,b:206,c:943},{f:1025,g:934,b:976,c:962}]}),tb:W({name:"hero_climbing_up",T:h,B:222,A:412,C:110,D:412,ba:8,H:!1,G:.125,W:[{f:128,g:60,b:65,c:54},{f:329,g:155,b:277,c:148},{f:579,g:58,b:518,c:56},{f:772,g:157,b:721,c:156},{f:95,g:575,b:65,c:567},{f:337,g:472,b:286,c:465},null,null],ha:"up",scale:1.4}),Wb:W(a),wb:W({...a,name:"hero_hatch_exit",ha:"exit",Cb:!0}),
-xb:W({name:"hero_switch",T:f,B:274,A:444,C:104,D:442,ba:9,H:!1,G:1/12,ha:"main",W:null}),pb:l}}
-function W(a){var b=a.T;const c=a.B,e=a.A,d=a.C,h=a.D,g=a.Cb?m=>[...m].reverse():m=>m,f=Na/(a.scale||1),k=Math.floor(b.w/c),l={x:d/f,z:(e-h)/f,width:c/f,height:e/f,ja:c/b.w,ia:e/b.i,ea:k,count:a.ba},n=a.W&&a.W.map((m,u)=>{if(!m)return{Ra:null};const r=m.f,v=m.g;return{Ra:{x:(r-(u%k*c+d))/f,z:(Math.floor(u/k)*e+h-v)/f,angle:Ba(-(v-m.c),r-m.b)}}});let q;a.ha?(q=[a.ha],b=new L(b,{[a.ha]:g(N(l))})):(q=["left","right"],b=new L(b,{right:g(N(l)),left:g(N({...l,ga:!0}))}));return M({name:a.name,set:b,ma:q,
-H:a.H,G:a.G,Bb:n&&g(n)})};function Wa(a,b){var c=376/b;const e=c/(484/b),d=c/(268/b);c/=1.25;const h=b/a*c;return{zb:new Float32Array([h,0,0,0,0,0,1/1.5,(d-e)/1.5,0,c,0,0,0,0,0,(e+d)/2]),Pb:e,Ob:d,Eb:h,Fb:c,B:a,A:b,da:554/b*e/c-1.25,R:.3}}
-async function Xa(a,b){const [c,e,d,h,g,f,k]=await Promise.all([b("ladder","assets/ladder.png"),b("wall","assets/Back Wall.png"),b("floor","assets/floor.png"),b("ceiling","assets/ceiling.png"),b("wall","assets/side_wall.png"),b("set_pieces","assets/set_pieces.png"),b("lights","assets/Light Switch Flip.png")]);b=new L(c,{main:[X(a,c,{C:c.w,D:c.i,B:c.w,A:c.i,offsetY:.55,za:1.25})]});var l={};l.barrel1=[X(a,f,{C:370,D:270,B:338,A:222,offsetY:.55})];l.upperHatch=[X(a,f,{C:2036,D:725,B:345,A:311,offsetY:.55})];
-l.lowerHatch=[X(a,f,{C:2036,D:725,B:345,A:311,offsetY:.1,hb:!0,za:.5})];l=new L(f,l);const n=new L(k,{on:[X(a,k,{C:316,D:1110,B:118,A:152,offsetY:.75,za:1.4})],off:[X(a,k,{C:316,D:298,B:118,A:152,offsetY:.75,za:1.4})]});return{Y:a,Rb:e,jb:d,fb:h,Hb:g,Ub:b,Xb:l,qb:n}}
-function Ya({Rb:a,jb:b,fb:c,Hb:e,Y:d},h,g){const f=g-d.R;g=g+h+d.R;var k=494/a.i,l=1016/a.i,n=(l-k)*a.i/2.5*h/a.w;a=new L(a,{main:[[g,.75,2.5,n,k,g,.75,0,n,l,f,.75,2.5,0,k,f,.75,0,0,l]]});k=110/b.i;l=220/b.i;n=(l-k)*b.i/1.5*h/b.w;b=new L(b,{main:[[g,-.75,-d.da,n,1,f,-.75,-d.da,0,1,g,-.75,0,n,l,f,-.75,0,0,l,g,.75,0,n,k,f,.75,0,0,k]]});k=144/c.i;l=32/c.i;h=(l-k)*c.i/1.5*h/c.w;c=new L(c,{main:[[g,-.75,2.5+d.da,h,0,f,-.75,2.5+d.da,0,0,g,-.75,2.5,h,l,f,-.75,2.5,0,l,g,.75,2.5,h,k,f,.75,2.5,0,k]]});h=438/
-e.w;k=318/e.w;l=194/e.i;n=1164/e.i;const q=84/e.w;d=[f,-.75,2.5,h,l,f,-.75,0,h,n,f+d.R,-.75,2.5,k,l,f+d.R,-.75,0,k,n,f+d.R,.75,2.5,q,414/e.i,f+d.R,.75,0,q,964/e.i];h=[];for(k=0;k<d.length;k+=5)h.push(g+(f-d[k]),d[k+1],d[k+2],d[k+3],d[k+4]);e=new L(e,{right:[h],left:[d]});return{Qb:a,ib:b,eb:c,Gb:e}}
-function X(a,b,{offsetX:c=0,offsetY:e=0,za:d=0,C:h,D:g,B:f,A:k,hb:l=!1,Tb:n=!1}){let q=(g-k)/b.i;g/=b.i;l&&(l=q,q=g,g=l);l=(h-f)/b.w;b=h/b.w;n&&(n=l,l=b,b=n);const m=a.Eb;n=a.Fb;h=(e+.75)/1.5;h=a.Pb*(1-h)+a.Ob*h;c=c*m/h;d=d*n/h;f=f/a.B/2;k=k/a.A/2;a=(c-f)*h/m;f=(c+f)*h/m;c=(d+k)*h/n;k=(d-k)*h/n;return[a,e,c,l,q,f,e,c,b,q,a,e,k,l,g,f,e,k,b,g]};function Ha(a,b,c){const e=a.m;var d=e.get(b);d&&d.stop();a=a.a;d=a.createBufferSource();d.buffer=c;d.connect(a.destination);d.start();e.set(b,d)}function Za(a,b){return fetch(b).then(c=>{if(!c.ok)throw Error(`failed to load ${b}`);return c.arrayBuffer()}).then(c=>a.a.decodeAudioData(c))}class $a{constructor(){this.a=new AudioContext;this.m=new WeakMap}};function ab(a){const b=a.l,c=a.Ba,e=a.j,d=a.Oa,h=Math.floor(48*b)-Math.floor(48*(b-c));for(let m=0;m<h;m++){var g=2*Math.random()+1.4;let u=.1*Math.sin(2*Math.PI*Math.random());var f=Oa(e);if(!f)break;const r=e.s+f.x*e.na,v=f.z+e.X,A=Math.PI/4*(Math.random()-.5)+f.angle;f=g*Math.sin(A);g=g*Math.cos(A)+e.$a;100<d.length&&d.pop();d.push({O:!1,x:r,y:e.wa+.01,z:v,V:g,ka:u,aa:f,startTime:b,Qa:b+1.5,Xa:!1})}const k=a.u,l=9.8*c,n=0*c,q=1-.8*c;d.forEach(m=>{var u=m.O;if(!u&&b<m.Qa){m.x+=m.V*c;m.y+=m.ka*c;
-m.z+=m.aa*c;u=m.aa;m.Xa?(m.V*=q,m.ka*=q):(u-=l,m.V-=n,m.aa=u);if(m.x<a.L||m.x>a.M)m.O=!0;const r=m.y;if(-.75>r||.75<r){const v=0<r?.75:-.75;m.y=v+(v-r);m.ka=-m.ka}m.z<k&&(-.01<u?(m.z=k,m.aa=0,m.Xa=!0):(m.z=k+k-m.z,m.aa=-.25*u))}else u||(m.O=!0)});d.sort(bb)}
-function cb(a){const b=1/18/18,c=h=>Math.max(0,Math.min(255,Math.round(256*(1-b*h*h)))),e=[];for(let h=0;2>h;h++)for(let g=0;18>g;g++)for(let f=0;2>f;f++){let k;var d=void 0;let l;d=g+6*f;18>d?(k=255,d=c(d),l=255):l=d=k=0;c(g+6*f);c(g+6*f+1);for(let n=0;2>n;n++)e.push(k,d,d,l)}a=na({name:"spark",width:72,height:2,h:a,Fa:new Uint8Array(e)});return new L(a,{fading:N({x:1/180,width:.04,height:2/180,ja:1/18,ia:1,ea:18,count:18})})}function bb(a,b){return a.O?b.O?0:1:b.O?-1:a.y-b.y}
-function db(a,b){const c=b.o.Ib,e=a.stack;I(c,a);b.Oa.forEach(d=>{d.O||(z(e,d.x,d.y,d.z),C(e,(0<=d.V?Math.PI:0)+Math.atan(d.aa/d.V)),K(c,"fading",Math.floor(12*(b.l-d.startTime))),e.pop(),e.pop())})};function eb(a){const b=a.L,c=a.M,e=a.u,d=a.la;return{name:a.name,o:d.o,input:d.input,audio:d.audio,N:[],l:0,Db:Date.now()/1E3-1/60,Ba:0,L:b,M:c,u:e,sa:Ya(d.o.Ga,c-b,b),Oa:[],ya:!1,j:new Pa(d.o.j,(c+b)/2,e),transition:null,Ia:0,Ea:0,Ha:[]}};function fb(a,b,c){const e=a.a.h,d=a.m;e.bindFramebuffer(e.FRAMEBUFFER,a.ua);e.viewport(0,0,d.w,d.i);ia(a.a,(h,g)=>{gb(h,g,b,a,c)})}
-class hb{constructor(a,b,c,e){b/=4;c/=4;var d=new D({h:a,type:"vertex"},"#version 300 es\nin vec3 a_position;\nin vec2 a_texturePosition;\n\nuniform mat4 u_projection;\n\nout vec2 v_texturePosition;\n\nvoid main() {\n  gl_Position = u_projection * vec4(a_position, 1);\n  v_texturePosition = a_texturePosition;\n}"),h=new D({h:a,type:"fragment"},"#version 300 es\nprecision mediump float;\n\nuniform sampler2D u_texture;\nuniform float u_threshold;\nuniform vec4 u_color;\n\nin vec2 v_texturePosition;\nout vec4 output_color;\n\nvoid main() {\n    vec4 color = texture(u_texture, v_texturePosition.st);\n    \n    if (u_threshold != -1.f) {\n      color.a -= u_threshold;\n      if (color.a <= u_threshold) {\n          discard;\n      }\n      output_color = color;\n    } else {\n      if (color.a == 0.f) {\n        discard;\n      }\n      output_color = u_color;\n    }\n}");const g=
-new ha({h:a,Y:"projection"});fa(g,d,h).link();d=a.createTexture();a.bindTexture(a.TEXTURE_2D,d);a.texImage2D(a.TEXTURE_2D,0,a.RGBA,b,c,0,a.RGBA,a.UNSIGNED_BYTE,null);a.texParameteri(a.TEXTURE_2D,a.TEXTURE_MIN_FILTER,a.LINEAR);a.texParameteri(a.TEXTURE_2D,a.TEXTURE_WRAP_S,a.CLAMP_TO_EDGE);a.texParameteri(a.TEXTURE_2D,a.TEXTURE_WRAP_T,a.CLAMP_TO_EDGE);h=a.createFramebuffer();a.bindFramebuffer(a.FRAMEBUFFER,h);a.framebufferTexture2D(a.FRAMEBUFFER,a.COLOR_ATTACHMENT0,a.TEXTURE_2D,d,0);a.bindFramebuffer(a.FRAMEBUFFER,
-null);const f=128/e;e=na({name:"fade",width:64,height:64,h:a,Fa:ib(e)});this.a=g;this.m=oa({T:d,name:"lighting",width:b,height:c,h:a});this.ua=h;this.P=new L(e,{main:[[f,0,-f,1,0,f,0,f,1,1,-f,0,-f,0,0,-f,0,f,0,1]]});a=na({name:"solid",width:1,height:1,h:a,Fa:new Uint8Array([255,255,255,255])});this.xa=new L(a,{main:[[0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,1,0,1,0,0]]})}}
-function gb(a,b,c,e,d){a.blendFunc(a.ONE,a.ONE);a.clearColor(0,0,0,0);a.clear(a.COLOR_BUFFER_BIT|a.DEPTH_BUFFER_BIT);const h=b.U.threshold,g=b.U.color;a.uniform1f(h,-1);const f=b.stack;c(f,()=>{const k=e.xa;I(k,b);d.forEach(n=>{a.uniform4f(g,0,0,0,window.ya||n.ya?1:n.Ea);const q=n.o.Ga.Y,m=n.L-q.R;f.push(new Float32Array([n.M+q.R-m,0,0,0,0,0,0,0,0,0,2*q.da+2.5,0,m,-.75,n.u-q.da,1]));K(k,"main",0);f.pop()});const l=e.P;I(l,b);a.uniform4f(g,0,0,0,1);d.forEach(n=>{const q=n.l;n.Oa.forEach(m=>{if(!m.O){var u=
-m.startTime;u=(q-u)/(m.Qa-u);a.uniform1f(h,.5*u*u);z(f,m.x,m.y,m.z);K(l,"main",0);f.pop()}})})})}function ib(a){const b=new Uint8Array(16384),c=(h,g)=>{h/=a;g/=a;return h*h+g*g},e=Math.min(c(32,0),c(32,0));for(let h=0;64>h;h++)for(let g=0;64>g;g++){const f=4*(64*h+g);var d=c(g-32,h-32);const k=1-Math.sqrt(d/e);d=1E-4>=d?5:0;const l=Math.max(Math.round(255*k*k),0);b[f]=d+Math.max(Math.round(20*k),0);b[f+1]=d;b[f+2]=d;b[f+3]=l}return b};function jb(a,b){const c=a.a;let e=c.get(b);e||(e=kb(a.la,b),c.set(b,e));return e}function lb(a,b){a.pa.name!==b&&(a.pa=jb(a,b))}class mb{constructor(a,b){this.la=a;this.a=new Map([[b.name,b]]);this.pa=b}}
-function kb(a,b){switch(b){case "start":return a=eb({la:a,name:b,M:6,L:-6,u:20}),a.Ea=.4,a.j.s=-1,a.Ha.push(new Ma(1)),a;case "r0":return a=eb({la:a,name:b,L:0,M:12,u:0}),b=a.j,b.s=a.L+4,a.N.push(new Ea(a,b.s+2,0,a.u+.75)),a.Ea=.1,a;case "r1":return a=eb({la:a,name:b,L:-12,M:10,u:5.5}),a.N.push(new Ea(a,0,0,a.u+.75)),a;default:throw Error(`Unrecognized room name "${b}"`);}}function nb(a){return{x:Math.min(Math.max(a.j.s,a.L+1),a.M-1),y:0,z:a.u+1.25}};window.onload=async function(){function a(p,t){p.push(u.zb);z(p,-J.x,-J.y,-J.z);z(p,0,0,wa);C(p,xa);t();p.pop();p.pop();p.pop()}function b(p,t,w){const B=t.stack;z(B,0,0,w.u);var x=w.sa.Qb;I(x,t);K(x,"main",0);x=w.sa.ib;I(x,t);K(x,"main",0);x=w.sa.eb;I(x,t);K(x,"main",0);x=w.sa.Gb;I(x,t);K(x,"left",0);K(x,"right",0);B.pop();w.Ha.forEach(y=>{y.Z(p,t,w)});Qa(p,t,w);Ja(p,t,w);db(t,w)}function c(p,t,w){p.bindFramebuffer(p.FRAMEBUFFER,null);p.viewport(0,0,q,m);p.blendFunc(p.SRC_ALPHA,p.ONE_MINUS_SRC_ALPHA);
-p.clearColor(0,0,0,1);p.clear(p.COLOR_BUFFER_BIT|p.DEPTH_BUFFER_BIT);p.activeTexture(p.TEXTURE1);A.m.bindTexture();p.uniform1i(t.U.lighting,1);p.activeTexture(p.TEXTURE0);a(t.stack,()=>{w.forEach(B=>{const x=t.stack.depth();b(p,t,B);t.stack.depth()!==x&&console.error("yo!")})})}function e(){!ka&&G(f,"fullscreen")&&(ka=h.requestFullscreen());const p=Date.now()/1E3;Y=-1===Y?60:.125/(p-ya)+.875*Y;d.innerHTML=`fps=${Math.round(Y)}`;ya=p;var t=Math.sin(Math.PI*(p+0)/8)/2+Math.sin(Math.PI*(p+0)/3)/8,w=
-Math.sin(Math.PI*(p+170)/8)/2+Math.sin(Math.PI*(p+130)/3)/8;xa=Math.asin((t-w)/100);wa=(t+w)/2;w=P.pa;t=null;const B=w.transition;B&&(B.Ya+B.Za<p?(w.transition=null,lb(P,B.Na),w=P.pa):t=jb(P,B.Na));const x=t?[w,t]:[w];x.forEach(y=>{{const F=p-y.Db;y.Ba=F-y.l;y.l=F}});J=nb(w);t&&(w=Math.sin(Math.PI/2*((p-B.Ya)/B.Za)),t=nb(t),J={x:J.x*(1-w)+t.x*w,y:J.y*(1-w)+t.y*w,z:J.z*(1-w)+t.z*w});pa(f)%2&&(l=!l,window.ya=l);x.forEach(y=>{{let Z=y.transition;var F=y.j;ta(F.v,y.l);F.state.I(y);if(y.transition&&!Z){Z=
-y.transition;{F=jb(P,Z.Na);const za=F.j;za.s=y.j.s;za.F(F,Ua)}}ab(y);Z||y.Ia||Ia(y)}});fb(A,a,x);ia(v,(y,F)=>c(y,F,x));requestAnimationFrame(e)}const d=document.getElementById("fps"),h=document.getElementById("canvas");var g=window.getComputedStyle(h);const f=new ra(document.body);E(f,"left",["a","ArrowLeft"]);E(f,"right",["d","ArrowRight"]);E(f,"showLights",["l"]);E(f,"attack",["f"," "]);E(f,"fullscreen",["u"]);E(f,"up",["w","ArrowUp"]);E(f,"down",["s","ArrowDown"]);E(f,"lightUp",["y"]);E(f,"lightDown",
-["h"]);var k=parseInt(g.getPropertyValue("width"),10);g=parseInt(g.getPropertyValue("height"),10);let l=!1;const n=window.devicePixelRatio||1,q=n*k,m=n*g;h.width=q;h.height=m;const u=Wa(k,g),r=h.getContext("webgl2",{antialias:!1,alpha:!1});r.enable(r.BLEND);r.enable(r.DEPTH_TEST);r.depthFunc(r.LEQUAL);k=new D({h:r,type:"vertex"},"#version 300 es\nin vec3 a_position;\nin vec2 a_texturePosition;\n\nuniform mat4 u_projection;\n\nout vec4 v_clipSpace;\nout vec2 v_texturePosition;\n\nvoid main() {\n    vec4 position = u_projection * vec4(a_position, 1);\n    // float inverse = 1.f / (1.f - position.z * .2f);\n\n    // vec4 result = vec4(position.x, inverse * position.y * (1.f - .5f * position.z), inverse * position.z, inverse * position.w);\n    // vec4 result = vec4(position.x * position.w, position.y, position.z, position.w);\n    vec4 result = position;\n    gl_Position = result;\n    \n    v_clipSpace = result;\n    v_texturePosition = a_texturePosition;\n}");
-g=new D({h:r,type:"fragment"},"#version 300 es\nprecision mediump float;\n\nuniform sampler2D u_texture;\nuniform sampler2D u_lighting;\n\nin vec2 v_texturePosition;\nin vec4 v_clipSpace;\nout vec4 output_color;\n\nvoid main() {\n    vec4 clipSpace = v_clipSpace / v_clipSpace.w; //vec4(.5f * (v_clipSpace.x + 1.f), -.5f * (v_clipSpace.y - 1.f), v_clipSpace.z, v_clipSpace.w) / v_clipSpace.w;\n    clipSpace.x = .5f * (clipSpace.x + 1.f);\n    clipSpace.y = 1.f - .5f * (1.f - clipSpace.y); // why????\n\n    vec4 color = texture(u_texture, v_texturePosition.st);\n    if (color.a == 0.0) {\n        discard;\n    }\n\n    vec4 light = texture(u_lighting, clipSpace.xy);\n    vec3 math = min(light.xyz + color.xyz * light.a, vec3(1.f, 1.f, 1.f));\n    output_color = vec4(math, color.a);\n}");
-const v=new ha({h:r,Y:"projection"});fa(v,k,g).link();const A=new hb(r,q,m,360),H=new $a;k=(p,t)=>la({h:r,name:p,src:t});g=p=>Za(H,p);const [T,U,V]=await Promise.all([Xa(u,k),Da(k,g),Va(k,g)]);k={o:{qa:U,j:V,Ga:T,Ib:cb(r)},input:f,audio:H};const P=new mb(k,kb(k,"start"));let Y=-1,ka=null;document.addEventListener("fullscreenchange",()=>{document.fullscreenElement||(ka=null)});let J={x:0,y:0,z:0},xa,wa,ya=Date.now();requestAnimationFrame(e);h.onmousemove=()=>{}};
+var $jscomp = $jscomp || {};
+$jscomp.scope = {};
+$jscomp.getGlobal = function(passedInThis) {
+  var possibleGlobals = ["object" == typeof globalThis && globalThis, passedInThis, "object" == typeof window && window, "object" == typeof self && self, "object" == typeof global && global, ];
+  for (var i = 0; i < possibleGlobals.length; ++i) {
+    var maybeGlobal = possibleGlobals[i];
+    if (maybeGlobal && maybeGlobal["Math"] == Math) {
+      return maybeGlobal;
+    }
+  }
+  return {valueOf:function() {
+    throw new Error("Cannot find global object");
+  }}.valueOf();
+};
+$jscomp.global = $jscomp.getGlobal(this);
+$jscomp.checkEs6ConformanceViaProxy = function() {
+  try {
+    var proxied = {};
+    var proxy = Object.create(new $jscomp.global["Proxy"](proxied, {"get":function(target, key, receiver) {
+      return target == proxied && key == "q" && receiver == proxy;
+    }}));
+    return proxy["q"] === true;
+  } catch (err) {
+    return false;
+  }
+};
+$jscomp.USE_PROXY_FOR_ES6_CONFORMANCE_CHECKS = false;
+$jscomp.ES6_CONFORMANCE = $jscomp.USE_PROXY_FOR_ES6_CONFORMANCE_CHECKS && $jscomp.checkEs6ConformanceViaProxy();
+$jscomp.arrayIteratorImpl = function(array) {
+  var index = 0;
+  return function() {
+    if (index < array.length) {
+      return {done:false, value:array[index++], };
+    } else {
+      return {done:true};
+    }
+  };
+};
+$jscomp.arrayIterator = function(array) {
+  return {next:$jscomp.arrayIteratorImpl(array)};
+};
+$jscomp.ASSUME_ES5 = false;
+$jscomp.ASSUME_NO_NATIVE_MAP = false;
+$jscomp.ASSUME_NO_NATIVE_SET = false;
+$jscomp.SIMPLE_FROUND_POLYFILL = false;
+$jscomp.ISOLATE_POLYFILLS = false;
+$jscomp.defineProperty = $jscomp.ASSUME_ES5 || typeof Object.defineProperties == "function" ? Object.defineProperty : function(target, property, descriptor) {
+  if (target == Array.prototype || target == Object.prototype) {
+    return target;
+  }
+  target[property] = descriptor.value;
+  return target;
+};
+$jscomp.IS_SYMBOL_NATIVE = typeof Symbol === "function" && typeof Symbol("x") === "symbol";
+$jscomp.TRUST_ES6_POLYFILLS = !$jscomp.ISOLATE_POLYFILLS || $jscomp.IS_SYMBOL_NATIVE;
+$jscomp.polyfills = {};
+$jscomp.propertyToPolyfillSymbol = {};
+$jscomp.POLYFILL_PREFIX = "$jscp$";
+var $jscomp$lookupPolyfilledValue = function(target, key) {
+  var polyfilledKey = $jscomp.propertyToPolyfillSymbol[key];
+  if (polyfilledKey == null) {
+    return target[key];
+  }
+  var polyfill = target[polyfilledKey];
+  return polyfill !== undefined ? polyfill : target[key];
+};
+$jscomp.polyfill = function(target, polyfill, fromLang, toLang) {
+  if (!polyfill) {
+    return;
+  }
+  if ($jscomp.ISOLATE_POLYFILLS) {
+    $jscomp.polyfillIsolated(target, polyfill, fromLang, toLang);
+  } else {
+    $jscomp.polyfillUnisolated(target, polyfill, fromLang, toLang);
+  }
+};
+$jscomp.polyfillUnisolated = function(target, polyfill, fromLang, toLang) {
+  var obj = $jscomp.global;
+  var split = target.split(".");
+  for (var i = 0; i < split.length - 1; i++) {
+    var key = split[i];
+    if (!(key in obj)) {
+      return;
+    }
+    obj = obj[key];
+  }
+  var property = split[split.length - 1];
+  var orig = obj[property];
+  var impl = polyfill(orig);
+  if (impl == orig || impl == null) {
+    return;
+  }
+  $jscomp.defineProperty(obj, property, {configurable:true, writable:true, value:impl});
+};
+$jscomp.polyfillIsolated = function(target, polyfill, fromLang, toLang) {
+  var split = target.split(".");
+  var isNativeClass = split.length === 1;
+  var root = split[0];
+  var obj;
+  if (!isNativeClass && root in $jscomp.polyfills) {
+    obj = $jscomp.polyfills;
+  } else {
+    obj = $jscomp.global;
+  }
+  for (var i = 0; i < split.length - 1; i++) {
+    var key = split[i];
+    if (!(key in obj)) {
+      return;
+    }
+    obj = obj[key];
+  }
+  var property = split[split.length - 1];
+  var nativeImpl = $jscomp.IS_SYMBOL_NATIVE && fromLang === "es6" ? obj[property] : null;
+  var impl = polyfill(nativeImpl);
+  if (impl == null) {
+    return;
+  }
+  if (isNativeClass) {
+    $jscomp.defineProperty($jscomp.polyfills, property, {configurable:true, writable:true, value:impl});
+  } else {
+    if (impl !== nativeImpl) {
+      $jscomp.propertyToPolyfillSymbol[property] = $jscomp.IS_SYMBOL_NATIVE ? $jscomp.global["Symbol"](property) : $jscomp.POLYFILL_PREFIX + property;
+      property = $jscomp.propertyToPolyfillSymbol[property];
+      $jscomp.defineProperty(obj, property, {configurable:true, writable:true, value:impl});
+    }
+  }
+};
+$jscomp.initSymbol = function() {
+};
+$jscomp.polyfill("Symbol", function(orig) {
+  if (orig) {
+    return orig;
+  }
+  var SymbolClass = function(id, opt_description) {
+    this.$jscomp$symbol$id_ = id;
+    this.description;
+    $jscomp.defineProperty(this, "description", {configurable:true, writable:true, value:opt_description});
+  };
+  SymbolClass.prototype.toString = function() {
+    return this.$jscomp$symbol$id_;
+  };
+  var SYMBOL_PREFIX = "jscomp_symbol_";
+  var counter = 0;
+  var symbolPolyfill = function(opt_description) {
+    if (this instanceof symbolPolyfill) {
+      throw new TypeError("Symbol is not a constructor");
+    }
+    return new SymbolClass(SYMBOL_PREFIX + (opt_description || "") + "_" + counter++, opt_description);
+  };
+  return symbolPolyfill;
+}, "es6", "es3");
+$jscomp.initSymbolIterator = function() {
+};
+$jscomp.polyfill("Symbol.iterator", function(orig) {
+  if (orig) {
+    return orig;
+  }
+  var symbolIterator = Symbol("Symbol.iterator");
+  var arrayLikes = ["Array", "Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array", "Int32Array", "Uint32Array", "Float32Array", "Float64Array"];
+  for (var i = 0; i < arrayLikes.length; i++) {
+    var ArrayLikeCtor = $jscomp.global[arrayLikes[i]];
+    if (typeof ArrayLikeCtor === "function" && typeof ArrayLikeCtor.prototype[symbolIterator] != "function") {
+      $jscomp.defineProperty(ArrayLikeCtor.prototype, symbolIterator, {configurable:true, writable:true, value:function() {
+        return $jscomp.iteratorPrototype($jscomp.arrayIteratorImpl(this));
+      }});
+    }
+  }
+  return symbolIterator;
+}, "es6", "es3");
+$jscomp.initSymbolAsyncIterator = function() {
+};
+$jscomp.polyfill("Symbol.asyncIterator", function(orig) {
+  if (orig) {
+    return orig;
+  }
+  return Symbol("Symbol.asyncIterator");
+}, "es9", "es3");
+$jscomp.iteratorPrototype = function(next) {
+  var iterator = {next:next};
+  iterator[Symbol.iterator] = function() {
+    return this;
+  };
+  return iterator;
+};
+$jscomp.makeIterator = function(iterable) {
+  var iteratorFunction = typeof Symbol != "undefined" && Symbol.iterator && iterable[Symbol.iterator];
+  return iteratorFunction ? iteratorFunction.call(iterable) : $jscomp.arrayIterator(iterable);
+};
+$jscomp.owns = function(obj, prop) {
+  return Object.prototype.hasOwnProperty.call(obj, prop);
+};
+$jscomp.polyfill("WeakMap", function(NativeWeakMap) {
+  function isConformant() {
+    if (!NativeWeakMap || !Object.seal) {
+      return false;
+    }
+    try {
+      var x = Object.seal({});
+      var y = Object.seal({});
+      var map = new NativeWeakMap([[x, 2], [y, 3]]);
+      if (map.get(x) != 2 || map.get(y) != 3) {
+        return false;
+      }
+      map["delete"](x);
+      map.set(y, 4);
+      return !map.has(x) && map.get(y) == 4;
+    } catch (err) {
+      return false;
+    }
+  }
+  if ($jscomp.USE_PROXY_FOR_ES6_CONFORMANCE_CHECKS) {
+    if (NativeWeakMap && $jscomp.ES6_CONFORMANCE) {
+      return NativeWeakMap;
+    }
+  } else {
+    if (isConformant()) {
+      return NativeWeakMap;
+    }
+  }
+  var prop = "$jscomp_hidden_" + Math.random();
+  function WeakMapMembership() {
+  }
+  function isValidKey(key) {
+    var type = typeof key;
+    return type === "object" && key !== null || type === "function";
+  }
+  function insert(target) {
+    if (!$jscomp.owns(target, prop)) {
+      var obj = new WeakMapMembership;
+      $jscomp.defineProperty(target, prop, {value:obj});
+    }
+  }
+  function patch(name) {
+    if ($jscomp.ISOLATE_POLYFILLS) {
+      return;
+    }
+    var prev = Object[name];
+    if (prev) {
+      Object[name] = function(target) {
+        if (target instanceof WeakMapMembership) {
+          return target;
+        } else {
+          if (Object.isExtensible(target)) {
+            insert(target);
+          }
+          return prev(target);
+        }
+      };
+    }
+  }
+  patch("freeze");
+  patch("preventExtensions");
+  patch("seal");
+  var index = 0;
+  var PolyfillWeakMap = function(opt_iterable) {
+    this.id_ = (index += Math.random() + 1).toString();
+    if (opt_iterable) {
+      var iter = $jscomp.makeIterator(opt_iterable);
+      var entry;
+      while (!(entry = iter.next()).done) {
+        var item = entry.value;
+        this.set(item[0], item[1]);
+      }
+    }
+  };
+  PolyfillWeakMap.prototype.set = function(key, value) {
+    if (!isValidKey(key)) {
+      throw new Error("Invalid WeakMap key");
+    }
+    insert(key);
+    if (!$jscomp.owns(key, prop)) {
+      throw new Error("WeakMap key fail: " + key);
+    }
+    key[prop][this.id_] = value;
+    return this;
+  };
+  PolyfillWeakMap.prototype.get = function(key) {
+    return isValidKey(key) && $jscomp.owns(key, prop) ? key[prop][this.id_] : undefined;
+  };
+  PolyfillWeakMap.prototype.has = function(key) {
+    return isValidKey(key) && $jscomp.owns(key, prop) && $jscomp.owns(key[prop], this.id_);
+  };
+  PolyfillWeakMap.prototype["delete"] = function(key) {
+    if (!isValidKey(key) || !$jscomp.owns(key, prop) || !$jscomp.owns(key[prop], this.id_)) {
+      return false;
+    }
+    return delete key[prop][this.id_];
+  };
+  return PolyfillWeakMap;
+}, "es6", "es3");
+$jscomp.MapEntry = function() {
+  this.previous;
+  this.next;
+  this.head;
+  this.key;
+  this.value;
+};
+$jscomp.polyfill("Map", function(NativeMap) {
+  function isConformant() {
+    if ($jscomp.ASSUME_NO_NATIVE_MAP || !NativeMap || typeof NativeMap != "function" || !NativeMap.prototype.entries || typeof Object.seal != "function") {
+      return false;
+    }
+    try {
+      NativeMap = NativeMap;
+      var key = Object.seal({x:4});
+      var map = new NativeMap($jscomp.makeIterator([[key, "s"]]));
+      if (map.get(key) != "s" || map.size != 1 || map.get({x:4}) || map.set({x:4}, "t") != map || map.size != 2) {
+        return false;
+      }
+      var iter = map.entries();
+      var item = iter.next();
+      if (item.done || item.value[0] != key || item.value[1] != "s") {
+        return false;
+      }
+      item = iter.next();
+      if (item.done || item.value[0].x != 4 || item.value[1] != "t" || !iter.next().done) {
+        return false;
+      }
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+  if ($jscomp.USE_PROXY_FOR_ES6_CONFORMANCE_CHECKS) {
+    if (NativeMap && $jscomp.ES6_CONFORMANCE) {
+      return NativeMap;
+    }
+  } else {
+    if (isConformant()) {
+      return NativeMap;
+    }
+  }
+  var idMap = new WeakMap;
+  var PolyfillMap = function(opt_iterable) {
+    this.data_ = {};
+    this.head_ = createHead();
+    this.size = 0;
+    if (opt_iterable) {
+      var iter = $jscomp.makeIterator(opt_iterable);
+      var entry;
+      while (!(entry = iter.next()).done) {
+        var item = entry.value;
+        this.set(item[0], item[1]);
+      }
+    }
+  };
+  PolyfillMap.prototype.set = function(key, value) {
+    key = key === 0 ? 0 : key;
+    var r = maybeGetEntry(this, key);
+    if (!r.list) {
+      r.list = this.data_[r.id] = [];
+    }
+    if (!r.entry) {
+      r.entry = {next:this.head_, previous:this.head_.previous, head:this.head_, key:key, value:value, };
+      r.list.push(r.entry);
+      this.head_.previous.next = r.entry;
+      this.head_.previous = r.entry;
+      this.size++;
+    } else {
+      r.entry.value = value;
+    }
+    return this;
+  };
+  PolyfillMap.prototype["delete"] = function(key) {
+    var r = maybeGetEntry(this, key);
+    if (r.entry && r.list) {
+      r.list.splice(r.index, 1);
+      if (!r.list.length) {
+        delete this.data_[r.id];
+      }
+      r.entry.previous.next = r.entry.next;
+      r.entry.next.previous = r.entry.previous;
+      r.entry.head = null;
+      this.size--;
+      return true;
+    }
+    return false;
+  };
+  PolyfillMap.prototype.clear = function() {
+    this.data_ = {};
+    this.head_ = this.head_.previous = createHead();
+    this.size = 0;
+  };
+  PolyfillMap.prototype.has = function(key) {
+    return !!maybeGetEntry(this, key).entry;
+  };
+  PolyfillMap.prototype.get = function(key) {
+    var entry = maybeGetEntry(this, key).entry;
+    return entry && entry.value;
+  };
+  PolyfillMap.prototype.entries = function() {
+    return makeIterator(this, function(entry) {
+      return [entry.key, entry.value];
+    });
+  };
+  PolyfillMap.prototype.keys = function() {
+    return makeIterator(this, function(entry) {
+      return entry.key;
+    });
+  };
+  PolyfillMap.prototype.values = function() {
+    return makeIterator(this, function(entry) {
+      return entry.value;
+    });
+  };
+  PolyfillMap.prototype.forEach = function(callback, opt_thisArg) {
+    var iter = this.entries();
+    var item;
+    while (!(item = iter.next()).done) {
+      var entry = item.value;
+      callback.call(opt_thisArg, entry[1], entry[0], this);
+    }
+  };
+  PolyfillMap.prototype[Symbol.iterator] = PolyfillMap.prototype.entries;
+  var maybeGetEntry = function(map, key) {
+    var id = getId(key);
+    var list = map.data_[id];
+    if (list && $jscomp.owns(map.data_, id)) {
+      for (var index = 0; index < list.length; index++) {
+        var entry = list[index];
+        if (key !== key && entry.key !== entry.key || key === entry.key) {
+          return {id:id, list:list, index:index, entry:entry};
+        }
+      }
+    }
+    return {id:id, list:list, index:-1, entry:undefined};
+  };
+  var makeIterator = function(map, func) {
+    var entry = map.head_;
+    return $jscomp.iteratorPrototype(function() {
+      if (entry) {
+        while (entry.head != map.head_) {
+          entry = entry.previous;
+        }
+        while (entry.next != entry.head) {
+          entry = entry.next;
+          return {done:false, value:func(entry)};
+        }
+        entry = null;
+      }
+      return {done:true, value:void 0};
+    });
+  };
+  var createHead = function() {
+    var head = {};
+    head.previous = head.next = head.head = head;
+    return head;
+  };
+  var mapIndex = 0;
+  var getId = function(obj) {
+    var type = obj && typeof obj;
+    if (type == "object" || type == "function") {
+      obj = obj;
+      if (!idMap.has(obj)) {
+        var id = "" + ++mapIndex;
+        idMap.set(obj, id);
+        return id;
+      }
+      return idMap.get(obj);
+    }
+    return "p_" + obj;
+  };
+  return PolyfillMap;
+}, "es6", "es3");
+$jscomp.polyfill("Set", function(NativeSet) {
+  function isConformant() {
+    if ($jscomp.ASSUME_NO_NATIVE_SET || !NativeSet || typeof NativeSet != "function" || !NativeSet.prototype.entries || typeof Object.seal != "function") {
+      return false;
+    }
+    try {
+      NativeSet = NativeSet;
+      var value = Object.seal({x:4});
+      var set = new NativeSet($jscomp.makeIterator([value]));
+      if (!set.has(value) || set.size != 1 || set.add(value) != set || set.size != 1 || set.add({x:4}) != set || set.size != 2) {
+        return false;
+      }
+      var iter = set.entries();
+      var item = iter.next();
+      if (item.done || item.value[0] != value || item.value[1] != value) {
+        return false;
+      }
+      item = iter.next();
+      if (item.done || item.value[0] == value || item.value[0].x != 4 || item.value[1] != item.value[0]) {
+        return false;
+      }
+      return iter.next().done;
+    } catch (err) {
+      return false;
+    }
+  }
+  if ($jscomp.USE_PROXY_FOR_ES6_CONFORMANCE_CHECKS) {
+    if (NativeSet && $jscomp.ES6_CONFORMANCE) {
+      return NativeSet;
+    }
+  } else {
+    if (isConformant()) {
+      return NativeSet;
+    }
+  }
+  var PolyfillSet = function(opt_iterable) {
+    this.map_ = new Map;
+    if (opt_iterable) {
+      var iter = $jscomp.makeIterator(opt_iterable);
+      var entry;
+      while (!(entry = iter.next()).done) {
+        var item = entry.value;
+        this.add(item);
+      }
+    }
+    this.size = this.map_.size;
+  };
+  PolyfillSet.prototype.add = function(value) {
+    value = value === 0 ? 0 : value;
+    this.map_.set(value, value);
+    this.size = this.map_.size;
+    return this;
+  };
+  PolyfillSet.prototype["delete"] = function(value) {
+    var result = this.map_["delete"](value);
+    this.size = this.map_.size;
+    return result;
+  };
+  PolyfillSet.prototype.clear = function() {
+    this.map_.clear();
+    this.size = 0;
+  };
+  PolyfillSet.prototype.has = function(value) {
+    return this.map_.has(value);
+  };
+  PolyfillSet.prototype.entries = function() {
+    return this.map_.entries();
+  };
+  PolyfillSet.prototype.values = function() {
+    return this.map_.values();
+  };
+  PolyfillSet.prototype.keys = PolyfillSet.prototype.values;
+  PolyfillSet.prototype[Symbol.iterator] = PolyfillSet.prototype.values;
+  PolyfillSet.prototype.forEach = function(callback, opt_thisArg) {
+    var set = this;
+    this.map_.forEach(function(value) {
+      return callback.call(opt_thisArg, value, value, set);
+    });
+  };
+  return PolyfillSet;
+}, "es6", "es3");
+(function() {
+  var Module = function(id, opt_exports) {
+    this.id = id;
+    this.exports = opt_exports || {};
+  };
+  Module.prototype.exportAllFrom = function(other) {
+    var module = this;
+    var define = {};
+    for (var key in other) {
+      if (key == "default" || key in module.exports || key in define) {
+        continue;
+      }
+      define[key] = {enumerable:true, get:function(key) {
+        return function() {
+          return other[key];
+        };
+      }(key)};
+    }
+    $jscomp.global.Object.defineProperties(module.exports, define);
+  };
+  var CacheEntry = function(def, module, path) {
+    this.def = def;
+    this.module = module;
+    this.path = path;
+    this.blockingDeps = new Set;
+  };
+  CacheEntry.prototype.load = function() {
+    if (this.def) {
+      var def = this.def;
+      this.def = null;
+      callRequireCallback(def, this.module);
+    }
+    return this.module.exports;
+  };
+  function callRequireCallback(callback, opt_module) {
+    var oldPath = currentModulePath;
+    try {
+      if (opt_module) {
+        currentModulePath = opt_module.id;
+        callback.call(opt_module, createRequire(opt_module), opt_module.exports, opt_module);
+      } else {
+        callback($jscomp.require);
+      }
+    } finally {
+      currentModulePath = oldPath;
+    }
+  }
+  var moduleCache = new Map;
+  var currentModulePath = "";
+  function normalizePath(path) {
+    var components = path.split("/");
+    var i = 0;
+    while (i < components.length) {
+      if (components[i] == ".") {
+        components.splice(i, 1);
+      } else {
+        if (i && components[i] == ".." && components[i - 1] && components[i - 1] != "..") {
+          components.splice(--i, 2);
+        } else {
+          i++;
+        }
+      }
+    }
+    return components.join("/");
+  }
+  $jscomp.getCurrentModulePath = function() {
+    return currentModulePath;
+  };
+  function getCacheEntry(id) {
+    var cacheEntry = moduleCache.get(id);
+    if (cacheEntry === undefined) {
+      throw new Error("Module " + id + " does not exist.");
+    }
+    return cacheEntry;
+  }
+  var ensureMap = new Map;
+  var CallbackEntry = function(requireSet, callback) {
+    this.requireSet = requireSet;
+    this.callback = callback;
+  };
+  function maybeNormalizePath(root, absOrRelativePath) {
+    if (absOrRelativePath.startsWith("./") || absOrRelativePath.startsWith("../")) {
+      return normalizePath(root + "/../" + absOrRelativePath);
+    } else {
+      return absOrRelativePath;
+    }
+  }
+  function createRequire(opt_module) {
+    function require(absOrRelativePath) {
+      var absPath = absOrRelativePath;
+      if (opt_module) {
+        absPath = maybeNormalizePath(opt_module.id, absPath);
+      }
+      return getCacheEntry(absPath).load();
+    }
+    function requireEnsure(requires, callback) {
+      if (currentModulePath) {
+        for (var i = 0; i < requires.length; i++) {
+          requires[i] = maybeNormalizePath(currentModulePath, requires[i]);
+        }
+      }
+      var blockingRequires = [];
+      for (var i = 0; i < requires.length; i++) {
+        var required = moduleCache.get(requires[i]);
+        if (!required || required.blockingDeps.size) {
+          blockingRequires.push(requires[i]);
+        }
+      }
+      if (blockingRequires.length) {
+        var requireSet = new Set(blockingRequires);
+        var callbackEntry = new CallbackEntry(requireSet, callback);
+        requireSet.forEach(function(require) {
+          var arr = ensureMap.get(require);
+          if (!arr) {
+            arr = [];
+            ensureMap.set(require, arr);
+          }
+          arr.push(callbackEntry);
+        });
+      } else {
+        callback(require);
+      }
+    }
+    require.ensure = requireEnsure;
+    return require;
+  }
+  $jscomp.require = createRequire();
+  $jscomp.hasModule = function(id) {
+    return moduleCache.has(id);
+  };
+  function markAvailable(absModulePath) {
+    var ensures = ensureMap.get(absModulePath);
+    if (ensures) {
+      for (var i = 0; i < ensures.length; i++) {
+        var entry = ensures[i];
+        entry.requireSet["delete"](absModulePath);
+        if (!entry.requireSet.size) {
+          ensures.splice(i--, 1);
+          callRequireCallback(entry.callback);
+        }
+      }
+      if (!ensures.length) {
+        ensureMap["delete"](absModulePath);
+      }
+    }
+  }
+  $jscomp.registerModule = function(moduleDef, absModulePath, opt_shallowDeps) {
+    if (moduleCache.has(absModulePath)) {
+      throw new Error("Module " + absModulePath + " has already been registered.");
+    }
+    if (currentModulePath) {
+      throw new Error("Cannot nest modules.");
+    }
+    var shallowDeps = opt_shallowDeps || [];
+    for (var i = 0; i < shallowDeps.length; i++) {
+      shallowDeps[i] = maybeNormalizePath(absModulePath, shallowDeps[i]);
+    }
+    var blockingDeps = new Set;
+    for (var i = 0; i < shallowDeps.length; i++) {
+      getTransitiveBlockingDepsOf(shallowDeps[i]).forEach(function(transitive) {
+        blockingDeps.add(transitive);
+      });
+    }
+    blockingDeps["delete"](absModulePath);
+    var cacheEntry = new CacheEntry(moduleDef, new Module(absModulePath), absModulePath);
+    moduleCache.set(absModulePath, cacheEntry);
+    blockingDeps.forEach(function(blocker) {
+      addAsBlocking(cacheEntry, blocker);
+    });
+    if (!blockingDeps.size) {
+      markAvailable(cacheEntry.module.id);
+    }
+    removeAsBlocking(cacheEntry);
+  };
+  function getTransitiveBlockingDepsOf(moduleId) {
+    var cacheEntry = moduleCache.get(moduleId);
+    var blocking = new Set;
+    if (cacheEntry) {
+      cacheEntry.blockingDeps.forEach(function(dep) {
+        getTransitiveBlockingDepsOf(dep).forEach(function(transitive) {
+          blocking.add(transitive);
+        });
+      });
+    } else {
+      blocking.add(moduleId);
+    }
+    return blocking;
+  }
+  var blockingModulePathToBlockedModules = new Map;
+  function addAsBlocking(blocked, blocker) {
+    if (blocked.module.id != blocker) {
+      var blockedModules = blockingModulePathToBlockedModules.get(blocker);
+      if (!blockedModules) {
+        blockedModules = new Set;
+        blockingModulePathToBlockedModules.set(blocker, blockedModules);
+      }
+      blockedModules.add(blocked);
+      blocked.blockingDeps.add(blocker);
+    }
+  }
+  function removeAsBlocking(cacheEntry) {
+    var blocked = blockingModulePathToBlockedModules.get(cacheEntry.module.id);
+    if (blocked) {
+      blockingModulePathToBlockedModules["delete"](cacheEntry.module.id);
+      blocked.forEach(function(blockedCacheEntry) {
+        blockedCacheEntry.blockingDeps["delete"](cacheEntry.module.id);
+        cacheEntry.blockingDeps.forEach(function(blocker) {
+          addAsBlocking(blockedCacheEntry, blocker);
+        });
+        if (!blockedCacheEntry.blockingDeps.size) {
+          removeAsBlocking(blockedCacheEntry);
+          markAvailable(blockedCacheEntry.module.id);
+        }
+      });
+    }
+  }
+  $jscomp.registerAndLoadModule = function(moduleDef, absModulePath, shallowDeps) {
+    $jscomp.require.ensure([absModulePath], function(require) {
+      require(absModulePath);
+    });
+    $jscomp.registerModule(moduleDef, absModulePath, shallowDeps);
+  };
+  $jscomp.registerEs6ModuleExports = function(absModulePath, exports) {
+    if (moduleCache.has(absModulePath)) {
+      throw new Error("Module at path " + absModulePath + " is already registered.");
+    }
+    var entry = new CacheEntry(null, new Module(absModulePath, exports), absModulePath);
+    moduleCache.set(absModulePath, entry);
+    markAvailable(absModulePath);
+  };
+  $jscomp.clearModules = function() {
+    moduleCache.clear();
+  };
+})();
+//src/webgames/Input.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {InputManager:{enumerable:true, get:function() {
+    return InputManager;
+  }}});
+  class InputManager {
+    constructor(domElement) {
+      this._domElement = domElement;
+      this._inFocus = document.activeElement === domElement;
+      this._presses = new Map;
+      this._actionToKeys = new Map;
+      domElement.addEventListener("keydown", e => {
+        keyChanged(this, e, true);
+      });
+      domElement.addEventListener("keyup", e => {
+        keyChanged(this, e, false);
+      });
+      domElement.onblur = () => {
+        this._presses.clear();
+        this._inFocus = false;
+      };
+      domElement.onfocus = () => {
+        this._presses.clear();
+        this._inFocus = true;
+      };
+    }
+    setKeysForAction(action, keys) {
+      const actionToKeys = this._actionToKeys;
+      if (keys != null) {
+        actionToKeys.set(action, keys);
+      } else {
+        actionToKeys["delete"](action);
+      }
+    }
+    isPressed(action) {
+      const keys = this._actionToKeys.get(action);
+      const presses = this._presses;
+      return !!keys && !!keys.some(key => {
+        const obj = presses.get(key);
+        if (obj) {
+          obj.danglingCount = 0;
+          return obj.heldSince != null;
+        } else {
+          return false;
+        }
+      });
+    }
+    numPresses(action) {
+      const keys = this._actionToKeys.get(action);
+      if (keys) {
+        const presses = this._presses;
+        return keys.reduce((count, key) => {
+          const obj = presses.get(key);
+          if (obj) {
+            const newCount = count + obj.danglingCount;
+            obj.danglingCount = 0;
+            return newCount;
+          } else {
+            return count;
+          }
+        }, 0);
+      } else {
+        return 0;
+      }
+    }
+    getSignOfAction(negAction, posAction) {
+      const neg = this.isPressed(negAction) ? 1 : 0;
+      const pos = this.isPressed(posAction) ? 1 : 0;
+      return pos - neg;
+    }
+  }
+  function keyChanged(manager, event, isPressed) {
+    const key = event.key;
+    const presses = manager._presses;
+    const object = presses.get(key);
+    if (isPressed) {
+      if (object == null) {
+        presses.set(key, {heldSince:Date.now(), danglingCount:1, });
+      } else {
+        if (object.heldSince == null) {
+          object.heldSince = Date.now();
+        }
+        object.danglingCount++;
+      }
+    } else {
+      if (object != null) {
+        object.heldSince = null;
+      }
+    }
+  }
+}, "src/webgames/Input.js", []);
+
+//src/swagl.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {MatrixStack:{enumerable:true, get:function() {
+    return MatrixStack;
+  }}, Program:{enumerable:true, get:function() {
+    return Program;
+  }}, Shader:{enumerable:true, get:function() {
+    return Shader;
+  }}, Texture:{enumerable:true, get:function() {
+    return Texture;
+  }}, doAnimationFrame:{enumerable:true, get:function() {
+    return doAnimationFrame;
+  }}, loadTextureFromImgUrl:{enumerable:true, get:function() {
+    return loadTextureFromImgUrl;
+  }}, loadTextureFromRawBitmap:{enumerable:true, get:function() {
+    return loadTextureFromRawBitmap;
+  }}, makeSolidTexture:{enumerable:true, get:function() {
+    return makeSolidTexture;
+  }}, wrapPremadeTexture:{enumerable:true, get:function() {
+    return wrapPremadeTexture;
+  }}});
+  const ShaderType = {FRAGMENT:"fragment", VERTEX:"vertex", };
+  const LocationType = {UNIFORM:1, ATTRIBUTE:2, };
+  class Location {
+    constructor(type, prefix, name) {
+      this.name = name;
+      this.glName = `${prefix}${name}`;
+      switch(type) {
+        case "uniform":
+          this.type = LocationType.UNIFORM;
+          if (prefix !== "u_") {
+            throw new Error(`uniform field "${this.glName}" invalid, must start with u_`);
+          }
+          break;
+        case "in":
+          this.type = LocationType.ATTRIBUTE;
+          if (prefix !== "a_") {
+            throw new Error(`in field "${this.glName}" invalid, must start with a_`);
+          }
+          break;
+        default:
+          throw new Error("Impossible");
+      }
+    }
+  }
+  function findLocations(code) {
+    const locs = [];
+    code.split("\n").forEach(line => {
+      let name, declaration;
+      declaration = /^\s*(in|uniform)\s(?:\w+\s)*([ua]_)(\w+);/.exec(line);
+      if (declaration) {
+        locs.push(new Location(declaration[1], declaration[2], declaration[3]));
+      }
+    });
+    return locs;
+  }
+  const identityMat = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, ]);
+  class MatrixStack {
+    constructor(gl, anchor) {
+      this.gl = gl;
+      this.anchor = anchor;
+      this._stack = [];
+      gl.uniformMatrix4fv(anchor, false, identityMat);
+    }
+    depth() {
+      return this._stack.length;
+    }
+    peek() {
+      const stack = this._stack;
+      return stack[stack.length - 1] || identityMat;
+    }
+    pop() {
+      return this._stack.pop();
+    }
+    pushAbsolute(matrix) {
+      this.gl.uniformMatrix4fv(this.anchor, false, matrix);
+      this._stack.push(matrix);
+    }
+    push(matrix) {
+      const stack = this._stack;
+      if (stack.length === 0) {
+        this.pushAbsolute(matrix);
+      } else {
+        const A = matrix;
+        const B = stack[stack.length - 1];
+        this.pushAbsolute(new Float32Array([A[0] * B[0] + A[1] * B[4] + A[2] * B[8] + A[3] * B[12], A[0] * B[1] + A[1] * B[5] + A[2] * B[9] + A[3] * B[13], A[0] * B[2] + A[1] * B[6] + A[2] * B[10] + A[3] * B[14], A[0] * B[3] + A[1] * B[7] + A[2] * B[11] + A[3] * B[15], A[4] * B[0] + A[5] * B[4] + A[6] * B[8] + A[7] * B[12], A[4] * B[1] + A[5] * B[5] + A[6] * B[9] + A[7] * B[13], A[4] * B[2] + A[5] * B[6] + A[6] * B[10] + A[7] * B[14], A[4] * B[3] + A[5] * B[7] + A[6] * B[11] + A[7] * B[15], A[8] * 
+        B[0] + A[9] * B[4] + A[10] * B[8] + A[11] * B[12], A[8] * B[1] + A[9] * B[5] + A[10] * B[9] + A[11] * B[13], A[8] * B[2] + A[9] * B[6] + A[10] * B[10] + A[11] * B[14], A[8] * B[3] + A[9] * B[7] + A[10] * B[11] + A[11] * B[15], A[12] * B[0] + A[13] * B[4] + A[14] * B[8] + A[15] * B[12], A[12] * B[1] + A[13] * B[5] + A[14] * B[9] + A[15] * B[13], A[12] * B[2] + A[13] * B[6] + A[14] * B[10] + A[15] * B[14], A[12] * B[3] + A[13] * B[7] + A[14] * B[11] + A[15] * B[15], ]));
+      }
+    }
+    pushTranslation(x, y, z = 0) {
+      const stack = this._stack;
+      const A = stack.length ? stack[stack.length - 1] : identityMat;
+      this.pushAbsolute(new Float32Array([A[0], A[1], A[2], A[3], A[4], A[5], A[6], A[7], A[8], A[9], A[10], A[11], x * A[0] + y * A[4] + z * A[8] + A[12], x * A[1] + y * A[5] + z * A[9] + A[13], x * A[2] + y * A[6] + z * A[10] + A[14], x * A[3] + y * A[7] + z * A[11] + A[15], ]));
+    }
+    pushYRotation(angle) {
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      this.push(new Float32Array([cos, 0, sin, 0, 0, 1, 0, 0, -sin, 0, cos, 0, 0, 0, 0, 1, ]));
+    }
+    pushZRotation(angle) {
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      this.push(new Float32Array([cos, -sin, 0, 0, sin, cos, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, ]));
+    }
+  }
+  class Shader {
+    constructor(options, code) {
+      this.name = options.name;
+      var gl = this.gl = options.gl;
+      var type = this.type = options.type;
+      var glType;
+      switch(type) {
+        case ShaderType.VERTEX:
+          glType = this.gl.VERTEX_SHADER;
+          break;
+        case ShaderType.FRAGMENT:
+          glType = this.gl.FRAGMENT_SHADER;
+          break;
+        default:
+          throw new Error(`Unrecognized shader type "${type}"`);
+      }
+      this._glType = glType;
+      var shader = this._glShader = gl.createShader(glType);
+      gl.shaderSource(shader, code);
+      gl.compileShader(shader);
+      var compiled = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+      if (!compiled) {
+        var error = gl.getShaderInfoLog(shader);
+        var message = `Failed to compile ${this.name} ${type}-shader: ${error}`;
+        gl.deleteShader(shader);
+        throw new Error(message);
+      }
+      this._locs = findLocations(code);
+    }
+  }
+  class Program {
+    constructor(options) {
+      this.name = options.name;
+      this.projection = options.projection;
+      var gl = this.gl = options.gl;
+      this.linked = false;
+      this._glProgram = gl.createProgram();
+      this._shaders = [];
+      this.u = {};
+      this.a = {};
+      this.stack = null;
+    }
+    attach(...shaders) {
+      const gl = this.gl;
+      const glProgram = this._glProgram;
+      shaders.forEach(shader => {
+        this._shaders.push(shader);
+        gl.attachShader(glProgram, shader._glShader);
+      });
+      return this;
+    }
+    link() {
+      if (this.linked) {
+        return this;
+      }
+      var gl = this.gl;
+      var glProgram = this._glProgram;
+      gl.linkProgram(glProgram);
+      if (!gl.getProgramParameter(glProgram, gl.LINK_STATUS)) {
+        var info = gl.getProgramInfoLog(glProgram);
+        var message = `Failed to link ${this.name} program: ${info}`;
+        gl.deleteProgram(glProgram);
+        throw new Error(message);
+      }
+      this.linked = true;
+      return this;
+    }
+  }
+  function doAnimationFrame(program, code) {
+    var gl = program.gl;
+    var glProgram = program._glProgram;
+    gl.useProgram(glProgram);
+    var u = {}, a = {}, shaders = program._shaders;
+    for (var i = 0; i < shaders.length; i++) {
+      var locs = shaders[i]._locs;
+      for (var j = 0; j < locs.length; j++) {
+        var loc = locs[j];
+        if (loc.type === LocationType.UNIFORM) {
+          if (loc.glName in u) {
+            continue;
+          }
+          u[loc.name] = gl.getUniformLocation(glProgram, loc.glName);
+        } else {
+          if (loc.glName in a) {
+            continue;
+          }
+          a[loc.name] = gl.getAttribLocation(glProgram, loc.glName);
+        }
+      }
+    }
+    program.u = u;
+    program.a = a;
+    const projection = program.projection;
+    if (projection) {
+      if (projection in program.u) {
+        program.stack = new MatrixStack(gl, program.u[projection]);
+      } else {
+        throw new Error(`No anchor point "${projection}" in program`);
+      }
+    }
+    try {
+      code(gl, program);
+    } finally {
+      program.u = {};
+      program.a = {};
+      program.stack = null;
+    }
+  }
+  class Texture {
+    constructor(gl, name, width, height, createTexture) {
+      this.gl = gl;
+      this.name = name;
+      this.w = width;
+      this.h = height;
+      this._glTex = createTexture(gl);
+    }
+    bindTexture() {
+      this.gl.bindTexture(this.gl.TEXTURE_2D, this._glTex);
+    }
+    passSize(anchor) {
+      this.gl.uniform2f(anchor, this.w, this.h);
+    }
+    rawTexture() {
+      return this._glTex;
+    }
+  }
+  function loadTextureFromImgUrl(options) {
+    return (new Promise((resolve, reject) => {
+      const image = new Image;
+      image.onload = () => void resolve(image);
+      image.onerror = () => {
+        reject(new Error(`failed to load ${options.src}`));
+      };
+      image.mode = "no-cors";
+      image.src = options.src;
+    })).then(img => {
+      const width = img.naturalWidth;
+      const height = img.naturalHeight;
+      return new Texture(options.gl, options.name, width, height, createStandardTexture(gl => {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      }));
+    });
+  }
+  function loadTextureFromRawBitmap(options) {
+    const {width, height} = options;
+    return new Texture(options.gl, options.name, width, height, createStandardTexture(gl => {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, options.bmp, 0);
+    }));
+  }
+  function wrapPremadeTexture(options) {
+    return new Texture(options.gl, options.name, options.width, options.height, () => options.tex);
+  }
+  function createStandardTexture(loader) {
+    return gl => {
+      const texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      loader(gl);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+      return texture;
+    };
+  }
+  function makeSolidTexture(gl, r, g, b, a) {
+    return loadTextureFromRawBitmap({name:"solid", width:1, height:1, gl, bmp:new Uint8Array([r, g, b, a]), });
+  }
+}, "src/swagl.js", []);
+
+//src/sprites.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {Sprite:{enumerable:true, get:function() {
+    return Sprite;
+  }}, SpriteBuilder:{enumerable:true, get:function() {
+    return SpriteBuilder;
+  }}, SpriteSet:{enumerable:true, get:function() {
+    return SpriteSet;
+  }}, characterSpriteSheet:{enumerable:true, get:function() {
+    return characterSpriteSheet;
+  }}, flatSprite:{enumerable:true, get:function() {
+    return flatSprite;
+  }}, makeSpriteType:{enumerable:true, get:function() {
+    return makeSpriteType;
+  }}, spriteSheet:{enumerable:true, get:function() {
+    return spriteSheet;
+  }}});
+  var module$src$swagl = $$require("src/swagl.js");
+  const TUPLE_LENGTH = 5;
+  let PositionTexPosition;
+  let SpriteDatum;
+  let SpriteBuilder;
+  function makeDatum(set, name, offsets, nPoints) {
+    return {_set:set, name, _offsets:offsets, nPoints};
+  }
+  class SpriteSet {
+    constructor(tex, data) {
+      this._tex = tex;
+      this._buffer = null;
+      const internalData = this.data = {};
+      const allData = [];
+      let numTuples = 0;
+      for (const name in data) {
+        const sequence = data[name];
+        const offsets = [];
+        const sequenceLength = sequence.length;
+        if (sequenceLength === 0) {
+          throw new Error("Sprite declared with 0 points");
+        }
+        const stepLength = sequence[0].length;
+        if (stepLength == 0 || TUPLE_LENGTH % 5 !== 0) {
+          throw new Error(`Sprite declared with list of length ${TUPLE_LENGTH} (must be non-zero multiple of 5)`);
+        }
+        const tuplesPerStep = stepLength / 5;
+        for (let i = 0; i < sequenceLength; i++) {
+          const tuples = sequence[i];
+          if (tuples.length !== stepLength) {
+            throw new Error(`Sprite declared with inconsistent lengths of elements`);
+          }
+          offsets.push(numTuples);
+          allData.push.apply(allData, tuples);
+          numTuples += tuplesPerStep;
+        }
+        internalData[name] = makeDatum(this, name, offsets, tuplesPerStep);
+      }
+      this._rawData = new Float32Array(allData);
+    }
+    bindTo(program) {
+      const gl = this._tex.gl;
+      let buffer = this._buffer;
+      if (buffer != null) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      } else {
+        this._buffer = buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, this._rawData, gl.STATIC_DRAW);
+      }
+      gl.activeTexture(gl.TEXTURE0);
+      this._tex.bindTexture();
+      gl.uniform1i(program.u["texture"], 0);
+      gl.enableVertexAttribArray(program.a["texturePosition"]);
+      gl.vertexAttribPointer(program.a["texturePosition"], 2, gl.FLOAT, false, 20, 12);
+      gl.enableVertexAttribArray(program.a["position"]);
+      gl.vertexAttribPointer(program.a["position"], 3, gl.FLOAT, false, 20, 0);
+    }
+    renderSpriteDatumPrebound(datumName, index) {
+      if (!this.data.hasOwnProperty(datumName)) {
+        throw new Error(`Can not render unknown "${datumName}"`);
+      }
+      const datum = this.data[datumName];
+      const gl = this._tex.gl;
+      const offsets = datum._offsets;
+      gl.drawArrays(gl.TRIANGLE_STRIP, offsets[index % offsets.length], datum.nPoints);
+    }
+  }
+  let SpriteDefinition;
+  class Sprite {
+    constructor(options, frameTimes, mode, time) {
+      const {loops} = options;
+      this._name = options.name;
+      this._startTime = time;
+      this._modes = options.modes;
+      this._activeMode = mode;
+      this._targetLoops = typeof loops === "number" ? loops : loops ? -1 : 0;
+      this._spriteSet = options.set;
+      this._frameTimes = frameTimes;
+      this._currentLoop = 0;
+      this._frameIndex = 0;
+      this._nextFrameTime = time + frameTimes[0];
+      this._frameData = options.perFrameData;
+    }
+    updateTime(time) {
+      let changed = false;
+      let nextFrameTime = this._nextFrameTime;
+      while (nextFrameTime !== -1 && nextFrameTime <= time) {
+        changed = true;
+        const frameTimes = this._frameTimes;
+        const nextFrame = this._frameIndex + 1;
+        if (nextFrame === frameTimes.length) {
+          if (this._currentLoop === this._targetLoops) {
+            this._nextFrameTime = nextFrameTime = -1;
+          } else {
+            this._currentLoop++;
+            this._frameIndex = 0;
+            this._nextFrameTime = nextFrameTime = time + frameTimes[0];
+          }
+        } else {
+          this._frameIndex = nextFrame;
+          this._nextFrameTime = nextFrameTime = time + frameTimes[nextFrame];
+        }
+      }
+      return changed;
+    }
+    setMode(mode) {
+      if (mode === this._activeMode) {
+        return;
+      }
+      if (!this._modes.includes(mode)) {
+        throw new Error(`${this} does not have mode ${mode}`);
+      }
+      this._activeMode = mode;
+    }
+    frameIndex() {
+      return this._frameIndex;
+    }
+    frameData() {
+      const frameData = this._frameData;
+      return frameData != null ? frameData[this._frameIndex] : undefined;
+    }
+    isFinished() {
+      return this._nextFrameTime === -1;
+    }
+    resetSprite(mode, time) {
+      if (!this._modes.includes(mode)) {
+        throw new Error(`${this} does not have mode ${mode}`);
+      }
+      this._currentLoop = 0;
+      this._startTime = time;
+      this._activeMode = mode;
+      this._frameIndex = 0;
+      this._nextFrameTime = time + this._frameTimes[0];
+    }
+    renderSprite(program) {
+      this._spriteSet.bindTo(program);
+      this._spriteSet.renderSpriteDatumPrebound(this._activeMode, this._frameIndex);
+    }
+    name() {
+      return this._name;
+    }
+    toString() {
+      return `Sprite/${this._name}`;
+    }
+  }
+  function calculateNextFrameTime(sprite, frameIndex, time) {
+    const frames = sprite._frameTimes;
+    if (frameIndex + 1 === frames.length && sprite._currentLoop === sprite._targetLoops) {
+      return -1;
+    } else {
+      return time + frames[frameIndex];
+    }
+  }
+  function makeSpriteType(options) {
+    const {name, frameTime} = options;
+    const data = options.set.data;
+    let numFrames = -1;
+    options.modes.forEach(mode => {
+      const datum = data[mode];
+      if (!datum) {
+        throw new Error(`Sprite/${name} has non-existent mode ${mode}`);
+      }
+      if (numFrames === -1) {
+        numFrames = datum._offsets.length;
+      } else {
+        if (numFrames !== datum._offsets.length) {
+          throw new Error(`Sprite/${name} has inconsistent frame counts`);
+        }
+      }
+    });
+    if (numFrames === -1) {
+      throw new Error(`Sprite/${name} given 0 modes`);
+    }
+    if (typeof frameTime !== "number" && frameTime.length !== numFrames) {
+      throw new Error(`Sprite/${name} given ${frameTime.length} frame times for ${numFrames} frames`);
+    }
+    if (options.frameData && options.frameData.length !== numFrames) {
+      throw new Error(`Sprite/${name} given ${options.frameData.length} frame data points for ${numFrames} frames`);
+    }
+    const frameTimes = typeof frameTime === "number" ? (new Array(numFrames)).fill(frameTime) : frameTime;
+    return (mode, time) => new Sprite(options, frameTimes, mode, time);
+  }
+  function characterSpriteSheet({xPercent = 0, yInM = 0, zPercent = 0, widthInPixels, heightInPixels, texPixelsPerUnit, texture, numPerRow, count, reverseX = false}) {
+    const width = widthInPixels / texPixelsPerUnit;
+    const height = heightInPixels / texPixelsPerUnit;
+    return spriteSheet({x:xPercent * width, y:yInM, z:zPercent * height, width, height, texWidth:widthInPixels / texture.w, texHeight:heightInPixels / texture.h, numPerRow, count, reverseX, });
+  }
+  function spriteSheet({x = 0, y = 0, z = 0, width, height, texWidth, texHeight, numPerRow, count, texStartXOffset = 0, texStartYOffset = 0, texWidthStride = texWidth, texHeightStride = texHeight, reverseX = false}) {
+    const result = [];
+    for (let i = 0; i < count; i++) {
+      const row = Math.floor(i / numPerRow);
+      const col = i % numPerRow;
+      const texStartX = texStartXOffset + col * texWidthStride;
+      const texStartY = texStartYOffset + row * texHeightStride;
+      result.push(flatSprite({x, y, z, width, height, texStartX, texEndX:texStartX + texWidth, texStartY, texEndY:texStartY + texHeight, reverseX, }));
+    }
+    return result;
+  }
+  function flatSprite({x = 0, y = 0, z = 0, width, height, depth = 0, texStartX, texStartY, texEndX, texEndY, reverseX = false}) {
+    let startX, endX, leftX, rightX;
+    if (!reverseX) {
+      startX = texStartX;
+      endX = texEndX;
+      leftX = -x;
+      rightX = width - x;
+    } else {
+      startX = texEndX;
+      endX = texStartX;
+      leftX = x - width;
+      rightX = x;
+    }
+    return [rightX, -y, -z, endX, texEndY, leftX, -y, -z, startX, texEndY, rightX, depth - y, height - z, endX, texStartY, leftX, depth - y, height - z, startX, texStartY, ];
+  }
+}, "src/sprites.js", ["src/swagl.js"]);
+
+//src/SpriteData.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {HERO_HEIGHT:{enumerable:true, get:function() {
+    return HERO_HEIGHT;
+  }}, LADDER_Y:{enumerable:true, get:function() {
+    return LADDER_Y;
+  }}, LAYOUT_TARGETS:{enumerable:true, get:function() {
+    return LAYOUT_TARGETS;
+  }}, PIXELS_PER_METER:{enumerable:true, get:function() {
+    return PIXELS_PER_METER;
+  }}, ROOM_DEPTH_RADIUS:{enumerable:true, get:function() {
+    return ROOM_DEPTH_RADIUS;
+  }}, ROOM_HEIGHT:{enumerable:true, get:function() {
+    return ROOM_HEIGHT;
+  }}, SWITCH_HEIGHT:{enumerable:true, get:function() {
+    return SWITCH_HEIGHT;
+  }}, TENTACLE_FRAMES:{enumerable:true, get:function() {
+    return TENTACLE_FRAMES;
+  }}, TEX_PIXELS_PER_METER:{enumerable:true, get:function() {
+    return TEX_PIXELS_PER_METER;
+  }}, TEX_PIXEL_PER_PIXEL:{enumerable:true, get:function() {
+    return TEX_PIXEL_PER_PIXEL;
+  }}, WALL_META:{enumerable:true, get:function() {
+    return WALL_META;
+  }}});
+  const TEX_PIXEL_PER_PIXEL = 2;
+  const PIXELS_PER_METER = 180;
+  const TEX_PIXELS_PER_METER = TEX_PIXEL_PER_PIXEL * PIXELS_PER_METER;
+  const ROOM_DEPTH_RADIUS = 0.75;
+  const ROOM_HEIGHT = 2.5;
+  const LADDER_Y = ROOM_DEPTH_RADIUS - 0.2;
+  const SWITCH_HEIGHT = 1.4;
+  const HERO_HEIGHT = 1.8;
+  const TENTACLE_FRAMES = 29;
+  const WALL_META = {portholeR:100, portholeRNextPowerOf2:128, portholeXs:[2423], portholeD:353, };
+  const LAYOUT_TARGETS = {CEIL_LIP:-70, CEIL_FOREGROUND:0, CEIL_BACKGROUND:216, FLOOR_BACKGROUND:752, FLOOR_FOREGROUND:968, FLOOR_LIP:1038, };
+}, "src/SpriteData.js", []);
+
+//src/webgames/math.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {arctan:{enumerable:true, get:function() {
+    return arctan;
+  }}});
+  function arctan(opposite, adjacent) {
+    if (adjacent > 0) {
+      return Math.atan(opposite / adjacent);
+    } else {
+      if (adjacent === 0) {
+        if (opposite > 0) {
+          return Math.PI / 2;
+        } else {
+          if (opposite === 0) {
+            return 0;
+          } else {
+            return -Math.PI / 2;
+          }
+        }
+      } else {
+        return Math.atan(opposite / adjacent) + Math.PI;
+      }
+    }
+  }
+}, "src/webgames/math.js", []);
+
+//src/Creature.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {Creature:{enumerable:true, get:function() {
+    return Creature;
+  }}, CreatureResources:{enumerable:true, get:function() {
+    return CreatureResources;
+  }}, deathByAxe:{enumerable:true, get:function() {
+    return deathByAxe;
+  }}, loadCreatureResources:{enumerable:true, get:function() {
+    return loadCreatureResources;
+  }}, processCreatures:{enumerable:true, get:function() {
+    return processCreatures;
+  }}, renderCreatures:{enumerable:true, get:function() {
+    return renderCreatures;
+  }}, spawnCreature:{enumerable:true, get:function() {
+    return spawnCreature;
+  }}});
+  var module$src$SpriteData = $$require("src/SpriteData.js");
+  var module$src$sprites = $$require("src/sprites.js");
+  var module$src$swagl = $$require("src/swagl.js");
+  var module$src$Scene = $$require("src/Scene.js");
+  var module$src$webgames$math = $$require("src/webgames/math.js");
+  const CREATURE_RADIUS_PIXELS = 54;
+  const CREATURE_IDLE_FRAMES = 6;
+  const CREATURE_RADIUS = 0.25;
+  const CREATURE_SPEED = 0.01;
+  const CREATURE_BONUS_SPEED = 0.02;
+  const CREATURE_HUNTING_DISTANCE = 2;
+  const CREATURE_ATTACK_DISTANCE = 0.5;
+  const STEP_TIME = 1 / 8;
+  const ATTACH_Z_OFFSET = CREATURE_RADIUS * (3 / 4);
+  let Tentacle;
+  let CreatureResources;
+  let CreatureState;
+  const mirrorX = new Float32Array([-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, ]);
+  async function loadCreatureResources(loadTexture, loadSound) {
+    const [creatureTex, tentacleTex, creatureAttackTex, enemyDyingSound, creatureDeathTex] = await Promise.all([loadTexture("creature", "assets/Enemy.png"), loadTexture("tentacle", "assets/Tentacle.png"), loadTexture("creature_attack", "assets/enemy_bite.png"), loadSound("assets/Enemy Dying.mp3"), loadTexture("creature_death", "assets/Enemy Dying.png"), ]);
+    const creatureSpriteSet = new module$src$sprites.SpriteSet(creatureTex, {"blink":(0,module$src$sprites.spriteSheet)({x:CREATURE_RADIUS, z:CREATURE_RADIUS, width:2 * CREATURE_RADIUS, height:2 * CREATURE_RADIUS, texWidth:2 * CREATURE_RADIUS_PIXELS / creatureTex.w, texHeight:2 * CREATURE_RADIUS_PIXELS / creatureTex.h, numPerRow:2, count:CREATURE_IDLE_FRAMES, reverseX:true, }), });
+    const makeCreatureAttackSprite = (0,module$src$sprites.makeSpriteType)({name:"creature_attack", set:new module$src$sprites.SpriteSet(creatureAttackTex, {"bite":(0,module$src$sprites.spriteSheet)({x:2 * CREATURE_RADIUS, z:3 * CREATURE_RADIUS, width:4 * CREATURE_RADIUS, height:8 * CREATURE_RADIUS, texHeight:530 / creatureAttackTex.h, texWidth:278 / creatureAttackTex.w, numPerRow:7, count:42, reverseX:true, }), }), modes:["bite"], loops:false, frameTime:1 / 42, });
+    const makeCreatureDeathSprite = (0,module$src$sprites.makeSpriteType)({name:"creature_death", set:new module$src$sprites.SpriteSet(creatureDeathTex, {"left":(0,module$src$sprites.spriteSheet)({x:330 / (460 / module$src$SpriteData.HERO_HEIGHT), y:module$src$SpriteData.ROOM_DEPTH_RADIUS / 2, z:0, width:660 / (460 / module$src$SpriteData.HERO_HEIGHT), height:module$src$SpriteData.HERO_HEIGHT, texWidth:660 / creatureDeathTex.w, texHeight:460 / creatureDeathTex.h, numPerRow:3, count:12, }), "right":(0,module$src$sprites.spriteSheet)({x:330 / 
+    (450 / module$src$SpriteData.HERO_HEIGHT), y:module$src$SpriteData.ROOM_DEPTH_RADIUS / 2, z:0, width:660 / (450 / module$src$SpriteData.HERO_HEIGHT), height:module$src$SpriteData.HERO_HEIGHT, texWidth:660 / creatureDeathTex.w, texHeight:450 / creatureDeathTex.h, numPerRow:3, count:12, reverseX:true, }), }), modes:["left", "right"], loops:false, frameTime:1 / 8, });
+    const frameTimes = (new Array(CREATURE_IDLE_FRAMES)).fill(1 / 8);
+    frameTimes[0] = 4;
+    const makeCreatureSprite = (0,module$src$sprites.makeSpriteType)({name:"creature_normal", set:creatureSpriteSet, modes:["blink"], loops:true, frameTime:frameTimes, });
+    const tentacleFrames = [];
+    const tentacleFramesPerRow = 5;
+    const tipPoint = {x:0, y:48};
+    const basePoint = {x:92, y:26};
+    const basis = {x:basePoint.x - tipPoint.x, y:basePoint.y - tipPoint.y};
+    const unitMag = Math.sqrt(basis.x * basis.x + basis.y * basis.y);
+    basis.x /= unitMag;
+    basis.y /= unitMag;
+    const tentacleFrameW = 100;
+    const tentacleFrameH = 77;
+    for (let i = 0; i < module$src$SpriteData.TENTACLE_FRAMES; i++) {
+      const col = i % tentacleFramesPerRow;
+      const row = Math.floor(i / tentacleFramesPerRow);
+      const points = [];
+      const addProjectedPoint = (rawX, rawY) => {
+        const x = rawX * tentacleFrameW - tipPoint.x;
+        const y = rawY * tentacleFrameH - tipPoint.y;
+        points.push((x * basis.x + y * basis.y) / unitMag, rawX, (x * -basis.y + y * basis.x) / module$src$SpriteData.TEX_PIXELS_PER_METER, tentacleFrameW * (col + rawX) / tentacleTex.w, tentacleFrameH * (row + rawY) / tentacleTex.h);
+      };
+      addProjectedPoint(1, 1);
+      addProjectedPoint(0, 1);
+      addProjectedPoint(1, 0);
+      addProjectedPoint(0, 0);
+      tentacleFrames.push(points);
+    }
+    const tentacleSprite = new module$src$sprites.SpriteSet(tentacleTex, {"wiggle":tentacleFrames, });
+    return {makeCreatureSprite, makeCreatureAttackSprite, makeCreatureDeathSprite, tentacleSprite, enemyDyingSound, };
+  }
+  function makeDefaultCreatureSprite(room) {
+    return room.resources.creature.makeCreatureSprite("blink", room.roomTime);
+  }
+  class Creature {
+    constructor(room, x, y, heightOffGround) {
+      const sprite = makeDefaultCreatureSprite(room);
+      const roomBottom = room.roomBottom;
+      this.startX = x;
+      this.x = x;
+      this.y = y;
+      this.z = heightOffGround;
+      this.nextTentacleMove = 0;
+      this.nextTentacleIndex = 0;
+      this.tentacles = [makeTentacle(0, x, y, -1, 1, roomBottom), makeTentacle(1, x, y, -1, -1, roomBottom), makeTentacle(2, x, y, 1, 1, roomBottom), makeTentacle(3, x, y, 1, -1, roomBottom), ];
+      this.sprite = sprite;
+      this.state = creatureStateNormal(this, room);
+    }
+    changeState(room, stateBuilder) {
+      const oldStateOnExit = this.state.onExit;
+      if (oldStateOnExit) {
+        oldStateOnExit();
+      }
+      const state = stateBuilder(this, room);
+      this.state = state;
+      state.processStep(room);
+    }
+    setSprite(makeSprite, time, mode) {
+      this.sprite = makeSprite(mode, time);
+    }
+    adjustTentacles(room, speedX) {
+      const roomTime = room.roomTime;
+      if (roomTime > this.nextTentacleMove) {
+        let index = this.nextTentacleIndex;
+        this.nextTentacleIndex = (index + 1) % this.tentacles.length;
+        const toPlace = this.tentacles[index];
+        const placementX = this.x + (STEP_TIME + 0.1) * speedX + toPlace.idealX;
+        if (Math.abs(placementX - toPlace.placementX) > 0.05) {
+          this.nextTentacleMove = roomTime + STEP_TIME;
+          toPlace.movingUntil = roomTime + STEP_TIME;
+          toPlace.moveStartX = toPlace.placementX;
+          toPlace.moveStartY = toPlace.placementY;
+          toPlace.moveStartZ = toPlace.placementZ;
+          toPlace.placementX = placementX;
+          toPlace.placementY = this.y + toPlace.idealY;
+          toPlace.placementZ = room.roomBottom;
+        }
+      }
+    }
+  }
+  function distanceFromHero(creature, room) {
+    return Math.abs(creature.x - room.hero.heroX);
+  }
+  function creatureStateNormal(creature, room) {
+    return {name:"creature_normal", processStep:() => {
+      const roomTime = room.roomTime;
+      creature.x = creature.startX + Math.sin(roomTime);
+      creature.adjustTentacles(room, 0.5 * Math.cos(roomTime));
+      const heroDistance = distanceFromHero(creature, room);
+      if (heroDistance < CREATURE_HUNTING_DISTANCE) {
+        if (heroDistance < CREATURE_ATTACK_DISTANCE) {
+          creature.state = creatureStateAttack(creature, room);
+        } else {
+          creature.state = creatureStateHunting(creature, room);
+        }
+      }
+    }, render:(gl, program, heroPoint) => {
+      const stack = program.stack;
+      const x = creature.x;
+      const z = creature.z;
+      stack.pushTranslation(x, creature.y, z);
+      let needsMirror = heroPoint.x < x;
+      let angle = (0,module$src$webgames$math.arctan)(heroPoint.z - z, heroPoint.x - x);
+      if (needsMirror) {
+        stack.push(mirrorX);
+        angle = Math.PI - angle;
+      }
+      stack.pushYRotation(angle);
+      creature.sprite.renderSprite(program);
+      stack.pop();
+      if (needsMirror) {
+        stack.pop();
+      }
+      stack.pop();
+    }, };
+  }
+  function getCreatureSpeed(room, start) {
+    const currentTime = room.roomTime;
+    return CREATURE_SPEED + Math.min(1, (currentTime - start) / 3) * CREATURE_BONUS_SPEED;
+  }
+  function creatureStateHunting(creature, room) {
+    const startedAt = room.roomTime;
+    return {name:"creature_hunting", processStep:() => {
+      const roomTime = room.roomTime;
+      const heroX = room.hero.heroX;
+      const heroDistance = distanceFromHero(creature, room);
+      if (heroDistance > CREATURE_ATTACK_DISTANCE / 2) {
+        creature.x += (heroX < creature.x ? -1 : 1) * getCreatureSpeed(room, startedAt);
+      }
+      creature.adjustTentacles(room, 0.5 * Math.cos(roomTime));
+      if (heroDistance < CREATURE_ATTACK_DISTANCE && roomTime - startedAt > 1) {
+        creature.state = creatureStateAttack(creature, room);
+      }
+    }, render:(gl, program, heroPoint) => {
+      const stack = program.stack;
+      const x = creature.x;
+      const z = creature.z;
+      stack.pushTranslation(x, creature.y, z);
+      let needsMirror = heroPoint.x < x;
+      let angle = (0,module$src$webgames$math.arctan)(heroPoint.z - z, heroPoint.x - x);
+      if (needsMirror) {
+        stack.push(mirrorX);
+        angle = Math.PI - angle;
+      }
+      stack.pushYRotation(angle);
+      creature.sprite.renderSprite(program);
+      stack.pop();
+      if (needsMirror) {
+        stack.pop();
+      }
+      stack.pop();
+    }, };
+  }
+  function creatureStateAttack(creature, room) {
+    const sprite = room.resources.creature.makeCreatureAttackSprite("bite", room.roomTime);
+    creature.sprite = sprite;
+    return {name:"creature_attack", processStep:() => {
+      if (sprite.isFinished()) {
+        const heroDistance = distanceFromHero(creature, room);
+        if (heroDistance < 1.5) {
+          console.warn("Kill / hurt the hero");
+        }
+        creature.state = creatureStateHunting(creature, room);
+        creature.sprite = makeDefaultCreatureSprite(room);
+      }
+    }, render:(gl, program, heroPoint) => {
+      const stack = program.stack;
+      const x = creature.x;
+      const z = creature.z;
+      stack.pushTranslation(x, creature.y, z);
+      let needsMirror = heroPoint.x < x;
+      let angle = (0,module$src$webgames$math.arctan)(heroPoint.z - z, heroPoint.x - x);
+      if (needsMirror) {
+        stack.push(mirrorX);
+        angle = Math.PI - angle;
+      }
+      stack.pushYRotation(angle);
+      creature.sprite.renderSprite(program);
+      stack.pop();
+      if (needsMirror) {
+        stack.pop();
+      }
+      stack.pop();
+    }, };
+  }
+  function deathByAxe(creature, room) {
+    if (creature.state.name !== "creature_death") {
+      creature.changeState(room, creatureStateDeathByAxe);
+    }
+  }
+  function creatureStateDeathByAxe(creature, room) {
+    room.audio.playSound(creature, room.resources.creature.enemyDyingSound);
+    const sprite = room.resources.creature.makeCreatureDeathSprite(room.hero.heroX < creature.x ? "left" : "right", room.roomTime);
+    creature.sprite = sprite;
+    return {name:"creature_death", processStep:() => {
+      if (sprite.frameIndex() > 1 && creature.tentacles.length) {
+        creature.tentacles = [];
+      }
+      if (sprite.isFinished()) {
+        room.creatures.splice(room.creatures.indexOf(creature), 1);
+      }
+    }, render:(gl, program) => {
+      console.log("DEATH");
+      const stack = program.stack;
+      stack.pushTranslation(creature.x, creature.y, room.roomBottom);
+      sprite.renderSprite(program);
+      stack.pop();
+    }, };
+  }
+  function spawnCreature(room, x) {
+    room.creatures.push(new Creature(room, x, 0, room.roomBottom + 3 * CREATURE_RADIUS));
+  }
+  function processCreatures(room) {
+    const roomTime = room.roomTime;
+    room.creatures.forEach(creature => {
+      creature.sprite.updateTime(roomTime);
+      creature.state.processStep(room);
+    });
+  }
+  function renderCreatures(gl, program, room) {
+    const stack = program.stack;
+    const {tentacleSprite} = room.resources.creature;
+    const roomTime = room.roomTime;
+    const heroPoint = room.hero.getGoodFocusPoint();
+    room.creatures.forEach(creature => {
+      creature.state.render(gl, program, heroPoint);
+    });
+    tentacleSprite.bindTo(program);
+    room.creatures.forEach(creature => {
+      const attachZ = creature.z - ATTACH_Z_OFFSET;
+      creature.tentacles.forEach(tentacle => {
+        const attachX = creature.x + tentacle.bodyX;
+        const attachY = creature.y + tentacle.bodyY;
+        let placementX = tentacle.placementX;
+        let placementY = tentacle.placementY;
+        let placementZ = tentacle.placementZ;
+        const movingUntil = tentacle.movingUntil;
+        if (roomTime < movingUntil) {
+          const percent = 1 - (movingUntil - roomTime) / STEP_TIME;
+          placementX = bezier(percent, tentacle.moveStartX, attachX, placementX);
+          placementY = bezier(percent, tentacle.moveStartY, attachY, placementY);
+          placementZ = bezier(percent, tentacle.moveStartZ, attachZ, placementZ);
+        }
+        const dX = attachX - placementX;
+        const dY = attachY - placementY;
+        const dZ = attachZ - placementZ;
+        const mag = Math.sqrt(dX * dX + dY * dY + dZ * dZ);
+        stack.pushTranslation(placementX, placementY, placementZ);
+        stack.pushYRotation((0,module$src$webgames$math.arctan)(dZ, dX));
+        stack.push(new Float32Array([mag, 0, 0, 0, 0, dY, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]));
+        tentacleSprite.renderSpriteDatumPrebound("wiggle", Math.abs((Math.floor(24 * Date.now() / 1000) + tentacle.frameOffset) % (2 * module$src$SpriteData.TENTACLE_FRAMES - 1) + 1 - module$src$SpriteData.TENTACLE_FRAMES));
+        stack.pop();
+        stack.pop();
+        stack.pop();
+      });
+    });
+  }
+  function makeTentacle(index, x, y, xSign, ySign, roomBottom) {
+    const idealX = 0.4 * xSign;
+    const idealY = 0.1 * ySign;
+    const placementX = x + idealX;
+    const placementY = y + idealY;
+    return {index, bodyX:xSign * 0.05, bodyY:0, idealX, idealY, movingUntil:0, moveStartX:placementX, moveStartY:placementY, moveStartZ:roomBottom, placementX, placementY, placementZ:roomBottom, frameOffset:0, };
+  }
+  function bezier(percent, v1, v2, v3) {
+    let v12 = percent * v2 + (1 - percent) * v1;
+    let v23 = percent * v3 + (1 - percent) * v2;
+    return percent * v23 + (1 - percent) * v12;
+  }
+}, "src/Creature.js", ["src/SpriteData.js", "src/sprites.js", "src/swagl.js", "src/Scene.js", "src/webgames/math.js"]);
+
+//src/Interactables.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {LightSwitch:{enumerable:true, get:function() {
+    return LightSwitch;
+  }}});
+  var module$src$swagl = $$require("src/swagl.js");
+  var module$src$Scene = $$require("src/Scene.js");
+  class LightSwitch {
+    constructor(x) {
+      this.on = false;
+      this.x = x;
+    }
+    render(gl, program, room) {
+      const stack = program.stack;
+      const switches = room.resources.environ.lightSwitches;
+      stack.pushTranslation(this.x, 0, room.roomBottom);
+      switches.bindTo(program);
+      switches.renderSpriteDatumPrebound(this.on ? "on" : "off", 0);
+      stack.pop();
+    }
+  }
+}, "src/Interactables.js", ["src/swagl.js", "src/Scene.js"]);
+
+//src/Hero.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {Hero:{enumerable:true, get:function() {
+    return Hero;
+  }}, HeroResources:{enumerable:true, get:function() {
+    return HeroResources;
+  }}, heroStateNormal:{enumerable:true, get:function() {
+    return heroStateNormal;
+  }}, loadHeroResources:{enumerable:true, get:function() {
+    return loadHeroResources;
+  }}, processHero:{enumerable:true, get:function() {
+    return processHero;
+  }}, renderHero:{enumerable:true, get:function() {
+    return renderHero;
+  }}, transitionInHero:{enumerable:true, get:function() {
+    return transitionInHero;
+  }}});
+  var module$src$sprites = $$require("src/sprites.js");
+  var module$src$swagl = $$require("src/swagl.js");
+  var module$src$SpriteData = $$require("src/SpriteData.js");
+  var module$src$webgames$math = $$require("src/webgames/math.js");
+  var module$src$Scene = $$require("src/Scene.js");
+  var module$src$Creature = $$require("src/Creature.js");
+  var module$src$Interactables = $$require("src/Interactables.js");
+  const HERO_PIXELS_PER_METER = 434 / module$src$SpriteData.HERO_HEIGHT;
+  const charWInM = 405 / HERO_PIXELS_PER_METER;
+  let HeroResources;
+  let FlarePosition;
+  let HeroState;
+  class Hero {
+    constructor(resources, x, z) {
+      this.heroX = x;
+      this.heroY = 0;
+      this.heroZ = z;
+      this.signX = 1;
+      this.speedX = 0;
+      this.sprite = resources.makeIdleSprite("right", 0);
+      this.state = {name:"unstarted", processStep:room => this.changeState(room, heroStateNormal), render:() => {
+        throw new Error("Hero did not get processed before rendering!");
+      }, };
+    }
+    getGoodFocusPoint() {
+      return {x:this.heroX, z:this.heroZ + module$src$SpriteData.HERO_HEIGHT - 0.1};
+    }
+    isFacingLeft() {
+      return this.signX === -1;
+    }
+    directionMode() {
+      return this.signX === -1 ? "left" : "right";
+    }
+    flarePosition() {
+      const data = this.sprite.frameData();
+      return data ? data.flare : null;
+    }
+    setSpeedX(speedX) {
+      this.speedX = speedX;
+      if (speedX !== 0) {
+        this.signX = Math.sign(speedX);
+      }
+    }
+    setSprite(makeSprite, time, mode = this.directionMode()) {
+      this.sprite = makeSprite(mode, time);
+    }
+    renderSprite(gl, program, room) {
+      const stack = program.stack;
+      stack.pushTranslation(this.heroX, this.heroY, this.heroZ);
+      this.sprite.renderSprite(program);
+      stack.pop();
+    }
+    changeState(room, stateBuilder, arg) {
+      const oldStateOnExit = this.state.onExit;
+      if (oldStateOnExit) {
+        oldStateOnExit();
+      }
+      const state = stateBuilder(this, room, arg);
+      this.state = state;
+      state.processStep(room);
+    }
+  }
+  function processHero(room) {
+    const hero = room.hero;
+    hero.sprite.updateTime(room.roomTime);
+    hero.state.processStep(room);
+  }
+  function renderHero(gl, program, room) {
+    const render = room.hero.state.render;
+    if (render) {
+      render(gl, program);
+    } else {
+      room.hero.renderSprite(gl, program, room);
+    }
+  }
+  function heroStateNormal(hero, room) {
+    let isIdle = true;
+    hero.setSprite(room.resources.hero.makeIdleSprite, room.roomTime);
+    const state = {name:"normal", processStep:room => {
+      const {hero, roomTime, input} = room;
+      if (input.isPressed("up")) {
+        const didInteract = room.interactables.some(interactable => {
+          if (interactable instanceof module$src$Interactables.LightSwitch) {
+            if (!interactable.on && Math.abs(hero.heroX - interactable.x) < 0.2) {
+              hero.changeState(room, heroStateFlipSwitch, interactable);
+              return true;
+            }
+          }
+        });
+        if (didInteract) {
+          return;
+        }
+      }
+      if (room.name === "r0" && input.isPressed("up")) {
+        hero.changeState(room, heroStateClimbing);
+        return;
+      }
+      if (input.isPressed("attack")) {
+        hero.changeState(room, heroStateAttacking);
+        return;
+      }
+      let charDx = 1.2 * room.stepSize * input.getSignOfAction("left", "right");
+      const plannedX = hero.heroX + charDx;
+      if (plannedX < room.roomLeft + charWInM) {
+        charDx = room.roomLeft + charWInM - hero.heroX;
+      } else {
+        if (plannedX > room.roomRight - charWInM) {
+          charDx = room.roomRight - charWInM - hero.heroX;
+        }
+      }
+      hero.setSpeedX(charDx / room.stepSize);
+      const mode = hero.directionMode();
+      if (charDx) {
+        hero.heroX += charDx;
+        if (isIdle) {
+          isIdle = false;
+          hero.setSprite(room.resources.hero.makeWalkSprite, roomTime);
+        }
+      } else {
+        if (!isIdle) {
+          isIdle = true;
+          hero.setSprite(room.resources.hero.makeIdleSprite, roomTime);
+        }
+      }
+      hero.sprite.setMode(mode);
+    }, };
+    return state;
+  }
+  function heroStateAttacking(hero, room) {
+    const targetX = hero.heroX + hero.signX * (300 / HERO_PIXELS_PER_METER);
+    const enemyInRange = room.creatures.find(creature => Math.abs(targetX - creature.x) < 0.4);
+    if (enemyInRange) {
+      (0,module$src$Creature.deathByAxe)(enemyInRange, room);
+    }
+    hero.setSprite(room.resources.hero.makeAttackSprite, room.roomTime);
+    hero.setSpeedX(0);
+    const grunts = room.resources.hero.grunts;
+    room.audio.playSound(hero, grunts[Math.floor(Math.random() * grunts.length)]);
+    return {name:"attacking", processStep:room => {
+      if (hero.sprite.isFinished()) {
+        hero.changeState(room, heroStateNormal);
+      }
+    }, };
+  }
+  function heroStateFlipSwitch(hero, room, light) {
+    hero.setSprite(room.resources.hero.makeSwitchFlipSprite, room.roomTime, "main");
+    hero.setSpeedX(0);
+    hero.heroX = light.x;
+    return {name:"switch_on", processStep:() => {
+      if (!light.on && hero.sprite.frameIndex() >= 6) {
+        room.audio.playSound(light, room.resources.hero.lightSwitchSound);
+        room.lightsOn = true;
+        light.on = true;
+      }
+      if (hero.sprite.isFinished()) {
+        hero.changeState(room, heroStateNormal);
+      }
+    }, };
+  }
+  function heroStateClimbing(hero, room) {
+    hero.setSprite(room.resources.hero.makeClimbingSprite, room.roomTime, "up");
+    hero.setSpeedX(0);
+    hero.heroY = module$src$SpriteData.LADDER_Y;
+    room.transition = {roomName:"r1", transitionType:"up", realWorldStartTime:Date.now() / 1000, seconds:1, };
+    return {name:"climbing", processStep:room => {
+      if (hero.sprite.isFinished()) {
+        hero.changeState(room, heroStateNormal);
+      } else {
+        hero.heroZ = room.roomBottom + 0.3 * Math.min(5, hero.sprite.frameIndex());
+      }
+    }, onExit:() => {
+      hero.heroY = 0;
+      hero.heroZ = room.roomBottom;
+    }, };
+  }
+  function heroStateEnterFromHatch(hero, room) {
+    const startTime = room.roomTime;
+    hero.setSprite(room.resources.hero.makeExitHatchSprite, room.roomTime, "exit");
+    hero.setSpeedX(0);
+    room.locks++;
+    return {name:"entering_hatch", processStep:() => {
+      const sprite = hero.sprite;
+      if (room.roomTime < startTime + 1) {
+        sprite.resetSprite("exit", room.roomTime);
+      } else {
+        if (sprite.isFinished()) {
+          hero.changeState(room, heroStateNormal);
+        } else {
+          const offsets = [-.5, -.5, -.3, -.3];
+          hero.heroZ = room.roomBottom + (offsets[hero.sprite.frameIndex()] || 0);
+        }
+      }
+    }, render:(gl, program) => {
+      if (room.roomTime < startTime + 1) {
+        return;
+      }
+      hero.renderSprite(gl, program, room);
+    }, onExit:() => {
+      room.locks--;
+      hero.heroZ = room.roomBottom;
+    }, };
+  }
+  function transitionInHero(transition, oldRoom, newRoom) {
+    const hero = newRoom.hero;
+    hero.heroX = oldRoom.hero.heroX;
+    hero.changeState(newRoom, heroStateEnterFromHatch);
+  }
+  async function loadHeroResources(loadTexture, loadSound) {
+    const [idleTex, walkTex, attackTex, climbingTex, hatchTex, switchTex, grunts, lightSwitchSound] = await Promise.all([loadTexture("hero_idle", "assets/Hero Breathing with axe.png"), loadTexture("hero_walk", "assets/Hero Walking with axe.png"), loadTexture("hero_attack", "assets/Axe Chop.png"), loadTexture("hero_climbing", "assets/Climbing Up.png"), loadTexture("hero_hatch", "assets/climbing_in.png"), loadTexture("hero_light", "assets/Hero flipping Switch.png"), Promise.all([loadSound("assets/Grunt1.mp3"), 
+    loadSound("assets/Grunt2.mp3"), loadSound("assets/Grunt3.mp3"), ]), loadSound("assets/light.mp3"), ]);
+    const enterHatch = {name:"hero_hatch_enter", tex:hatchTex, widthPx:350, heightPx:406, xPx:161, yPx:479, frameCount:6, loops:false, frameTime:1 / 8, flareData:[{tx:201, ty:137, bx:172, by:175}, {tx:422, ty:246, bx:461, by:259}, {tx:67, ty:659, bx:113, by:651}, {tx:419, ty:658, bx:462, by:648}, {tx:80, ty:1041, bx:106, by:1067}, null, ], singleMode:"enter", };
+    return {grunts, makeIdleSprite:makeHeroSpriteType({name:"hero_idle", tex:idleTex, widthPx:405, heightPx:434, xPx:220, yPx:434, frameCount:16, loops:true, frameTime:1 / 12, flareData:[{tx:388, ty:104, bx:385, by:170}, {tx:792, ty:105, bx:790, by:170}, {tx:1198, ty:105, bx:1195, by:169}, {tx:1602, ty:106, bx:1600, by:170}, {tx:2008, ty:106, bx:2005, by:172}, {tx:388, ty:539, bx:385, by:604}, {tx:794, ty:540, bx:790, by:605}, {tx:1196, ty:539, bx:1196, by:604}, {tx:1602, ty:539, bx:1602, by:604}, 
+    {tx:2009, ty:541, bx:2007, by:604}, {tx:386, ty:974, bx:385, by:1036}, {tx:792, ty:972, bx:790, by:1033}, {tx:1198, ty:974, bx:1196, by:1038}, {tx:1602, ty:972, bx:1601, by:1036}, {tx:2010, ty:974, bx:2005, by:1044}, {tx:386, ty:1406, bx:385, by:1477}, ], }), makeWalkSprite:makeHeroSpriteType({name:"hero_walk", tex:walkTex, widthPx:424, heightPx:444, xPx:258, yPx:444, frameCount:8, loops:true, frameTime:1 / 8, flareData:[{tx:408, ty:110, bx:404, by:166}, {tx:830, ty:110, bx:829, by:166}, {tx:408, 
+    ty:554, bx:404, by:614}, {tx:830, ty:554, bx:829, by:614}, {tx:408, ty:998, bx:404, by:1055}, {tx:830, ty:998, bx:829, by:1055}, {tx:408, ty:1444, bx:404, by:1500}, {tx:830, ty:1444, bx:829, by:1500}, ], }), makeAttackSprite:makeHeroSpriteType({name:"hero_attack", tex:attackTex, widthPx:644, heightPx:565, xPx:284, yPx:565, frameCount:5, loops:false, frameTime:1 / 12, flareData:[{tx:422, ty:285, bx:415, by:353}, {tx:936, ty:367, bx:868, by:380}, {tx:1507, ty:311, bx:1469, by:318}, {tx:162, ty:948, 
+    bx:206, by:943}, {tx:1025, ty:934, bx:976, by:962}, ], }), makeClimbingSprite:makeHeroSpriteType({name:"hero_climbing_up", tex:climbingTex, widthPx:222, heightPx:412, xPx:110, yPx:412, frameCount:8, loops:false, frameTime:1 / 8, flareData:[{tx:128, ty:60, bx:65, by:54}, {tx:329, ty:155, bx:277, by:148}, {tx:579, ty:58, bx:518, by:56}, {tx:772, ty:157, bx:721, by:156}, {tx:95, ty:575, bx:65, by:567}, {tx:337, ty:472, bx:286, by:465}, null, null, ], singleMode:"up", scale:1.4, }), makeEnterHatchSprite:makeHeroSpriteType(enterHatch), 
+    makeExitHatchSprite:makeHeroSpriteType({...enterHatch, name:"hero_hatch_exit", singleMode:"exit", reverseOrder:true, }), makeSwitchFlipSprite:makeHeroSpriteType({name:"hero_switch", tex:switchTex, widthPx:274, heightPx:444, xPx:104, yPx:442, frameCount:9, loops:false, frameTime:1 / 12, singleMode:"main", flareData:null, }), lightSwitchSound, };
+  }
+  function makeHeroSpriteType(options) {
+    const {tex, widthPx, heightPx, xPx, yPx, frameCount} = options;
+    const maybeReverse = options.reverseOrder ? array => [...array].reverse() : array => array;
+    const pxPerMeter = HERO_PIXELS_PER_METER / (options.scale || 1);
+    const numPerRow = Math.floor(tex.w / widthPx);
+    const spriteSheetOptions = {x:xPx / pxPerMeter, z:(heightPx - yPx) / pxPerMeter, width:widthPx / pxPerMeter, height:heightPx / pxPerMeter, texWidth:widthPx / tex.w, texHeight:heightPx / tex.h, numPerRow, count:frameCount, };
+    const perFrameData = options.flareData && options.flareData.map((data, index) => {
+      if (!data) {
+        return {flare:null};
+      }
+      const {tx, ty, bx, by} = data;
+      const row = Math.floor(index / numPerRow);
+      const col = index % numPerRow;
+      return {flare:{x:(tx - (col * widthPx + xPx)) / pxPerMeter, z:(row * heightPx + yPx - ty) / pxPerMeter, angle:(0,module$src$webgames$math.arctan)(-(ty - by), tx - bx), }, };
+    });
+    let spriteSet, modes;
+    if (options.singleMode) {
+      modes = [options.singleMode];
+      spriteSet = new module$src$sprites.SpriteSet(tex, {[options.singleMode]:maybeReverse((0,module$src$sprites.spriteSheet)(spriteSheetOptions)), });
+    } else {
+      modes = ["left", "right"];
+      spriteSet = new module$src$sprites.SpriteSet(tex, {"right":maybeReverse((0,module$src$sprites.spriteSheet)(spriteSheetOptions)), "left":maybeReverse((0,module$src$sprites.spriteSheet)({...spriteSheetOptions, reverseX:true})), });
+    }
+    return (0,module$src$sprites.makeSpriteType)({name:options.name, set:spriteSet, modes, loops:options.loops, frameTime:options.frameTime, perFrameData:perFrameData && maybeReverse(perFrameData), });
+  }
+}, "src/Hero.js", ["src/sprites.js", "src/swagl.js", "src/SpriteData.js", "src/webgames/math.js", "src/Scene.js", "src/Creature.js", "src/Interactables.js"]);
+
+//src/webgames/Audio.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {AudioManager:{enumerable:true, get:function() {
+    return AudioManager;
+  }}});
+  class AudioManager {
+    constructor() {
+      this.audioContext = new AudioContext;
+      this.activeSounds = new WeakMap;
+    }
+    loadSound(url) {
+      return fetch(url).then(response => {
+        if (!response.ok) {
+          throw new Error(`failed to load ${url}`);
+        }
+        return response.arrayBuffer();
+      }).then(buffer => this.audioContext.decodeAudioData(buffer));
+    }
+    playSound(source, buffer) {
+      const activeSounds = this.activeSounds;
+      const priorSound = activeSounds.get(source);
+      if (priorSound) {
+        priorSound.stop();
+      }
+      const audioContext = this.audioContext;
+      const audioSource = audioContext.createBufferSource();
+      audioSource.buffer = buffer;
+      audioSource.connect(audioContext.destination);
+      audioSource.start();
+      activeSounds.set(source, audioSource);
+    }
+  }
+}, "src/webgames/Audio.js", []);
+
+//src/Flare.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {SparkParticle:{enumerable:true, get:function() {
+    return SparkParticle;
+  }}, makeSparkSprite:{enumerable:true, get:function() {
+    return makeSparkSprite;
+  }}, processFlare:{enumerable:true, get:function() {
+    return processFlare;
+  }}, renderSparks:{enumerable:true, get:function() {
+    return renderSparks;
+  }}});
+  var module$src$Scene = $$require("src/Scene.js");
+  var module$src$SpriteData = $$require("src/SpriteData.js");
+  var module$src$swagl = $$require("src/swagl.js");
+  var module$src$sprites = $$require("src/sprites.js");
+  const SPAWN_HERTZ = 48;
+  const MAX_SPARKS = 100;
+  let SparkParticle;
+  function processFlare(room) {
+    const {roomTime, stepSize, hero, sparks, roomBottom} = room;
+    const toSpawn = Math.floor(SPAWN_HERTZ * roomTime) - Math.floor(SPAWN_HERTZ * (roomTime - stepSize));
+    for (let i = 0; i < toSpawn; i++) {
+      const speed = Math.random() * 2 + 1.4;
+      let dy = 0.1 * Math.sin(2 * Math.PI * Math.random());
+      const flarePosition = hero.flarePosition();
+      if (!flarePosition) {
+        break;
+      }
+      const x = hero.heroX + flarePosition.x * hero.signX;
+      const z = flarePosition.z + hero.heroZ;
+      const angle = (Math.random() - 0.5) * (Math.PI / 4) + flarePosition.angle;
+      const dz = speed * Math.sin(angle);
+      const dx = speed * Math.cos(angle) + hero.speedX;
+      if (sparks.length > MAX_SPARKS) {
+        sparks.pop();
+      }
+      sparks.push({dead:false, x, y:hero.heroY + 0.01, z, dx, dy, dz, startTime:roomTime, deathTime:roomTime + 1.5, onFloor:false, });
+    }
+    const normalZ = 1;
+    const normalX = 0;
+    const floorZ = room.roomBottom;
+    const gravityZ = normalZ * 9.8 * stepSize;
+    const gravityX = normalX * 9.8 * stepSize;
+    const friction = 1 - 0.8 * stepSize;
+    sparks.forEach(particle => {
+      const declaredDead = particle.dead;
+      if (!declaredDead && roomTime < particle.deathTime) {
+        particle.x += particle.dx * stepSize;
+        particle.y += particle.dy * stepSize;
+        particle.z += particle.dz * stepSize;
+        let dz = particle.dz;
+        if (particle.onFloor) {
+          particle.dx *= friction;
+          particle.dy *= friction;
+        } else {
+          dz -= gravityZ;
+          particle.dx -= gravityX;
+          particle.dz = dz;
+        }
+        if (particle.x < room.roomLeft || particle.x > room.roomRight) {
+          particle.dead = true;
+        }
+        const y = particle.y;
+        if (y < -module$src$SpriteData.ROOM_DEPTH_RADIUS || y > module$src$SpriteData.ROOM_DEPTH_RADIUS) {
+          const reflectAgainst = y > 0 ? module$src$SpriteData.ROOM_DEPTH_RADIUS : -module$src$SpriteData.ROOM_DEPTH_RADIUS;
+          particle.y = reflectAgainst + (reflectAgainst - y);
+          particle.dy = -particle.dy;
+        }
+        if (particle.z < floorZ) {
+          if (dz > -.01) {
+            particle.z = floorZ;
+            particle.dz = 0;
+            particle.onFloor = true;
+          } else {
+            particle.z = floorZ + floorZ - particle.z;
+            particle.dz = -.25 * dz;
+          }
+        }
+      } else {
+        if (!declaredDead) {
+          particle.dead = true;
+        }
+      }
+    });
+    sparks.sort(compareSparks);
+  }
+  function makeSparkSprite(gl) {
+    const FADE_STEPS = 18;
+    const TAIL_LEAD = 6;
+    const FADE_COEFFICIENT = 1 / FADE_STEPS / FADE_STEPS;
+    const colorVal = dropIndex => {
+      return Math.max(0, Math.min(255, Math.round(256 * (1 - FADE_COEFFICIENT * dropIndex * dropIndex))));
+    };
+    const bmp = [];
+    for (let repeatedRow = 0; repeatedRow < module$src$SpriteData.TEX_PIXEL_PER_PIXEL; repeatedRow++) {
+      for (let i = 0; i < FADE_STEPS; i++) {
+        for (let pixel = 0; pixel < 2; pixel++) {
+          let r, gb, alpha;
+          const pseudoframe = i + pixel * TAIL_LEAD;
+          if (pseudoframe < FADE_STEPS) {
+            r = 255;
+            gb = colorVal(pseudoframe);
+            alpha = 255;
+          } else {
+            r = 0;
+            gb = 0;
+            alpha = 0;
+          }
+          const a = colorVal(i + pixel * TAIL_LEAD);
+          const b = colorVal(i + pixel * TAIL_LEAD + 1);
+          for (let repeatedCol = 0; repeatedCol < module$src$SpriteData.TEX_PIXEL_PER_PIXEL; repeatedCol++) {
+            bmp.push(r, gb, gb, alpha);
+          }
+        }
+      }
+    }
+    const tex = (0,module$src$swagl.loadTextureFromRawBitmap)({name:"spark", width:2 * FADE_STEPS * module$src$SpriteData.TEX_PIXEL_PER_PIXEL, height:module$src$SpriteData.TEX_PIXEL_PER_PIXEL, gl, bmp:new Uint8Array(bmp), });
+    return new module$src$sprites.SpriteSet(tex, {"fading":(0,module$src$sprites.spriteSheet)({x:1 / module$src$SpriteData.PIXELS_PER_METER, width:.04, height:2 / module$src$SpriteData.PIXELS_PER_METER, texWidth:1 / FADE_STEPS, texHeight:1, numPerRow:FADE_STEPS, count:FADE_STEPS, }), });
+  }
+  function compareSparks(a, b) {
+    return a.dead ? b.dead ? 0 : 1 : b.dead ? -1 : a.y - b.y;
+  }
+  function renderSparks(gl, program, room) {
+    const sparkSprite = room.resources.sparkSprite;
+    const stack = program.stack;
+    sparkSprite.bindTo(program);
+    room.sparks.forEach(particle => {
+      if (!particle.dead) {
+        stack.pushTranslation(particle.x, particle.y, particle.z);
+        stack.pushYRotation((particle.dx >= 0 ? Math.PI : 0) + Math.atan(particle.dz / particle.dx));
+        sparkSprite.renderSpriteDatumPrebound("fading", Math.floor(12 * (room.roomTime - particle.startTime)));
+        stack.pop();
+        stack.pop();
+      }
+    });
+  }
+}, "src/Flare.js", ["src/Scene.js", "src/SpriteData.js", "src/swagl.js", "src/sprites.js"]);
+
+//src/Scene.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {Room:{enumerable:true, get:function() {
+    return Room;
+  }}, RoomKernel:{enumerable:true, get:function() {
+    return RoomKernel;
+  }}, Transition:{enumerable:true, get:function() {
+    return Transition;
+  }}, makeRoom:{enumerable:true, get:function() {
+    return makeRoom;
+  }}, offsetAFrameFrom:{enumerable:true, get:function() {
+    return offsetAFrameFrom;
+  }}});
+  var module$src$Creature = $$require("src/Creature.js");
+  var module$src$Hero = $$require("src/Hero.js");
+  var module$src$Environ = $$require("src/Environ.js");
+  var module$src$webgames$Input = $$require("src/webgames/Input.js");
+  var module$src$webgames$Audio = $$require("src/webgames/Audio.js");
+  var module$src$Flare = $$require("src/Flare.js");
+  var module$src$sprites = $$require("src/sprites.js");
+  let Resources;
+  let Transition;
+  let Room;
+  let RoomKernel;
+  function makeRoom(options) {
+    const {roomLeft, roomRight, roomBottom, kernel} = options;
+    return {name:options.name, resources:kernel.resources, input:kernel.input, audio:kernel.audio, creatures:[], roomTime:0, roomTimeOffset:offsetAFrameFrom(0), stepSize:0, roomLeft, roomRight, roomBottom, environSprites:(0,module$src$Environ.makeRoomSprites)(kernel.resources.environ, roomRight - roomLeft, roomLeft), sparks:[], lightsOn:false, hero:new module$src$Hero.Hero(kernel.resources.hero, (roomRight + roomLeft) / 2, roomBottom), transition:null, locks:0, ambientLight:0, interactables:[], };
+  }
+  function offsetAFrameFrom(time) {
+    return Date.now() / 1000 - 1 / 60 - time;
+  }
+}, "src/Scene.js", ["src/Creature.js", "src/Hero.js", "src/Environ.js", "src/webgames/Input.js", "src/webgames/Audio.js", "src/Flare.js", "src/sprites.js"]);
+
+//src/lighting.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {Lighting:{enumerable:true, get:function() {
+    return Lighting;
+  }}});
+  var module$src$swagl = $$require("src/swagl.js");
+  var module$src$sprites = $$require("src/sprites.js");
+  var module$src$SpriteData = $$require("src/SpriteData.js");
+  var module$src$Scene = $$require("src/Scene.js");
+  const COMPRESSION = 4;
+  const fadeWidth = 64;
+  const FLIP_Y = new Float32Array([1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, ]);
+  class Lighting {
+    constructor(gl, viewportWidth, viewportHeight, texPixelsPerMeter) {
+      const lightingTexWidth = viewportWidth / COMPRESSION;
+      const lightingTexHeight = viewportHeight / COMPRESSION;
+      const vShader = new module$src$swagl.Shader({gl, type:"vertex"}, `#version 300 es
+in vec3 a_position;
+in vec2 a_texturePosition;
+
+uniform mat4 u_projection;
+
+out vec2 v_texturePosition;
+
+void main() {
+  gl_Position = u_projection * vec4(a_position, 1);
+  v_texturePosition = a_texturePosition;
+}`);
+      const fShader = new module$src$swagl.Shader({gl, type:"fragment"}, `#version 300 es
+precision mediump float;
+
+uniform sampler2D u_texture;
+uniform float u_threshold;
+uniform vec4 u_color;
+
+in vec2 v_texturePosition;
+out vec4 output_color;
+
+void main() {
+    vec4 color = texture(u_texture, v_texturePosition.st);
+    
+    if (u_threshold != -1.f) {
+      color.a -= u_threshold;
+      if (color.a <= u_threshold) {
+          discard;
+      }
+      output_color = color;
+    } else {
+      if (color.a == 0.f) {
+        discard;
+      }
+      output_color = u_color;
+    }
+}`);
+      const program = new module$src$swagl.Program({gl, projection:"projection"});
+      program.attach(vShader, fShader).link();
+      const targetTex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, targetTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, lightingTexWidth, lightingTexHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      const fb = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, targetTex, 0);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      const fadeRadius = COMPRESSION * (0.5 * fadeWidth) / texPixelsPerMeter;
+      const fadeTexture = (0,module$src$swagl.loadTextureFromRawBitmap)({name:"fade", width:fadeWidth, height:fadeWidth, gl, bmp:makeQuadraticDropoff(fadeWidth, fadeWidth, 0.01, texPixelsPerMeter), });
+      this._program = program;
+      this._targetTex = (0,module$src$swagl.wrapPremadeTexture)({tex:targetTex, name:"lighting", width:lightingTexWidth, height:lightingTexHeight, gl, });
+      this._frameBuffer = fb;
+      this._fade = new module$src$sprites.SpriteSet(fadeTexture, {"main":[[fadeRadius, 0, -fadeRadius, 1, 0, fadeRadius, 0, fadeRadius, 1, 1, -fadeRadius, 0, -fadeRadius, 0, 0, -fadeRadius, 0, fadeRadius, 0, 1, ]], });
+      this._whiteSquare = new module$src$sprites.SpriteSet((0,module$src$swagl.makeSolidTexture)(gl, 255, 255, 255, 255), {"main":[[0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, ]], });
+    }
+    renderLighting(renderInCamera, room) {
+      const gl = this._program.gl;
+      const tex = this._targetTex;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
+      gl.viewport(0, 0, tex.w, tex.h);
+      (0,module$src$swagl.doAnimationFrame)(this._program, (gl, program) => {
+        renderLightingToTexture(gl, program, renderInCamera, this, room);
+      });
+    }
+    lightingTex() {
+      return this._targetTex;
+    }
+  }
+  function renderLightingToTexture(gl, program, renderInCamera, lighting, rooms) {
+    gl.blendFunc(gl.ONE, gl.ONE);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    const thresholdAnchor = program.u["threshold"];
+    const colorAnchor = program.u["color"];
+    gl.uniform1f(thresholdAnchor, -1);
+    const stack = program.stack;
+    renderInCamera(stack, () => {
+      const whiteSquare = lighting._whiteSquare;
+      whiteSquare.bindTo(program);
+      rooms.forEach(room => {
+        gl.uniform4f(colorAnchor, 0, 0, 0, window.lightsOn || room.lightsOn ? 1 : room.ambientLight);
+        const projection = room.resources.environ.projection;
+        const roomLeft = room.roomLeft - projection.lipWidth;
+        const roomWidth = room.roomRight + projection.lipWidth - roomLeft;
+        const roomBottom = room.roomBottom - projection.lipHeight;
+        const roomHeight = 2 * projection.lipHeight + module$src$SpriteData.ROOM_HEIGHT;
+        stack.push(new Float32Array([roomWidth, 0, 0, 0, 0, 0, 0, 0, 0, 0, roomHeight, 0, roomLeft, -module$src$SpriteData.ROOM_DEPTH_RADIUS, roomBottom, 1]));
+        whiteSquare.renderSpriteDatumPrebound("main", 0);
+        stack.pop();
+      });
+      const fade = lighting._fade;
+      fade.bindTo(program);
+      gl.uniform4f(colorAnchor, 0, 0, 0, 1);
+      rooms.forEach(room => {
+        const time = room.roomTime;
+        room.sparks.forEach(particle => {
+          if (!particle.dead) {
+            const startTime = particle.startTime;
+            const percentPassed = (time - startTime) / (particle.deathTime - startTime);
+            gl.uniform1f(thresholdAnchor, 0.5 * percentPassed * percentPassed);
+            stack.pushTranslation(particle.x, particle.y, particle.z);
+            fade.renderSpriteDatumPrebound("main", 0);
+            stack.pop();
+          }
+        });
+      });
+    });
+  }
+  function makeQuadraticDropoff(width, height, brightRadius, texPixelsPerMeter) {
+    const bitmap = new Uint8Array(4 * width * height);
+    const getDistanceSquared = (pixelDx, pixelDy) => {
+      const dx = pixelDx / texPixelsPerMeter;
+      const dy = pixelDy / texPixelsPerMeter;
+      return dx * dx + dy * dy;
+    };
+    const middleX = width / 2;
+    const middleY = height / 2;
+    const brightRadiusSquared = brightRadius * brightRadius;
+    const edgeValue = Math.min(getDistanceSquared(middleX, 0), getDistanceSquared(middleY, 0));
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const offset = 4 * (y * width + x);
+        const distanceSquared = getDistanceSquared(x - middleX, y - middleY);
+        const percentageFromEdge = 1 - Math.sqrt(distanceSquared / edgeValue);
+        const brightAdd = distanceSquared <= brightRadiusSquared ? 5 : 0;
+        const primary = Math.max(Math.round(255 * percentageFromEdge * percentageFromEdge), 0);
+        bitmap[offset + 0] = brightAdd + Math.max(Math.round(20 * percentageFromEdge), 0);
+        bitmap[offset + 1] = brightAdd;
+        bitmap[offset + 2] = brightAdd;
+        bitmap[offset + 3] = primary;
+      }
+    }
+    return bitmap;
+  }
+  function makeCircleSprite(radiusInPixels, texPixelsPerMeter) {
+    const bitmap = new Uint8Array(4 * radiusInPixels * radiusInPixels);
+  }
+}, "src/lighting.js", ["src/swagl.js", "src/sprites.js", "src/SpriteData.js", "src/Scene.js"]);
+
+//src/Environ.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {EnvironResources:{enumerable:true, get:function() {
+    return EnvironResources;
+  }}, EnvironRoomSprites:{enumerable:true, get:function() {
+    return EnvironRoomSprites;
+  }}, ProjectionData:{enumerable:true, get:function() {
+    return ProjectionData;
+  }}, buildProjectionData:{enumerable:true, get:function() {
+    return buildProjectionData;
+  }}, loadEnvironResources:{enumerable:true, get:function() {
+    return loadEnvironResources;
+  }}, makeRoomSprites:{enumerable:true, get:function() {
+    return makeRoomSprites;
+  }}});
+  var module$src$sprites = $$require("src/sprites.js");
+  var module$src$SpriteData = $$require("src/SpriteData.js");
+  var module$src$swagl = $$require("src/swagl.js");
+  let ProjectionData;
+  let EnvironResources;
+  let EnvironRoomSprites;
+  function buildProjectionData(outputWidth, outputHeight) {
+    const roomDepth = 2 * module$src$SpriteData.ROOM_DEPTH_RADIUS;
+    const layoutMiddleY = (module$src$SpriteData.LAYOUT_TARGETS.CEIL_FOREGROUND + module$src$SpriteData.LAYOUT_TARGETS.FLOOR_FOREGROUND) / 2;
+    const clipSpaceY = layoutTargetY => (layoutMiddleY - layoutTargetY) / outputHeight;
+    const Ry = clipSpaceY((module$src$SpriteData.LAYOUT_TARGETS.CEIL_FOREGROUND + module$src$SpriteData.LAYOUT_TARGETS.CEIL_BACKGROUND) / 2);
+    const w1 = Ry / clipSpaceY(module$src$SpriteData.LAYOUT_TARGETS.CEIL_FOREGROUND);
+    const w2 = Ry / clipSpaceY(module$src$SpriteData.LAYOUT_TARGETS.CEIL_BACKGROUND);
+    const scaleY = Ry / (module$src$SpriteData.ROOM_HEIGHT / 2);
+    const scaleX = scaleY * (outputHeight / outputWidth);
+    const matrix = new Float32Array([scaleX, 0, 0, 0, 0, 0, 1 / roomDepth, (w2 - w1) / roomDepth, 0, scaleY, 0, 0, 0, 0, 0, (w1 + w2) / 2, ]);
+    return {matrix, wForeground:w1, wBackground:w2, scaleX, scaleY, widthPx:outputWidth, heightPx:outputHeight, lipHeight:clipSpaceY(module$src$SpriteData.LAYOUT_TARGETS.CEIL_LIP) * w1 / scaleY - module$src$SpriteData.ROOM_HEIGHT / 2, lipWidth:0.3, };
+  }
+  async function loadEnvironResources(projection, loadTexture) {
+    const [ladderTex, wallTex, floorTex, ceilTex, sideTex, variousTex, lightsTex] = await Promise.all([loadTexture("ladder", "assets/ladder.png"), loadTexture("wall", "assets/Back Wall.png"), loadTexture("floor", "assets/floor.png"), loadTexture("ceiling", "assets/ceiling.png"), loadTexture("wall", "assets/side_wall.png"), loadTexture("set_pieces", "assets/set_pieces.png"), loadTexture("lights", "assets/Light Switch Flip.png"), ]);
+    const ladderSprite = new module$src$sprites.SpriteSet(ladderTex, {"main":[setPiece(projection, ladderTex, {xPx:ladderTex.w, yPx:ladderTex.h, widthPx:ladderTex.w, heightPx:ladderTex.h, offsetY:module$src$SpriteData.LADDER_Y, offsetZ:module$src$SpriteData.ROOM_HEIGHT / 2, })], });
+    const setPieceData = {};
+    setPieceData["barrel1"] = [setPiece(projection, variousTex, {xPx:370, yPx:270, widthPx:338, heightPx:222, offsetY:module$src$SpriteData.LADDER_Y, }), ];
+    setPieceData["upperHatch"] = [setPiece(projection, variousTex, {xPx:2036, yPx:725, widthPx:345, heightPx:311, offsetY:module$src$SpriteData.LADDER_Y, }), ];
+    setPieceData["lowerHatch"] = [setPiece(projection, variousTex, {xPx:2036, yPx:725, widthPx:345, heightPx:311, offsetY:0.1, flipY:true, offsetZ:0.5, }), ];
+    const setPieces = new module$src$sprites.SpriteSet(variousTex, setPieceData);
+    const offSwitchData = setPiece(projection, lightsTex, {xPx:316, yPx:298, widthPx:118, heightPx:152, offsetY:module$src$SpriteData.ROOM_DEPTH_RADIUS, offsetZ:module$src$SpriteData.SWITCH_HEIGHT, });
+    const onSwitchData = setPiece(projection, lightsTex, {xPx:316, yPx:1110, widthPx:118, heightPx:152, offsetY:module$src$SpriteData.ROOM_DEPTH_RADIUS, offsetZ:module$src$SpriteData.SWITCH_HEIGHT, });
+    const lightSwitches = new module$src$sprites.SpriteSet(lightsTex, {"on":[onSwitchData], "off":[offSwitchData], });
+    return {projection, wallTex, floorTex, ceilTex, sideTex, ladderSprite, setPieces, lightSwitches, };
+  }
+  function makeRoomSprites({wallTex, floorTex, ceilTex, sideTex, projection}, roomWidth, trueRoomLeft) {
+    const roomLeft = trueRoomLeft - projection.lipWidth;
+    const roomRight = trueRoomLeft + roomWidth + projection.lipWidth;
+    const wallTopY = 494 / wallTex.h;
+    const wallBottomY = 1016 / wallTex.h;
+    const wallHeightPercent = wallBottomY - wallTopY;
+    const rightWallTex = wallHeightPercent * wallTex.h / module$src$SpriteData.ROOM_HEIGHT * roomWidth / wallTex.w;
+    const wallSpriteSet = new module$src$sprites.SpriteSet(wallTex, {"main":[[roomRight, module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, rightWallTex, wallTopY, roomRight, module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, rightWallTex, wallBottomY, roomLeft, module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, 0, wallTopY, roomLeft, module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, 0, wallBottomY, ]], });
+    const floorBackground = 110 / floorTex.h;
+    const floorForeground = 220 / floorTex.h;
+    const rightFloorTex = (floorForeground - floorBackground) * floorTex.h / (2 * module$src$SpriteData.ROOM_DEPTH_RADIUS) * roomWidth / floorTex.w;
+    const floorSpriteSet = new module$src$sprites.SpriteSet(floorTex, {"main":[[roomRight, -module$src$SpriteData.ROOM_DEPTH_RADIUS, -projection.lipHeight, rightFloorTex, 1, roomLeft, -module$src$SpriteData.ROOM_DEPTH_RADIUS, -projection.lipHeight, 0, 1, roomRight, -module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, rightFloorTex, floorForeground, roomLeft, -module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, 0, floorForeground, roomRight, module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, rightFloorTex, floorBackground, 
+    roomLeft, module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, 0, floorBackground, ]], });
+    const ceilBackground = 144 / ceilTex.h;
+    const ceilForeground = 32 / ceilTex.h;
+    const rightCeilTex = (ceilForeground - ceilBackground) * ceilTex.h / (2 * module$src$SpriteData.ROOM_DEPTH_RADIUS) * roomWidth / ceilTex.w;
+    const ceilSpriteSet = new module$src$sprites.SpriteSet(ceilTex, {"main":[[roomRight, -module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT + projection.lipHeight, rightCeilTex, 0, roomLeft, -module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT + projection.lipHeight, 0, 0, roomRight, -module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, rightCeilTex, ceilForeground, roomLeft, -module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, 
+    0, ceilForeground, roomRight, module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, rightCeilTex, ceilBackground, roomLeft, module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, 0, ceilBackground, ]], });
+    const sideLipX = 438 / sideTex.w;
+    const sideForegroundX = 318 / sideTex.w;
+    const sideForegroundHighY = 194 / sideTex.h;
+    const sideForegroundLowY = 1164 / sideTex.h;
+    const sideBackgroundX = 84 / sideTex.w;
+    const sideBackgroundHighY = 414 / sideTex.h;
+    const sideBackgroundLowY = 964 / sideTex.h;
+    const sideLeftData = [roomLeft, -module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, sideLipX, sideForegroundHighY, roomLeft, -module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, sideLipX, sideForegroundLowY, roomLeft + projection.lipWidth, -module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, sideForegroundX, sideForegroundHighY, roomLeft + projection.lipWidth, -module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, sideForegroundX, sideForegroundLowY, roomLeft + 
+    projection.lipWidth, module$src$SpriteData.ROOM_DEPTH_RADIUS, module$src$SpriteData.ROOM_HEIGHT, sideBackgroundX, sideBackgroundHighY, roomLeft + projection.lipWidth, module$src$SpriteData.ROOM_DEPTH_RADIUS, 0, sideBackgroundX, sideBackgroundLowY, ];
+    const sideRightData = [];
+    for (let i = 0; i < sideLeftData.length; i += 5) {
+      const x = sideLeftData[i + 0];
+      const y = sideLeftData[i + 1];
+      const z = sideLeftData[i + 2];
+      const texX = sideLeftData[i + 3];
+      const texY = sideLeftData[i + 4];
+      sideRightData.push(roomRight + (roomLeft - x), y, z, texX, texY);
+    }
+    const sideSpriteSet = new module$src$sprites.SpriteSet(sideTex, {"right":[sideRightData], "left":[sideLeftData], });
+    return {wallSpriteSet, floorSpriteSet, ceilSpriteSet, sideSpriteSet, };
+  }
+  function setPiece(projection, tex, {offsetX = 0, offsetY = 0, offsetZ = 0, xPx, yPx, widthPx, heightPx, rescale = 1, flipY = false, flipX = false}) {
+    let imgTop = (yPx - heightPx) / tex.h;
+    let imgBottom = yPx / tex.h;
+    if (flipY) {
+      const temp = imgTop;
+      imgTop = imgBottom;
+      imgBottom = temp;
+    }
+    let imgLeft = (xPx - widthPx) / tex.w;
+    let imgRight = xPx / tex.w;
+    if (flipX) {
+      const temp = imgLeft;
+      imgLeft = imgRight;
+      imgRight = temp;
+    }
+    const {scaleX, scaleY} = projection;
+    const centerW = wAt(projection, offsetY);
+    const centerX = offsetX * scaleX / centerW;
+    const centerY = offsetZ * scaleY / centerW;
+    const Rx = widthPx / projection.widthPx / 2;
+    const Ry = heightPx / projection.heightPx / 2;
+    const left = centerX - Rx;
+    const right = centerX + Rx;
+    const top = centerY + Ry;
+    const bottom = centerY - Ry;
+    const x1 = left * centerW / scaleX;
+    const x2 = right * centerW / scaleX;
+    const z1 = top * centerW / scaleY;
+    const z2 = bottom * centerW / scaleY;
+    return [x1, offsetY, z1, imgLeft, imgTop, x2, offsetY, z1, imgRight, imgTop, x1, offsetY, z2, imgLeft, imgBottom, x2, offsetY, z2, imgRight, imgBottom, ];
+  }
+  function wAt(projection, y) {
+    const p = (y + module$src$SpriteData.ROOM_DEPTH_RADIUS) / (2 * module$src$SpriteData.ROOM_DEPTH_RADIUS);
+    return projection.wForeground * (1 - p) + projection.wBackground * p;
+  }
+  function wToY(projection, w) {
+    const p = (w - projection.wForeground) / (projection.wBackground - projection.wForeground);
+    return 2 * module$src$SpriteData.ROOM_DEPTH_RADIUS * p - module$src$SpriteData.ROOM_DEPTH_RADIUS;
+  }
+  function makeNorm(x, y, z) {
+    const mag = Math.sqrt(x * x + y * y + z * z);
+    return {x:x / mag, y:y / mag, z:z / mag};
+  }
+}, "src/Environ.js", ["src/sprites.js", "src/SpriteData.js", "src/swagl.js"]);
+
+//src/World.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  Object.defineProperties($$exports, {World:{enumerable:true, get:function() {
+    return World;
+  }}, cameraPositionForRoom:{enumerable:true, get:function() {
+    return cameraPositionForRoom;
+  }}, initWorld:{enumerable:true, get:function() {
+    return initWorld;
+  }}, updateRoomTime:{enumerable:true, get:function() {
+    return updateRoomTime;
+  }}});
+  var module$src$Scene = $$require("src/Scene.js");
+  var module$src$SpriteData = $$require("src/SpriteData.js");
+  var module$src$Creature = $$require("src/Creature.js");
+  var module$src$Interactables = $$require("src/Interactables.js");
+  const CAMERA_X_OFFSET = 1;
+  class World {
+    constructor(kernel, startRoom) {
+      this.kernel = kernel;
+      this.rooms = new Map([[startRoom.name, startRoom]]);
+      this.activeRoom = startRoom;
+    }
+    switchToRoom(roomName) {
+      if (this.activeRoom.name === roomName) {
+        return;
+      }
+      this.activeRoom = this.getRoom(roomName);
+    }
+    getRoom(roomName) {
+      const rooms = this.rooms;
+      let room = rooms.get(roomName);
+      if (!room) {
+        room = initRoom(this.kernel, roomName);
+        rooms.set(roomName, room);
+      }
+      return room;
+    }
+  }
+  function initWorld(kernel) {
+    return new World(kernel, initRoom(kernel, "start"));
+  }
+  function initRoom(kernel, name) {
+    switch(name) {
+      case "start":
+        {
+          const room = (0,module$src$Scene.makeRoom)({kernel, name, roomRight:6, roomLeft:-6, roomBottom:20, });
+          room.ambientLight = 0.4;
+          room.hero.heroX = -1;
+          room.interactables.push(new module$src$Interactables.LightSwitch(1));
+          return room;
+        }
+      case "r0":
+        {
+          const room = (0,module$src$Scene.makeRoom)({kernel, name, roomLeft:0, roomRight:12, roomBottom:0, });
+          const hero = room.hero;
+          hero.heroX = room.roomLeft + 4;
+          (0,module$src$Creature.spawnCreature)(room, hero.heroX + 2);
+          room.ambientLight = 0.1;
+          return room;
+        }
+      case "r1":
+        {
+          const room = (0,module$src$Scene.makeRoom)({kernel, name, roomLeft:-12, roomRight:10, roomBottom:module$src$SpriteData.ROOM_HEIGHT + 3, });
+          (0,module$src$Creature.spawnCreature)(room, 0);
+          return room;
+        }
+      default:
+        throw new Error(`Unrecognized room name "${name}"`);
+    }
+  }
+  function cameraPositionForRoom(room) {
+    return {x:Math.min(Math.max(room.hero.heroX, room.roomLeft + CAMERA_X_OFFSET), room.roomRight - CAMERA_X_OFFSET), y:0, z:room.roomBottom + module$src$SpriteData.ROOM_HEIGHT / 2, };
+  }
+  function updateRoomTime(room, time) {
+    const newTime = time - room.roomTimeOffset;
+    room.stepSize = newTime - room.roomTime;
+    room.roomTime = newTime;
+  }
+}, "src/World.js", ["src/Scene.js", "src/SpriteData.js", "src/Creature.js", "src/Interactables.js"]);
+
+//src/exe.js
+$jscomp.registerAndLoadModule(function($$require, $$exports, $$module) {
+  "use strict";
+  var module$src$swagl = $$require("src/swagl.js");
+  var module$src$webgames$Input = $$require("src/webgames/Input.js");
+  var module$src$lighting = $$require("src/lighting.js");
+  var module$src$SpriteData = $$require("src/SpriteData.js");
+  var module$src$Creature = $$require("src/Creature.js");
+  var module$src$Scene = $$require("src/Scene.js");
+  var module$src$Hero = $$require("src/Hero.js");
+  var module$src$Environ = $$require("src/Environ.js");
+  var module$src$webgames$Audio = $$require("src/webgames/Audio.js");
+  var module$src$Flare = $$require("src/Flare.js");
+  var module$src$World = $$require("src/World.js");
+  async function onLoad() {
+    const fpsNode = document.getElementById("fps");
+    const canvas = document.getElementById("canvas");
+    const computedStyle = window.getComputedStyle(canvas);
+    const input = new module$src$webgames$Input.InputManager(document.body);
+    input.setKeysForAction("left", ["a", "ArrowLeft"]);
+    input.setKeysForAction("right", ["d", "ArrowRight"]);
+    input.setKeysForAction("showLights", ["l"]);
+    input.setKeysForAction("attack", ["f", " "]);
+    input.setKeysForAction("fullscreen", ["u"]);
+    input.setKeysForAction("up", ["w", "ArrowUp"]);
+    input.setKeysForAction("down", ["s", "ArrowDown"]);
+    input.setKeysForAction("lightUp", ["y"]);
+    input.setKeysForAction("lightDown", ["h"]);
+    let width = parseInt(computedStyle.getPropertyValue("width"), 10);
+    let height = parseInt(computedStyle.getPropertyValue("height"), 10);
+    let debugShowLights = false;
+    const ratio = window.devicePixelRatio || 1;
+    const canvasWidth = ratio * width;
+    const canvasHeight = ratio * height;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    const projection = (0,module$src$Environ.buildProjectionData)(width, height);
+    const gl = canvas.getContext("webgl2", {antialias:false, alpha:false});
+    gl.enable(gl.BLEND);
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthFunc(gl.LEQUAL);
+    const vShader = new module$src$swagl.Shader({gl, type:"vertex"}, `#version 300 es
+in vec3 a_position;
+in vec2 a_texturePosition;
+
+uniform mat4 u_projection;
+
+out vec4 v_clipSpace;
+out vec2 v_texturePosition;
+
+void main() {
+    vec4 position = u_projection * vec4(a_position, 1);
+    // float inverse = 1.f / (1.f - position.z * .2f);
+
+    // vec4 result = vec4(position.x, inverse * position.y * (1.f - .5f * position.z), inverse * position.z, inverse * position.w);
+    // vec4 result = vec4(position.x * position.w, position.y, position.z, position.w);
+    vec4 result = position;
+    gl_Position = result;
+    
+    v_clipSpace = result;
+    v_texturePosition = a_texturePosition;
+}`);
+    const fShader = new module$src$swagl.Shader({gl, type:"fragment"}, `#version 300 es
+precision mediump float;
+
+uniform sampler2D u_texture;
+uniform sampler2D u_lighting;
+
+in vec2 v_texturePosition;
+in vec4 v_clipSpace;
+out vec4 output_color;
+
+void main() {
+    vec4 clipSpace = v_clipSpace / v_clipSpace.w; //vec4(.5f * (v_clipSpace.x + 1.f), -.5f * (v_clipSpace.y - 1.f), v_clipSpace.z, v_clipSpace.w) / v_clipSpace.w;
+    clipSpace.x = .5f * (clipSpace.x + 1.f);
+    clipSpace.y = 1.f - .5f * (1.f - clipSpace.y); // why????
+
+    vec4 color = texture(u_texture, v_texturePosition.st);
+    if (color.a == 0.0) {
+        discard;
+    }
+
+    vec4 light = texture(u_lighting, clipSpace.xy);
+    vec3 math = min(light.xyz + color.xyz * light.a, vec3(1.f, 1.f, 1.f));
+    output_color = vec4(math, color.a);
+}`);
+    const program = new module$src$swagl.Program({gl, projection:"projection"});
+    program.attach(vShader, fShader).link();
+    const lighting = new module$src$lighting.Lighting(gl, canvasWidth, canvasHeight, module$src$SpriteData.TEX_PIXELS_PER_METER);
+    const audioManager = new module$src$webgames$Audio.AudioManager;
+    const loadTexture = (name, url) => {
+      return (0,module$src$swagl.loadTextureFromImgUrl)({gl, name, src:url});
+    };
+    const loadSound = url => audioManager.loadSound(url);
+    const [environResources, creatureResources, heroResources] = await Promise.all([(0,module$src$Environ.loadEnvironResources)(projection, loadTexture), (0,module$src$Creature.loadCreatureResources)(loadTexture, loadSound), (0,module$src$Hero.loadHeroResources)(loadTexture, loadSound), ]);
+    const kernel = {resources:{creature:creatureResources, hero:heroResources, environ:environResources, sparkSprite:(0,module$src$Flare.makeSparkSprite)(gl), }, input, audio:audioManager, };
+    const world = (0,module$src$World.initWorld)(kernel);
+    let mouseX = 0;
+    let mouseY = 0;
+    let avgFps = -1;
+    let fullScreenRequest = null;
+    document.addEventListener("fullscreenchange", event => {
+      if (!document.fullscreenElement) {
+        fullScreenRequest = null;
+      }
+    });
+    let cameraPosition = {x:0, y:0, z:0};
+    const shipLength = 100;
+    const wave1 = (realTime, isFar) => {
+      const time = realTime + (isFar ? 170 : 0);
+      return Math.sin(Math.PI * time / 8) / 2;
+    };
+    const wave2 = (realTime, isFar) => {
+      const time = realTime + (isFar ? 130 : 0);
+      return Math.sin(Math.PI * time / 3) / 8;
+    };
+    let shipAngle, normalX, normalZ, shipDz;
+    function processRoom(room) {
+      let transition = room.transition;
+      (0,module$src$Hero.processHero)(room);
+      if (room.transition && !transition) {
+        transition = room.transition;
+        const newRoom = world.getRoom(transition.roomName);
+        (0,module$src$Scene.offsetAFrameFrom)(room.roomTime + room.roomTimeOffset);
+        (0,module$src$Hero.transitionInHero)(transition, room, newRoom);
+      }
+      (0,module$src$Flare.processFlare)(room);
+      if (!transition && !room.locks) {
+        (0,module$src$Creature.processCreatures)(room);
+      }
+    }
+    function renderInCamera(stack, subcode) {
+      stack.push(projection.matrix);
+      stack.pushTranslation(-cameraPosition.x, -cameraPosition.y, -cameraPosition.z);
+      stack.pushTranslation(0, 0, shipDz);
+      stack.pushYRotation(shipAngle);
+      subcode();
+      stack.pop();
+      stack.pop();
+      stack.pop();
+    }
+    function renderInSceneContent(gl, program, room) {
+      const stack = program.stack;
+      stack.pushTranslation(0, 0, room.roomBottom);
+      const wall = room.environSprites.wallSpriteSet;
+      wall.bindTo(program);
+      wall.renderSpriteDatumPrebound("main", 0);
+      const floor = room.environSprites.floorSpriteSet;
+      floor.bindTo(program);
+      floor.renderSpriteDatumPrebound("main", 0);
+      const ceilingSprite = room.environSprites.ceilSpriteSet;
+      ceilingSprite.bindTo(program);
+      ceilingSprite.renderSpriteDatumPrebound("main", 0);
+      const sideSprite = room.environSprites.sideSpriteSet;
+      sideSprite.bindTo(program);
+      sideSprite.renderSpriteDatumPrebound("left", 0);
+      sideSprite.renderSpriteDatumPrebound("right", 0);
+      stack.pop();
+      room.interactables.forEach(interactable => {
+        interactable.render(gl, program, room);
+      });
+      (0,module$src$Hero.renderHero)(gl, program, room);
+      (0,module$src$Creature.renderCreatures)(gl, program, room);
+      (0,module$src$Flare.renderSparks)(gl, program, room);
+    }
+    function renderMain(gl, program, rooms) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, canvasWidth, canvasHeight);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.clearColor(0, 0, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.activeTexture(gl.TEXTURE1);
+      lighting.lightingTex().bindTexture();
+      gl.uniform1i(program.u["lighting"], 1);
+      gl.activeTexture(gl.TEXTURE0);
+      renderInCamera(program.stack, () => {
+        rooms.forEach(room => {
+          const depth = program.stack.depth();
+          renderInSceneContent(gl, program, room);
+          const depth2 = program.stack.depth();
+          if (depth2 !== depth) {
+            console.error("yo!");
+          }
+        });
+      });
+    }
+    let prevRun = Date.now();
+    function gameLoop() {
+      if (!fullScreenRequest && input.isPressed("fullscreen")) {
+        fullScreenRequest = canvas.requestFullscreen();
+      }
+      const realTime = Date.now() / 1000;
+      if (avgFps === -1) {
+        avgFps = 60;
+      } else {
+        const FACTOR = 1 / 8;
+        avgFps = FACTOR * 1 / (realTime - prevRun) + (1 - FACTOR) * avgFps;
+      }
+      fpsNode.innerHTML = `fps=${Math.round(avgFps)}`;
+      prevRun = realTime;
+      const bowY = wave1(realTime, false) + wave2(realTime, false);
+      const sternY = wave1(realTime, true) + wave2(realTime, true);
+      shipAngle = Math.asin((bowY - sternY) / shipLength);
+      normalZ = Math.cos(shipAngle);
+      normalX = Math.sin(shipAngle);
+      shipDz = (bowY + sternY) / 2;
+      let room = world.activeRoom;
+      let nextRoom = null;
+      const transition = room.transition;
+      if (transition) {
+        if (transition.realWorldStartTime + transition.seconds < realTime) {
+          room.transition = null;
+          world.switchToRoom(transition.roomName);
+          room = world.activeRoom;
+        } else {
+          nextRoom = world.getRoom(transition.roomName);
+        }
+      }
+      const rooms = nextRoom ? [room, nextRoom] : [room];
+      rooms.forEach(room => (0,module$src$World.updateRoomTime)(room, realTime));
+      cameraPosition = (0,module$src$World.cameraPositionForRoom)(room);
+      if (nextRoom) {
+        const p = (realTime - transition.realWorldStartTime) / transition.seconds;
+        const factor = Math.sin(Math.PI / 2 * p);
+        const smooth = (a, b) => a * (1 - factor) + b * factor;
+        const targetCameraPosition = (0,module$src$World.cameraPositionForRoom)(nextRoom);
+        cameraPosition = {x:smooth(cameraPosition.x, targetCameraPosition.x), y:smooth(cameraPosition.y, targetCameraPosition.y), z:smooth(cameraPosition.z, targetCameraPosition.z), };
+      }
+      if (input.numPresses("showLights") % 2) {
+        debugShowLights = !debugShowLights;
+        window.lightsOn = debugShowLights;
+      }
+      rooms.forEach(room => processRoom(room));
+      lighting.renderLighting(renderInCamera, rooms);
+      (0,module$src$swagl.doAnimationFrame)(program, (gl, program) => renderMain(gl, program, rooms));
+      requestAnimationFrame(gameLoop);
+    }
+    requestAnimationFrame(gameLoop);
+    canvas.onmousemove = event => {
+      mouseX = event.offsetX;
+      mouseY = event.offsetY;
+    };
+  }
+  window.onload = onLoad;
+}, "src/exe.js", ["src/swagl.js", "src/webgames/Input.js", "src/lighting.js", "src/SpriteData.js", "src/Creature.js", "src/Scene.js", "src/Hero.js", "src/Environ.js", "src/webgames/Audio.js", "src/Flare.js", "src/World.js"]);
+

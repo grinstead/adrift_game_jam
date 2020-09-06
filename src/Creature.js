@@ -20,6 +20,11 @@ const CREATURE_RADIUS_PIXELS = 54;
 const CREATURE_IDLE_FRAMES = 6;
 const CREATURE_RADIUS = 0.25; // CREATURE_RADIUS_PIXELS / TEX_PIXELS_PER_METER;
 
+const CREATURE_SPEED = 0.01;
+const CREATURE_BONUS_SPEED = 0.02;
+const CREATURE_HUNTING_DISTANCE = 2;
+const CREATURE_ATTACK_DISTANCE = 0.5;
+
 const STEP_TIME = 1 / 8;
 const ATTACH_Z_OFFSET = CREATURE_RADIUS * (3 / 4);
 
@@ -114,8 +119,8 @@ export async function loadCreatureResources(loadTexture, loadSound) {
       }),
     }),
     modes: ["bite"],
-    loops: true,
-    frameTime: 1 / 12,
+    loops: false,
+    frameTime: 1 / 42,
   });
 
   const makeCreatureDeathSprite = makeSpriteType({
@@ -218,15 +223,16 @@ export async function loadCreatureResources(loadTexture, loadSound) {
   };
 }
 
+function makeDefaultCreatureSprite(room) {
+  return room.resources.creature.makeCreatureSprite("blink", room.roomTime);
+}
+
 /**
  * Represents one of the dark spawns
  */
 export class Creature {
   constructor(room, x, y, heightOffGround) {
-    const sprite = room.resources.creature.makeCreatureSprite(
-      "blink",
-      room.roomTime
-    );
+    const sprite = makeDefaultCreatureSprite(room);
 
     const roomBottom = room.roomBottom;
 
@@ -304,6 +310,14 @@ export class Creature {
  * @param {Creature} creature
  * @param {Room} room
  */
+function distanceFromHero(creature, room) {
+  return Math.abs(creature.x - room.hero.heroX);
+}
+
+/**
+ * @param {Creature} creature
+ * @param {Room} room
+ */
 function creatureStateNormal(creature, room) {
   return {
     name: "creature_normal",
@@ -311,6 +325,125 @@ function creatureStateNormal(creature, room) {
       const roomTime = room.roomTime;
       creature.x = creature.startX + Math.sin(roomTime);
       creature.adjustTentacles(room, 0.5 * Math.cos(roomTime));
+
+      const heroDistance = distanceFromHero(creature, room);
+      if (heroDistance < CREATURE_HUNTING_DISTANCE) {
+        // Hero got too close, hunting time!
+        if (heroDistance < CREATURE_ATTACK_DISTANCE) {
+          // Oh my, already close enough to hurt him
+          creature.state = creatureStateAttack(creature, room);
+        } else {
+          creature.state = creatureStateHunting(creature, room);
+        }
+      }
+    },
+    render: (gl, program, heroPoint) => {
+      const stack = program.stack;
+      const x = creature.x;
+      const z = creature.z;
+
+      stack.pushTranslation(x, creature.y, z);
+
+      let needsMirror = heroPoint.x < x;
+      let angle = arctan(heroPoint.z - z, heroPoint.x - x);
+      if (needsMirror) {
+        stack.push(mirrorX);
+        angle = Math.PI - angle;
+      }
+
+      stack.pushYRotation(angle);
+      creature.sprite.renderSprite(program);
+      stack.pop();
+      if (needsMirror) stack.pop();
+      stack.pop();
+    },
+  };
+}
+
+function getCreatureSpeed(room, start) {
+  const currentTime = room.roomTime;
+  // Speed up over 3 seconds until reach its max speed
+  return (
+    CREATURE_SPEED +
+    Math.min(1, (currentTime - start) / 3) * CREATURE_BONUS_SPEED
+  );
+}
+
+/**
+ * @param {Creature} creature
+ * @param {Room} room
+ */
+function creatureStateHunting(creature, room) {
+  const startedAt = room.roomTime;
+
+  return {
+    name: "creature_hunting",
+    processStep: () => {
+      const roomTime = room.roomTime;
+      const heroX = room.hero.heroX;
+      const heroDistance = distanceFromHero(creature, room);
+
+      if (heroDistance > CREATURE_ATTACK_DISTANCE / 2) {
+        creature.x +=
+          (heroX < creature.x ? -1 : 1) * getCreatureSpeed(room, startedAt);
+      }
+
+      creature.adjustTentacles(room, 0.5 * Math.cos(roomTime));
+
+      if (heroDistance < CREATURE_ATTACK_DISTANCE && roomTime - startedAt > 1) {
+        // Time to make someone bleed
+        creature.state = creatureStateAttack(creature, room);
+      }
+    },
+    render: (gl, program, heroPoint) => {
+      const stack = program.stack;
+      const x = creature.x;
+      const z = creature.z;
+
+      stack.pushTranslation(x, creature.y, z);
+
+      let needsMirror = heroPoint.x < x;
+      let angle = arctan(heroPoint.z - z, heroPoint.x - x);
+      if (needsMirror) {
+        stack.push(mirrorX);
+        angle = Math.PI - angle;
+      }
+
+      stack.pushYRotation(angle);
+      creature.sprite.renderSprite(program);
+      stack.pop();
+      if (needsMirror) stack.pop();
+      stack.pop();
+    },
+  };
+}
+
+/**
+ * @param {Creature} creature
+ * @param {Room} room
+ */
+function creatureStateAttack(creature, room) {
+  // room.audio.playSound(creature, room.resources.creature.enemyDyingSound);
+  const sprite = room.resources.creature.makeCreatureAttackSprite(
+    "bite",
+    room.roomTime
+  );
+  creature.sprite = sprite;
+
+  return {
+    name: "creature_attack",
+    processStep: () => {
+      if (sprite.isFinished()) {
+        const heroDistance = distanceFromHero(creature, room);
+
+        // TODO not sure how much space to give for the hero to avoid the attack
+        if (heroDistance < 1.5) {
+          console.warn("Kill / hurt the hero");
+        }
+        // Back to hunting
+        creature.state = creatureStateHunting(creature, room);
+        creature.sprite = makeDefaultCreatureSprite(room);
+      }
     },
     render: (gl, program, heroPoint) => {
       const stack = program.stack;
