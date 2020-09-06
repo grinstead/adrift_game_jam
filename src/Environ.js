@@ -139,7 +139,7 @@ export async function loadEnvironResources(projection, loadTexture) {
       yPx: 270,
       widthPx: 338,
       heightPx: 222,
-      offsetY: ROOM_DEPTH_RADIUS,
+      offsetY: LADDER_Y,
     }),
   ];
   setPieceData["upperHatch"] = [
@@ -149,6 +149,17 @@ export async function loadEnvironResources(projection, loadTexture) {
       widthPx: 345,
       heightPx: 311,
       offsetY: LADDER_Y,
+    }),
+  ];
+  setPieceData["lowerHatch"] = [
+    setPiece(projection, variousTex, {
+      xPx: 2036,
+      yPx: 725,
+      widthPx: 345,
+      heightPx: 311,
+      offsetY: 0.1,
+      flipY: true,
+      offsetZ: 0.5,
     }),
   ];
 
@@ -303,18 +314,31 @@ function setPiece(
     widthPx,
     heightPx,
     rescale = 1,
+    flipY = false,
+    flipX = false,
   }
 ) {
-  const imgTop = (yPx - heightPx) / tex.h;
-  const imgBottom = yPx / tex.h;
-  const imgLeft = (xPx - widthPx) / tex.w;
-  const imgRight = xPx / tex.w;
+  let imgTop = (yPx - heightPx) / tex.h;
+  let imgBottom = yPx / tex.h;
+  if (flipY) {
+    const temp = imgTop;
+    imgTop = imgBottom;
+    imgBottom = temp;
+  }
 
-  const xCenterPx = (xPx + widthPx) / 2;
-  const yCenterPx = (yPx + heightPx) / 2;
+  let imgLeft = (xPx - widthPx) / tex.w;
+  let imgRight = xPx / tex.w;
+  if (flipX) {
+    const temp = imgLeft;
+    imgLeft = imgRight;
+    imgRight = temp;
+  }
 
-  const halfWidth = (rescale * widthPx) / TEX_PIXELS_PER_METER / 2;
-  const halfHeight = (rescale * heightPx) / TEX_PIXELS_PER_METER / 2;
+  // const xCenterPx = (xPx + widthPx) / 2;
+  // const yCenterPx = (yPx + heightPx) / 2;
+
+  // const halfWidth = (rescale * widthPx) / TEX_PIXELS_PER_METER / 2;
+  // const halfHeight = (rescale * heightPx) / TEX_PIXELS_PER_METER / 2;
 
   const { scaleX, scaleY } = projection;
 

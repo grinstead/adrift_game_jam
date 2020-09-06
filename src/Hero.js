@@ -302,6 +302,10 @@ function heroStateEnterFromHatch(hero, room) {
         sprite.resetSprite("exit", room.roomTime);
       } else if (sprite.isFinished()) {
         hero.changeState(room, heroStateNormal);
+      } else {
+        const offsets = [-0.5, -0.5, -0.3, -0.3];
+
+        hero.heroZ = room.roomBottom + (offsets[hero.sprite.frameIndex()] || 0);
       }
     },
     render: (gl, program) => {
@@ -310,6 +314,7 @@ function heroStateEnterFromHatch(hero, room) {
     },
     onExit: () => {
       room.locks--;
+      hero.heroZ = room.roomBottom;
     },
   };
 }

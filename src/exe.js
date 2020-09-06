@@ -6,7 +6,7 @@ import {
 } from "./swagl.js";
 import { InputManager } from "./webgames/Input.js";
 import { Lighting } from "./lighting.js";
-import { TEX_PIXELS_PER_METER } from "./SpriteData.js";
+import { TEX_PIXELS_PER_METER, ROOM_HEIGHT } from "./SpriteData.js";
 import {
   loadCreatureResources,
   renderCreatures,
@@ -245,9 +245,13 @@ void main() {
     sideSprite.renderSpriteDatumPrebound("right", 0);
 
     stack.pushTranslation(2, 0, 0);
-    const ladderSprite = room.resources.environ.ladderSprite;
-    ladderSprite.bindTo(program);
-    ladderSprite.renderSpriteDatumPrebound("main", 0);
+    // const ladderSprite = room.resources.environ.ladderSprite;
+    // ladderSprite.bindTo(program);
+    // ladderSprite.renderSpriteDatumPrebound("main", 0);
+
+    const setPieces = room.resources.environ.setPieces;
+    setPieces.bindTo(program);
+    setPieces.renderSpriteDatumPrebound("lowerHatch", 0);
     stack.pop();
     stack.pop();
 
