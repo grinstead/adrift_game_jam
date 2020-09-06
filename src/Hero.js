@@ -43,6 +43,7 @@ let FlarePosition;
  * @property {string} name - Useful for debugging
  * @property {function(Room):void} processStep - Perform the hero's code
  * @property {?function(WebGL2RenderingContext,Program):void} render - Render the hero
+ * @property {?function():void} onExit
  */
 let HeroState;
 
@@ -134,6 +135,9 @@ export class Hero {
    * returns the new hero state
    */
   changeState(room, stateBuilder) {
+    const oldStateOnExit = this.state.onExit;
+    if (oldStateOnExit) oldStateOnExit();
+
     const state = stateBuilder(this, room);
     this.state = state;
     state.processStep(room);
@@ -216,7 +220,6 @@ export function heroStateNormal(hero, room) {
 
       hero.sprite.setMode(mode);
     },
-    render: null,
   };
 
   return state;
@@ -242,7 +245,6 @@ function heroStateAttacking(hero, room) {
         hero.changeState(room, heroStateNormal);
       }
     },
-    render: null,
   };
 }
 
@@ -262,15 +264,16 @@ function heroStateClimbing(hero, room) {
     name: "climbing",
     processStep: (room) => {
       if (hero.sprite.isFinished()) {
-        hero.heroY = 0;
-        hero.heroZ = room.roomBottom;
         hero.changeState(room, heroStateNormal);
       } else {
         hero.heroZ =
           room.roomBottom + 0.3 * Math.min(5, hero.sprite.frameIndex());
       }
     },
-    render: null,
+    onExit: () => {
+      hero.heroY = 0;
+      hero.heroZ = room.roomBottom;
+    },
   };
 }
 
@@ -298,7 +301,6 @@ function heroStateEnterFromHatch(hero, room) {
         // TODO: add a notion of pausing to the sprite class
         sprite.resetSprite("exit", room.roomTime);
       } else if (sprite.isFinished()) {
-        room.locks--;
         hero.changeState(room, heroStateNormal);
       }
     },
@@ -306,6 +308,9 @@ function heroStateEnterFromHatch(hero, room) {
       if (room.roomTime < startTime + 1) return;
 
       hero.renderSprite(gl, program, room);
+    },
+    onExit: () => {
+      room.locks--;
     },
   };
 }
