@@ -78,7 +78,7 @@ export class Hero {
 
   /** Enemies will stare at this point, very intimidating! */
   getGoodFocusPoint() {
-    return { x: this.heroX, z: HERO_HEIGHT - 0.1 };
+    return { x: this.heroX, z: this.heroZ + HERO_HEIGHT - 0.1 };
   }
 
   /** @returns {boolean} */

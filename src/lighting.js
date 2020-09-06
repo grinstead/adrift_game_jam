@@ -59,16 +59,19 @@ out vec4 output_color;
 
 void main() {
     vec4 color = texture(u_texture, v_texturePosition.st);
-    if (color.a == 0.f) {
-      discard;
+    
+    if (u_threshold != -1.f) {
+      color.a -= u_threshold;
+      if (color.a <= u_threshold) {
+          discard;
+      }
+      output_color = color;
+    } else {
+      if (color.a == 0.f) {
+        discard;
+      }
+      output_color = u_color;
     }
-
-    output_color = u_color;
-    // color.a -= u_threshold;
-    // if (color.a <= u_threshold) {
-    //     discard;
-    // }
-    // output_color = color;
 }`
     );
 
@@ -188,14 +191,12 @@ void main() {
 function renderLightingToTexture(gl, program, renderInCamera, lighting, rooms) {
   gl.blendFunc(gl.ONE, gl.ONE);
 
-  const mainRoom = rooms[0];
-  if (mainRoom.lightsOn) {
-    // gl.clearColor(0, 0, 0, 1);
-    gl.clearColor(0, 0, 0, 0);
-  } else {
-    gl.clearColor(0, 0, 0, 0);
-  }
+  gl.clearColor(0, 0, 0, 0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+  const thresholdAnchor = program.u["threshold"];
+  const colorAnchor = program.u["color"];
+  gl.uniform1f(thresholdAnchor, -1);
 
   const stack = program.stack;
   renderInCamera(stack, () => {
@@ -204,7 +205,13 @@ function renderLightingToTexture(gl, program, renderInCamera, lighting, rooms) {
     // mask the rooms
     whiteSquare.bindTo(program);
     rooms.forEach((room) => {
-      gl.uniform4f(program.u["color"], 0, 0, 0, room.ambientLight);
+      gl.uniform4f(
+        colorAnchor,
+        0,
+        0,
+        0,
+        window.lightsOn ? 1 : room.ambientLight
+      );
 
       const projection = room.resources.environ.projection;
 
@@ -227,8 +234,7 @@ function renderLightingToTexture(gl, program, renderInCamera, lighting, rooms) {
     const fade = lighting._fade;
     fade.bindTo(program);
 
-    gl.uniform4f(program.u["color"], 0, 0, 0, 1);
-    const thresholder = program.u["threshold"];
+    gl.uniform4f(colorAnchor, 0, 0, 0, 1);
     rooms.forEach((room) => {
       const time = room.roomTime;
 
@@ -239,7 +245,7 @@ function renderLightingToTexture(gl, program, renderInCamera, lighting, rooms) {
             (time - startTime) / (particle.deathTime - startTime);
 
           // set the circle to fade out
-          gl.uniform1f(thresholder, 0.5 * percentPassed * percentPassed);
+          gl.uniform1f(thresholdAnchor, 0.5 * percentPassed * percentPassed);
 
           stack.pushTranslation(particle.x, particle.y, particle.z);
           fade.renderSpriteDatumPrebound("main", 0);

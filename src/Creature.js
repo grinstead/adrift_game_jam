@@ -150,11 +150,13 @@ export async function loadCreatureResources(loadTexture) {
  * Represents one of the dark spawns
  */
 export class Creature {
-  constructor(room, x, y, z) {
+  constructor(room, x, y, heightOffGround) {
     const sprite = room.resources.creature.makeCreatureSprite(
       "blink",
       room.roomTime
     );
+
+    const roomBottom = room.roomBottom;
 
     // const sprite = room.resources.creature.makeCreatureAttackSprite();
     // sprite.resetSprite("bite", room.roomTime);
@@ -166,17 +168,17 @@ export class Creature {
     /** @private {number} */
     this.y = y;
     /** @private {number} */
-    this.z = z;
+    this.z = heightOffGround;
     /** @private {number} */
     this.nextTentacleMove = 0;
     /** @private {number} */
     this.nextTentacleIndex = 0;
     /** @private {Array<Tentacle>} */
     this.tentacles = [
-      makeTentacle(0, x, y, -1, 1),
-      makeTentacle(1, x, y, -1, -1),
-      makeTentacle(2, x, y, 1, 1),
-      makeTentacle(3, x, y, 1, -1),
+      makeTentacle(0, x, y, -1, 1, roomBottom),
+      makeTentacle(1, x, y, -1, -1, roomBottom),
+      makeTentacle(2, x, y, 1, 1, roomBottom),
+      makeTentacle(3, x, y, 1, -1, roomBottom),
     ];
     /** @private {Sprite} */
     this.sprite = sprite;
@@ -191,7 +193,9 @@ export class Creature {
  * @param {number} x
  */
 export function spawnCreature(room, x) {
-  room.creatures.push(new Creature(room, x, 0, 3 * CREATURE_RADIUS));
+  room.creatures.push(
+    new Creature(room, x, 0, room.roomBottom + 3 * CREATURE_RADIUS)
+  );
 }
 
 /**
@@ -221,7 +225,7 @@ export function processCreatures(room) {
         toPlace.moveStartZ = toPlace.placementZ;
         toPlace.placementX = placementX;
         toPlace.placementY = creature.y + toPlace.idealY;
-        toPlace.placementZ = 0;
+        toPlace.placementZ = room.roomBottom;
       }
     }
   });
@@ -316,7 +320,7 @@ export function renderCreatures(gl, program, room) {
   });
 }
 
-function makeTentacle(index, x, y, xSign, ySign) {
+function makeTentacle(index, x, y, xSign, ySign, roomBottom) {
   const idealX = 0.4 * xSign;
   const idealY = 0.1 * ySign;
   const placementX = x + idealX;
@@ -330,10 +334,10 @@ function makeTentacle(index, x, y, xSign, ySign) {
     movingUntil: 0,
     moveStartX: placementX,
     moveStartY: placementY,
-    moveStartZ: 0,
+    moveStartZ: roomBottom,
     placementX,
     placementY,
-    placementZ: 0,
+    placementZ: roomBottom,
     frameOffset: 0,
   };
 }

@@ -66,6 +66,8 @@ function initRoom(kernel, name) {
       hero.heroX = room.roomLeft + 4;
       spawnCreature(room, hero.heroX + 2);
 
+      room.ambientLight = 0.1;
+
       return room;
     }
     case "r1": {
@@ -76,6 +78,8 @@ function initRoom(kernel, name) {
         roomRight: 10,
         roomBottom: ROOM_HEIGHT + 6,
       });
+
+      spawnCreature(room, 0);
 
       return room;
     }
