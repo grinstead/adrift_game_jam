@@ -31,7 +31,7 @@ import {
 import { loadEnvironResources, buildProjectionData } from "./Environ.js";
 import { AudioManager } from "./webgames/Audio.js";
 import { processFlare, makeSparkSprite, renderSparks } from "./Flare.js";
-import { initWorld, cameraPositionForRoom } from "./World.js";
+import { initWorld, cameraPositionForRoom, updateRoomTime } from "./World.js";
 
 window.ambientLight = 0.1;
 
@@ -168,21 +168,6 @@ void main() {
   let mouseY = 0;
 
   let avgFps = -1;
-  let stepSize = 0;
-  function updateTime() {
-    const newTime = Date.now() / 1000 - room.roomTimeOffset;
-    const stepSize = newTime - room.roomTime;
-
-    room.stepSize = stepSize;
-    room.roomTime = newTime;
-
-    if (avgFps === -1) {
-      avgFps = 60;
-    } else {
-      avgFps = 1 / stepSize / 16 + (15 / 16) * avgFps;
-    }
-    fpsNode.innerHTML = `fps=${Math.round(avgFps)}`;
-  }
 
   let fullScreenRequest = null;
   document.addEventListener("fullscreenchange", (event) => {
@@ -206,7 +191,9 @@ void main() {
 
   let shipAngle, normalX, normalZ, shipDz;
 
-  /** @param {Room} room */
+  /**
+   * @param {Room} room
+   */
   function processRoom(room) {
     // calculate the boat rocking
     const bowY = wave1(false) + wave2(false);
@@ -224,36 +211,37 @@ void main() {
 
       transition = room.transition;
       const newRoom = world.getRoom(transition.roomName);
+      offsetAFrameFrom(room.roomTime + room.roomTimeOffset);
       transitionInHero(transition, room, newRoom);
     }
 
     processFlare(room);
 
-    if (!transition) {
+    if (!transition && !room.locks) {
       processCreatures(room);
     }
   }
 
-  function renderInCamera(gl, program, subcode) {
-    program.stack.push(projection.matrix);
-    program.stack.pushTranslation(
+  function renderInCamera(stack, subcode) {
+    stack.push(projection.matrix);
+    stack.pushTranslation(
       -cameraPosition.x,
       -cameraPosition.y,
       -cameraPosition.z
     );
 
     // rock the boat
-    program.stack.pushYRotation(shipAngle);
-    program.stack.pushTranslation(0, 0, shipDz);
+    stack.pushYRotation(shipAngle);
+    stack.pushTranslation(0, 0, shipDz);
 
-    subcode(gl, program);
+    subcode();
 
-    program.stack.pop();
-    program.stack.pop();
-    program.stack.pop();
+    stack.pop();
+    stack.pop();
+    stack.pop();
   }
 
-  function renderInSceneContent(gl, program) {
+  function renderInSceneContent(gl, program, room) {
     const stack = program.stack;
 
     stack.pushTranslation(0, 0, room.roomBottom);
@@ -288,7 +276,7 @@ void main() {
     stack.pop();
   }
 
-  function renderMain(gl, program) {
+  function renderMain(gl, program, rooms) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, canvasWidth, canvasHeight);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -301,7 +289,11 @@ void main() {
     gl.uniform1i(program.u["lighting"], 1);
     gl.activeTexture(gl.TEXTURE0);
 
-    renderInCamera(gl, program, renderInSceneContent);
+    renderInCamera(program.stack, () => {
+      rooms.forEach((room) => {
+        renderInSceneContent(gl, program, room);
+      });
+    });
 
     // this is how to render the mouse
     // program.stack.pushTranslation(
@@ -311,41 +303,48 @@ void main() {
     // );
   }
 
+  let prevRun = Date.now();
   function gameLoop() {
-    if (input.isPressed("lightUp")) {
-      world.switchToRoom("r1");
-    } else if (input.isPressed("lightDown")) {
-      world.switchToRoom("r0");
+    if (!fullScreenRequest && input.isPressed("fullscreen")) {
+      fullScreenRequest = canvas.requestFullscreen();
     }
 
-    if (room !== world.activeRoom) {
-      room = world.activeRoom;
-      room.roomTimeOffset = offsetAFrameFrom(room.roomTime);
+    const realTime = Date.now() / 1000;
+    if (avgFps === -1) {
+      avgFps = 60;
+    } else {
+      const FACTOR = 1 / 8;
+      avgFps = (FACTOR * 1) / (realTime - prevRun) + (1 - FACTOR) * avgFps;
+    }
+    fpsNode.innerHTML = `fps=${Math.round(avgFps)}`;
+    prevRun = realTime;
+
+    let room = world.activeRoom;
+    let nextRoom = null;
+
+    // process if we are transitioning (or if we just finished transitioning)
+    const transition = room.transition;
+    if (transition) {
+      if (transition.realWorldStartTime + transition.seconds < realTime) {
+        room.transition = null;
+        world.switchToRoom(transition.roomName);
+        room = world.activeRoom;
+      } else {
+        nextRoom = world.getRoom(transition.roomName);
+      }
     }
 
-    updateTime();
+    const rooms = nextRoom ? [room, nextRoom] : [room];
+
+    rooms.forEach((room) => updateRoomTime(room, realTime));
 
     // set the camera
     cameraPosition = cameraPositionForRoom(room);
-
-    const transition = room.transition;
-    if (transition) {
-      const endRoom = world.getRoom(transition.roomName);
-      const p =
-        (Date.now() / 1000 - transition.realWorldStartTime) /
-        transition.seconds;
-
-      // if the transition is over, switch rooms and re-run the game loop
-      if (p >= 1) {
-        room.transition = null;
-        world.switchToRoom(transition.roomName);
-        gameLoop();
-        return;
-      }
-
-      const smooth = (a, b) => a * (1 - p * p) + b * p * p;
-      const targetCameraPosition = cameraPositionForRoom(endRoom);
-      console.log(cameraPosition, targetCameraPosition);
+    if (nextRoom) {
+      const p = (realTime - transition.realWorldStartTime) / transition.seconds;
+      const factor = Math.sin((Math.PI / 2) * p);
+      const smooth = (a, b) => a * (1 - factor) + b * factor;
+      const targetCameraPosition = cameraPositionForRoom(nextRoom);
       cameraPosition = {
         x: smooth(cameraPosition.x, targetCameraPosition.x),
         y: smooth(cameraPosition.y, targetCameraPosition.y),
@@ -357,16 +356,12 @@ void main() {
       debugShowLights = !debugShowLights;
       room.lightsOn = debugShowLights;
     }
-    room.lightsOn = true;
 
-    if (!fullScreenRequest && input.isPressed("fullscreen")) {
-      fullScreenRequest = canvas.requestFullscreen();
-    }
+    rooms.forEach((room) => processRoom(room));
 
-    processRoom(room);
-
-    lighting.renderLighting(renderInCamera, room);
-    doAnimationFrame(program, renderMain);
+    // Todo: lighting
+    lighting.renderLighting(renderInCamera, rooms);
+    doAnimationFrame(program, (gl, program) => renderMain(gl, program, rooms));
 
     // loop
     requestAnimationFrame(gameLoop);

@@ -1,4 +1,4 @@
-import { RoomKernel, Room, makeRoom } from "./Scene.js";
+import { RoomKernel, Room, makeRoom, Transition } from "./Scene.js";
 import { ROOM_HEIGHT } from "./SpriteData.js";
 import { spawnCreature } from "./Creature.js";
 
@@ -86,7 +86,7 @@ function initRoom(kernel, name) {
 
 /**
  * @param {Room} room
- * @returns {x: number, y: number, z: number}
+ * @returns {{x: number, y: number, z: number}}
  */
 export function cameraPositionForRoom(room) {
   return {
@@ -97,4 +97,15 @@ export function cameraPositionForRoom(room) {
     y: 0,
     z: room.roomBottom + ROOM_HEIGHT / 2,
   };
+}
+
+/**
+ * Updates the room's time and step size
+ * @param {Room} room
+ * @param {number} time
+ */
+export function updateRoomTime(room, time) {
+  const newTime = time - room.roomTimeOffset;
+  room.stepSize = newTime - room.roomTime;
+  room.roomTime = newTime;
 }

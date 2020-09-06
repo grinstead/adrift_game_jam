@@ -48,6 +48,7 @@ export let Transition;
  * @property {boolean} lightsOn
  * @property {Hero} hero - The hero character for the room
  * @property {?Transition} transition - Whether the room should transition to another room
+ * @property {number} locks
  */
 export let Room;
 
@@ -98,6 +99,7 @@ export function makeRoom(options) {
       roomBottom
     ),
     transition: null,
+    locks: 0,
   };
 }
 

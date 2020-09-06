@@ -85,7 +85,7 @@ const identityMat = new Float32Array([
   0, 0, 0, 1,
 ]);
 
-class MatrixStack {
+export class MatrixStack {
   constructor(gl, anchor) {
     this.gl = gl;
     this.anchor = anchor;

@@ -8,7 +8,7 @@ import {
 import { Texture, Program } from "./swagl.js";
 import { HERO_HEIGHT, ROOM_DEPTH_RADIUS } from "./SpriteData.js";
 import { arctan } from "./webgames/math.js";
-import { Room } from "./Scene.js";
+import { Room, Transition } from "./Scene.js";
 
 // The hero's scaling is off, but it is self-consistent
 const HERO_PIXELS_PER_METER = 434 / HERO_HEIGHT;
@@ -42,7 +42,7 @@ let FlarePosition;
  * @typedef {Object} HeroState
  * @property {string} name - Useful for debugging
  * @property {function(Room):void} processStep - Perform the hero's code
- * @property {function(WebGL2RenderingContext,Program,Room):void} render - Render the hero
+ * @property {?function(WebGL2RenderingContext,Program):void} render - Render the hero
  */
 let HeroState;
 
@@ -159,7 +159,7 @@ export function processHero(room) {
 export function renderHero(gl, program, room) {
   const render = room.hero.state.render;
   if (render) {
-    render(gl, program, room);
+    render(gl, program);
   } else {
     room.hero.renderSprite(gl, program, room);
   }
@@ -181,7 +181,7 @@ export function heroStateNormal(hero, room) {
     processStep: (/** @type {Room} */ room) => {
       const { hero, roomTime, input } = room;
 
-      if (input.isPressed("up")) {
+      if (room.name === "r0" && input.isPressed("up")) {
         hero.changeState(room, heroStateClimbing);
         return;
       }
@@ -287,6 +287,7 @@ function heroStateEnterFromHatch(hero, room) {
     "exit"
   );
   hero.setSpeedX(0);
+  room.locks++;
 
   return {
     name: "entering_hatch",
@@ -297,10 +298,15 @@ function heroStateEnterFromHatch(hero, room) {
         // TODO: add a notion of pausing to the sprite class
         sprite.resetSprite("exit", room.roomTime);
       } else if (sprite.isFinished()) {
+        room.locks--;
         hero.changeState(room, heroStateNormal);
       }
     },
-    render: null,
+    render: (gl, program) => {
+      if (room.roomTime < startTime + 1) return;
+
+      hero.renderSprite(gl, program, room);
+    },
   };
 }
 

@@ -1,4 +1,5 @@
 import {
+  MatrixStack,
   Program,
   Shader,
   Texture,
@@ -163,40 +164,43 @@ void main() {
  *
  * @param {WebGL2RenderingContext} gl
  * @param {Program} program
- * @param {function(WebGL2RenderingContext,Program,function():void):void} renderInCamera
+ * @param {function(MatrixStack,function():void):void} renderInCamera
  * @param {Lighting} lighting
- * @param {Room} room
+ * @param {Array<Room>} rooms
  */
-function renderLightingToTexture(gl, program, renderInCamera, lighting, room) {
+function renderLightingToTexture(gl, program, renderInCamera, lighting, rooms) {
   gl.blendFunc(gl.ONE, gl.ONE);
 
-  if (room.lightsOn) {
+  const mainRoom = rooms[0];
+  if (mainRoom.lightsOn) {
     gl.clearColor(0, 0, 0, 1);
   } else {
     gl.clearColor(0, 0, 0, window.ambientLight);
   }
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  renderInCamera(gl, program, () => {
+  renderInCamera(program.stack, () => {
     const fade = lighting._fade;
     fade.bindTo(program);
 
     const thresholder = program.u["threshold"];
-    const time = room.roomTime;
+    rooms.forEach((room) => {
+      const time = room.roomTime;
 
-    room.sparks.forEach((particle) => {
-      if (!particle.dead) {
-        const startTime = particle.startTime;
-        const percentPassed =
-          (time - startTime) / (particle.deathTime - startTime);
+      room.sparks.forEach((particle) => {
+        if (!particle.dead) {
+          const startTime = particle.startTime;
+          const percentPassed =
+            (time - startTime) / (particle.deathTime - startTime);
 
-        // set the circle to fade out
-        gl.uniform1f(thresholder, 0.5 * percentPassed * percentPassed);
+          // set the circle to fade out
+          gl.uniform1f(thresholder, 0.5 * percentPassed * percentPassed);
 
-        program.stack.pushTranslation(particle.x, particle.y, particle.z);
-        fade.renderSpriteDatumPrebound("main", 0);
-        program.stack.pop();
-      }
+          program.stack.pushTranslation(particle.x, particle.y, particle.z);
+          fade.renderSpriteDatumPrebound("main", 0);
+          program.stack.pop();
+        }
+      });
     });
   });
 }
