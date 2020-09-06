@@ -28,6 +28,7 @@ const charWInM = 405 / HERO_PIXELS_PER_METER;
  * @property {SpriteBuilder} makeExitHatchSprite
  * @property {SpriteBuilder} makeSwitchFlipSprite
  * @property {Array<AudioBuffer>} grunts
+ * @property {AudioBuffer} footSteps
  * @property {AudioBuffer} lightSwitchSound
  */
 export let HeroResources;

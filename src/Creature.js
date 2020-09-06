@@ -44,6 +44,7 @@ let Tentacle;
  * @property {SpriteBuilder} makeCreatureSprite
  * @property {SpriteBuilder} makeCreatureAttackSprite
  * @property {AudioBuffer} enemyDyingSound
+ * @property {AudioBuffer} enemyScreamSound
  * @property {SpriteBuilder} makeCreatureDeathSprite
  */
 export let CreatureResources;
@@ -77,12 +78,14 @@ export async function loadCreatureResources(loadTexture, loadSound) {
     tentacleTex,
     creatureAttackTex,
     enemyDyingSound,
+    enemyScreamSound,
     creatureDeathTex,
   ] = await Promise.all([
     loadTexture("creature", "assets/Enemy.png"),
     loadTexture("tentacle", "assets/Tentacle.png"),
     loadTexture("creature_attack", "assets/enemy_bite.png"),
     loadSound("assets/Enemy Dying.mp3"),
+    loadSound("assets/enemy_scream.mp3"),
     loadTexture("creature_death", "assets/Enemy Dying.png"),
   ]);
 
@@ -120,7 +123,7 @@ export async function loadCreatureResources(loadTexture, loadSound) {
     }),
     modes: ["bite"],
     loops: false,
-    frameTime: 1 / 42,
+    frameTime: 1 / 12,
   });
 
   const makeCreatureDeathSprite = makeSpriteType({
@@ -220,6 +223,7 @@ export async function loadCreatureResources(loadTexture, loadSound) {
     makeCreatureDeathSprite,
     tentacleSprite,
     enemyDyingSound,
+    enemyScreamSound,
   };
 }
 
@@ -429,6 +433,8 @@ function creatureStateAttack(creature, room) {
     room.roomTime
   );
   creature.sprite = sprite;
+
+  room.audio.playSound(creature, room.resources.creature.enemyScreamSound);
 
   return {
     name: "creature_attack",
