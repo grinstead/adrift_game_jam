@@ -82,9 +82,28 @@ function initRoom(kernel, name) {
       room.interactables.push(
         new LightSwitch(1),
         new Ladder(3, "start"),
-        new Hatch(-10, "r0")
+        new Hatch(-10, "third")
       );
       spawnCreature(room, -8);
+
+      return room;
+    }
+    case "third": {
+      const room = makeRoom({
+        kernel,
+        name,
+        roomRight: 10,
+        roomLeft: -12,
+        roomBottom: 10,
+      });
+      room.ambientLight = 0.4;
+
+      room.interactables.push(
+        new LightSwitch(6),
+        new Ladder(-10, "second"),
+        new Hatch(8, "r0")
+      );
+      spawnCreature(room, 0);
 
       return room;
     }
