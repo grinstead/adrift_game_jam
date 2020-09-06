@@ -27,6 +27,8 @@ import { initWorld, cameraPositionForRoom, updateRoomTime } from "./World.js";
 
 let runGameLoop = () => {};
 
+let ambientAudio = null;
+
 function skipIntro() {
   const intro = document.getElementById("intro");
   intro.remove();
@@ -49,7 +51,7 @@ function skipIntro() {
     canvas.requestFullscreen();
   });
 
-  requestAnimationFrame(runGameLoop);
+  runGameLoop();
 }
 
 function prepareSkipButton() {
@@ -260,7 +262,7 @@ void main() {
   };
   const wave2 = (realTime, isFar) => {
     const time = realTime + (isFar ? 130 : 0);
-    return Math.sin((Math.PI * time) / 3) / 8;
+    return Math.sin((Math.PI * time) / 3) / 4;
   };
 
   let shipAngle, normalX, normalZ, shipDz;
@@ -462,7 +464,16 @@ void main() {
     }
   }
 
-  runGameLoop = gameLoop;
+  runGameLoop = () => {
+    ambientAudio = new Audio("assets/Ambience 5 min.mp3");
+    ambientAudio.hidden = true;
+    ambientAudio.autoplay = true;
+    document.body.appendChild(ambientAudio);
+
+    runGameLoop = () => {};
+
+    requestAnimationFrame(gameLoop);
+  };
 
   // function logicStep() {
   //   program.runInFrame(renderStep);
