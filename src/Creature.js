@@ -22,7 +22,7 @@ const CREATURE_RADIUS = 0.25; // CREATURE_RADIUS_PIXELS / TEX_PIXELS_PER_METER;
 
 const CREATURE_SPEED = 0.01;
 const CREATURE_BONUS_SPEED = 0.02;
-const CREATURE_HUNTING_DISTANCE = 2;
+const CREATURE_HUNTING_DISTANCE = 4;
 const CREATURE_ATTACK_DISTANCE = 0.5;
 
 const STEP_TIME = 1 / 8;
@@ -45,6 +45,7 @@ let Tentacle;
  * @property {SpriteBuilder} makeCreatureAttackSprite
  * @property {AudioBuffer} enemyDyingSound
  * @property {AudioBuffer} enemyScreamSound
+ * @property {AudioBuffer} enemyNoticeSound
  * @property {SpriteBuilder} makeCreatureDeathSprite
  */
 export let CreatureResources;
@@ -79,6 +80,7 @@ export async function loadCreatureResources(loadTexture, loadSound) {
     creatureAttackTex,
     enemyDyingSound,
     enemyScreamSound,
+    enemyNoticeSound,
     creatureDeathTex,
   ] = await Promise.all([
     loadTexture("creature", "assets/Enemy.png"),
@@ -86,6 +88,7 @@ export async function loadCreatureResources(loadTexture, loadSound) {
     loadTexture("creature_attack", "assets/enemy_bite.png"),
     loadSound("assets/Enemy Dying.mp3"),
     loadSound("assets/enemy_scream.mp3"),
+    loadSound("assets/Enemy Notices You.mp3"),
     loadTexture("creature_death", "assets/Enemy Dying.png"),
   ]);
 
@@ -224,6 +227,7 @@ export async function loadCreatureResources(loadTexture, loadSound) {
     tentacleSprite,
     enemyDyingSound,
     enemyScreamSound,
+    enemyNoticeSound,
   };
 }
 
@@ -379,6 +383,7 @@ function getCreatureSpeed(room, start) {
  */
 function creatureStateHunting(creature, room) {
   const startedAt = room.roomTime;
+  room.audio.playSound(creature, room.resources.creature.enemyNoticeSound);
 
   return {
     name: "creature_hunting",
@@ -504,7 +509,6 @@ function creatureStateDeathByAxe(creature, room) {
       }
     },
     render: (gl, program) => {
-      console.log("DEATH");
       const stack = program.stack;
       stack.pushTranslation(creature.x, creature.y, room.roomBottom);
       sprite.renderSprite(program);

@@ -225,7 +225,7 @@ export function heroStateNormal(hero, room) {
       }
 
       // move character
-      let charDx = 1.2 * room.stepSize * input.getSignOfAction("left", "right");
+      let charDx = 1.6 * room.stepSize * input.getSignOfAction("left", "right");
       const plannedX = hero.heroX + charDx;
       if (plannedX < room.roomLeft + charWInM) {
         charDx = room.roomLeft + charWInM - hero.heroX;
