@@ -109,7 +109,6 @@ async function onLoad() {
   input.setKeysForAction("right", ["d", "ArrowRight"]);
   input.setKeysForAction("showLights", ["l"]);
   input.setKeysForAction("attack", ["f", " "]);
-  input.setKeysForAction("fullscreen", ["u"]);
   input.setKeysForAction("up", ["w", "ArrowUp"]);
   input.setKeysForAction("down", ["s", "ArrowDown"]);
   input.setKeysForAction("lightUp", ["y"]);
@@ -371,10 +370,6 @@ void main() {
 
   let prevRun = Date.now();
   function gameLoop() {
-    if (!fullScreenRequest && input.isPressed("fullscreen")) {
-      fullScreenRequest = canvas.requestFullscreen();
-    }
-
     const realTime = Date.now() / 1000;
     if (avgFps === -1) {
       avgFps = 60;
