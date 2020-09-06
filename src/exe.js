@@ -106,8 +106,6 @@ async function onLoad() {
   const canvas = document.getElementById("canvas");
   const computedStyle = window.getComputedStyle(canvas);
 
-  prepareStartButton();
-
   const input = new InputManager(document.body);
   input.setKeysForAction("left", ["a", "ArrowLeft"]);
   input.setKeysForAction("right", ["d", "ArrowRight"]);
@@ -132,6 +130,15 @@ async function onLoad() {
   const projection = buildProjectionData(width, height);
 
   const gl = canvas.getContext("webgl2", { antialias: false, alpha: false });
+
+  if (!gl) {
+    const full = document.getElementById("full");
+    full.innerHTML =
+      "Unfortunately, this game only runs on the latest Firefox or Chrome";
+    return;
+  }
+
+  prepareStartButton();
 
   gl.enable(gl.BLEND);
   gl.enable(gl.DEPTH_TEST);
