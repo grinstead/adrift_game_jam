@@ -197,8 +197,6 @@ function renderLightingToTexture(gl, program, renderInCamera, lighting, rooms) {
   }
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  gl.uniform4f(program.u["color"], 0, 0, 0, 1);
-
   const stack = program.stack;
   renderInCamera(stack, () => {
     const whiteSquare = lighting._whiteSquare;
@@ -206,6 +204,8 @@ function renderLightingToTexture(gl, program, renderInCamera, lighting, rooms) {
     // mask the rooms
     whiteSquare.bindTo(program);
     rooms.forEach((room) => {
+      gl.uniform4f(program.u["color"], 0, 0, 0, room.ambientLight);
+
       const projection = room.resources.environ.projection;
 
       const roomLeft = room.roomLeft - projection.lipWidth;
@@ -227,24 +227,25 @@ function renderLightingToTexture(gl, program, renderInCamera, lighting, rooms) {
     const fade = lighting._fade;
     fade.bindTo(program);
 
+    gl.uniform4f(program.u["color"], 0, 0, 0, 1);
     const thresholder = program.u["threshold"];
     rooms.forEach((room) => {
       const time = room.roomTime;
 
-      // room.sparks.forEach((particle) => {
-      //   if (!particle.dead) {
-      //     const startTime = particle.startTime;
-      //     const percentPassed =
-      //       (time - startTime) / (particle.deathTime - startTime);
+      room.sparks.forEach((particle) => {
+        if (!particle.dead) {
+          const startTime = particle.startTime;
+          const percentPassed =
+            (time - startTime) / (particle.deathTime - startTime);
 
-      //     // set the circle to fade out
-      //     gl.uniform1f(thresholder, 0.5 * percentPassed * percentPassed);
+          // set the circle to fade out
+          gl.uniform1f(thresholder, 0.5 * percentPassed * percentPassed);
 
-      //     stack.pushTranslation(particle.x, particle.y, particle.z);
-      //     fade.renderSpriteDatumPrebound("main", 0);
-      //     stack.pop();
-      //   }
-      // });
+          stack.pushTranslation(particle.x, particle.y, particle.z);
+          fade.renderSpriteDatumPrebound("main", 0);
+          stack.pop();
+        }
+      });
     });
   });
 }
