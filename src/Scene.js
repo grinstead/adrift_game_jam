@@ -71,6 +71,7 @@ export let RoomKernel;
  * @param {number} options.roomLeft - The x coordinate of the left-most portion of the room
  * @param {number} options.roomRight - The x coordinate of the right-most portion of the room
  * @param {number} options.roomBottom - The z coordinate of the lowest-most portion of the room (ie. the floor)
+ * @param {number} options.ambientLight
  * @returns {Room}
  */
 export function makeRoom(options) {
@@ -102,7 +103,7 @@ export function makeRoom(options) {
     ),
     transition: null,
     locks: 0,
-    ambientLight: 0,
+    ambientLight: options.ambientLight,
     interactables: [],
   };
 }

@@ -61,8 +61,8 @@ function initRoom(kernel, name) {
         roomRight: 5,
         roomLeft: -5,
         roomBottom: 20,
+        ambientLight: 0.4,
       });
-      room.ambientLight = 0.4;
       room.hero.heroX = -1;
 
       room.interactables.push(new LightSwitch(1), new Hatch(3, "second"));
@@ -76,8 +76,8 @@ function initRoom(kernel, name) {
         roomRight: 5,
         roomLeft: -15,
         roomBottom: 15,
+        ambientLight: 0.4,
       });
-      room.ambientLight = 0.4;
 
       room.interactables.push(
         new LightSwitch(1),
@@ -95,8 +95,8 @@ function initRoom(kernel, name) {
         roomRight: 10,
         roomLeft: -12,
         roomBottom: 10,
+        ambientLight: 0.4,
       });
-      room.ambientLight = 0.4;
 
       room.interactables.push(
         new LightSwitch(6),
@@ -107,6 +107,9 @@ function initRoom(kernel, name) {
 
       return room;
     }
+    case "fourth": {
+      const room = makeRoom({});
+    }
     case "r0": {
       const room = makeRoom({
         kernel,
@@ -114,13 +117,12 @@ function initRoom(kernel, name) {
         roomLeft: 0,
         roomRight: 12,
         roomBottom: 0,
+        ambientLight: 0.1,
       });
 
       const hero = room.hero;
       hero.heroX = room.roomLeft + 4;
       spawnCreature(room, hero.heroX + 2);
-
-      room.ambientLight = 0.1;
 
       return room;
     }
@@ -131,6 +133,7 @@ function initRoom(kernel, name) {
         roomLeft: -12,
         roomRight: 10,
         roomBottom: ROOM_HEIGHT + 3,
+        ambientLight: 0,
       });
 
       spawnCreature(room, 0);

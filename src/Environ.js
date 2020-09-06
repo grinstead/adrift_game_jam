@@ -34,6 +34,7 @@ export let ProjectionData;
  * @property {SpriteSet} setPieces
  * @property {ProjectionData} projection
  * @property {SpriteSet} lightSwitches
+ * @property {AudioBuffer} hatchOpenSound
  */
 export let EnvironResources;
 
@@ -102,9 +103,10 @@ export function buildProjectionData(outputWidth, outputHeight) {
  * Loads up all the environment resources (things like walls)
  * @param {ProjectionData} projection,
  * @param {function(string,string):Promise<Texture>} loadTexture
+ * @param {function(string):Promise<AudioBuffer>} loadSound
  * @returns {EnvironResources}
  */
-export async function loadEnvironResources(projection, loadTexture) {
+export async function loadEnvironResources(projection, loadTexture, loadSound) {
   const [
     ladderTex,
     wallTex,
@@ -113,6 +115,7 @@ export async function loadEnvironResources(projection, loadTexture) {
     sideTex,
     variousTex,
     lightsTex,
+    hatchOpenSound,
   ] = await Promise.all([
     loadTexture("ladder", "assets/ladder.png"),
     loadTexture("wall", "assets/Back Wall.png"),
@@ -121,6 +124,7 @@ export async function loadEnvironResources(projection, loadTexture) {
     loadTexture("wall", "assets/side_wall.png"),
     loadTexture("set_pieces", "assets/set_pieces.png"),
     loadTexture("lights", "assets/Light Switch Flip.png"),
+    loadSound("assets/Metal Door.mp3"),
   ]);
 
   const ladderSprite = new SpriteSet(ladderTex, {
@@ -153,7 +157,9 @@ export async function loadEnvironResources(projection, loadTexture) {
       yPx: 725,
       widthPx: 345,
       heightPx: 311,
-      offsetY: LADDER_Y,
+      offsetY: LADDER_Y + 0.01,
+      offsetZ: ROOM_HEIGHT - 0.3,
+      offsetX: -0.1,
     }),
   ];
   setPieceData["lowerHatch"] = [
@@ -165,6 +171,16 @@ export async function loadEnvironResources(projection, loadTexture) {
       offsetY: 0.1,
       flipY: true,
       offsetZ: 0.5,
+    }),
+  ];
+  setPieceData["lowerHatchClosed"] = [
+    setPiece(projection, variousTex, {
+      xPx: 842,
+      yPx: 1166,
+      widthPx: 349,
+      heightPx: 187,
+      offsetY: 0.1,
+      offsetZ: 0.3,
     }),
   ];
 
@@ -204,6 +220,7 @@ export async function loadEnvironResources(projection, loadTexture) {
     ladderSprite,
     setPieces,
     lightSwitches,
+    hatchOpenSound,
   };
 }
 

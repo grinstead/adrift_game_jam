@@ -205,7 +205,7 @@ export function heroStateNormal(hero, room) {
               return true;
             }
           } else if (interactable instanceof Hatch) {
-            if (upDown === -1) {
+            if (upDown === -1 && interactable.isOpen(room)) {
               hero.changeState(room, heroStateDescending, interactable);
               return true;
             }
@@ -263,7 +263,7 @@ export function heroStateNormal(hero, room) {
 function heroStateAttacking(hero, room) {
   const targetX = hero.heroX + hero.signX * (300 / HERO_PIXELS_PER_METER);
   const enemyInRange = room.creatures.find(
-    (creature) => Math.abs(targetX - creature.x) < 0.4
+    (creature) => Math.abs(targetX - creature.x) < 0.6
   );
 
   if (enemyInRange) {
@@ -307,6 +307,13 @@ function heroStateFlipSwitch(hero, room, light) {
         room.audio.playSound(light, room.resources.hero.lightSwitchSound);
         room.lightsOn = true;
         light.on = true;
+
+        const hatch = room.interactables.find(
+          (inter) => inter instanceof Hatch
+        );
+        if (hatch) {
+          room.audio.playSound(hatch, room.resources.environ.hatchOpenSound);
+        }
       }
 
       if (hero.sprite.isFinished()) {
@@ -349,6 +356,7 @@ function heroStateEnterFromLadder(hero, room) {
     "down"
   );
   hero.heroY = LADDER_Y;
+  room.locks++;
 
   return {
     name: "descending",
@@ -363,6 +371,7 @@ function heroStateEnterFromLadder(hero, room) {
     onExit: () => {
       hero.heroY = 0;
       hero.heroZ = room.roomBottom;
+      room.locks--;
     },
   };
 }

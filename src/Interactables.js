@@ -1,5 +1,6 @@
 import { Program } from "./swagl.js";
 import { Room } from "./Scene.js";
+import { ROOM_HEIGHT } from "./SpriteData.js";
 
 export class LightSwitch {
   constructor(x) {
@@ -37,6 +38,10 @@ export class Hatch {
     return makeTransition(this.destination, "down");
   }
 
+  isOpen(room) {
+    return room.lightsOn;
+  }
+
   /**
    * @param {WebGL2RenderingContext} gl
    * @param {Program} program
@@ -48,7 +53,10 @@ export class Hatch {
 
     stack.pushTranslation(this.x, 0, room.roomBottom);
     setPieces.bindTo(program);
-    setPieces.renderSpriteDatumPrebound("lowerHatch", 0);
+    setPieces.renderSpriteDatumPrebound(
+      room.lightsOn ? "lowerHatch" : "lowerHatchClosed",
+      0
+    );
     stack.pop();
   }
 }
@@ -73,10 +81,15 @@ export class Ladder {
   render(gl, program, room) {
     const stack = program.stack;
     const ladderSprite = room.resources.environ.ladderSprite;
+    const setPieces = room.resources.environ.setPieces;
 
     stack.pushTranslation(this.x, 0, room.roomBottom);
     ladderSprite.bindTo(program);
     ladderSprite.renderSpriteDatumPrebound("main", 0);
+
+    setPieces.bindTo(program);
+    setPieces.renderSpriteDatumPrebound("upperHatch", 0);
+
     stack.pop();
   }
 }
