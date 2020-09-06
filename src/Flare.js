@@ -3,6 +3,7 @@ import {
   ROOM_DEPTH_RADIUS,
   TEX_PIXEL_PER_PIXEL,
   PIXELS_PER_METER,
+  ROOM_HEIGHT,
 } from "./SpriteData.js";
 import { loadTextureFromRawBitmap, Program } from "./swagl.js";
 import { SpriteSet, spriteSheet } from "./sprites.js";
@@ -93,7 +94,11 @@ export function processFlare(room) {
         particle.dz = dz;
       }
 
-      if (particle.x < room.roomLeft || particle.x > room.roomRight) {
+      if (
+        particle.x < room.roomLeft ||
+        particle.x > room.roomRight ||
+        particle.z > room.roomBottom + ROOM_HEIGHT
+      ) {
         particle.dead = true;
       }
 

@@ -1,7 +1,7 @@
 import { RoomKernel, Room, makeRoom, Transition } from "./Scene.js";
 import { ROOM_HEIGHT } from "./SpriteData.js";
 import { spawnCreature } from "./Creature.js";
-import { LightSwitch, Hatch } from "./Interactables.js";
+import { LightSwitch, Hatch, Ladder } from "./Interactables.js";
 
 const CAMERA_X_OFFSET = 1;
 
@@ -58,14 +58,33 @@ function initRoom(kernel, name) {
       const room = makeRoom({
         kernel,
         name,
-        roomRight: 6,
-        roomLeft: -6,
+        roomRight: 5,
+        roomLeft: -5,
         roomBottom: 20,
       });
       room.ambientLight = 0.4;
       room.hero.heroX = -1;
 
-      room.interactables.push(new LightSwitch(1), new Hatch(3, "r0"));
+      room.interactables.push(new LightSwitch(1), new Hatch(3, "second"));
+
+      return room;
+    }
+    case "second": {
+      const room = makeRoom({
+        kernel,
+        name,
+        roomRight: 5,
+        roomLeft: -15,
+        roomBottom: 15,
+      });
+      room.ambientLight = 0.4;
+
+      room.interactables.push(
+        new LightSwitch(1),
+        new Ladder(3, "start"),
+        new Hatch(-10, "r0")
+      );
+      spawnCreature(room, -8);
 
       return room;
     }

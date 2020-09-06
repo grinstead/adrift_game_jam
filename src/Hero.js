@@ -10,7 +10,7 @@ import { HERO_HEIGHT, ROOM_DEPTH_RADIUS, LADDER_Y } from "./SpriteData.js";
 import { arctan } from "./webgames/math.js";
 import { Room, Transition } from "./Scene.js";
 import { deathByAxe } from "./Creature.js";
-import { LightSwitch, Hatch } from "./Interactables.js";
+import { LightSwitch, Hatch, Ladder } from "./Interactables.js";
 
 // The hero's scaling is off, but it is self-consistent
 const HERO_PIXELS_PER_METER = 434 / HERO_HEIGHT;
@@ -23,6 +23,7 @@ const charWInM = 405 / HERO_PIXELS_PER_METER;
  * @property {SpriteBuilder} makeWalkSprite
  * @property {SpriteBuilder} makeAttackSprite
  * @property {SpriteBuilder} makeClimbingSprite
+ * @property {SpriteBuilder} makeDescendingSprite
  * @property {SpriteBuilder} makeEnterHatchSprite
  * @property {SpriteBuilder} makeExitHatchSprite
  * @property {SpriteBuilder} makeSwitchFlipSprite
@@ -197,7 +198,7 @@ export function heroStateNormal(hero, room) {
             if (
               upDown === 1 &&
               !interactable.on &&
-              Math.abs(hero.heroX - interactable.x) < 0.2
+              Math.abs(hero.heroX - interactable.x) < 0.4
             ) {
               hero.changeState(room, heroStateFlipSwitch, interactable);
               return true;
@@ -207,14 +208,14 @@ export function heroStateNormal(hero, room) {
               hero.changeState(room, heroStateDescending, interactable);
               return true;
             }
+          } else if (interactable instanceof Ladder) {
+            if (upDown === 1) {
+              hero.changeState(room, heroStateClimbing, interactable);
+              return true;
+            }
           }
         });
         if (didInteract) return;
-      }
-
-      if (room.name === "r0" && input.isPressed("up")) {
-        hero.changeState(room, heroStateClimbing);
-        return;
       }
 
       if (input.isPressed("attack")) {
@@ -314,17 +315,13 @@ function heroStateFlipSwitch(hero, room, light) {
   };
 }
 
-function heroStateClimbing(hero, room) {
+function heroStateClimbing(hero, room, ladder) {
   hero.setSprite(room.resources.hero.makeClimbingSprite, room.roomTime, "up");
   hero.setSpeedX(0);
   hero.heroY = LADDER_Y;
+  hero.heroX = ladder.x;
 
-  room.transition = {
-    roomName: "r1",
-    transitionType: "up",
-    realWorldStartTime: Date.now() / 1000,
-    seconds: 1,
-  };
+  room.transition = ladder.getTransition();
 
   return {
     name: "climbing",
@@ -334,6 +331,32 @@ function heroStateClimbing(hero, room) {
       } else {
         hero.heroZ =
           room.roomBottom + 0.3 * Math.min(5, hero.sprite.frameIndex());
+      }
+    },
+    onExit: () => {
+      hero.heroY = 0;
+      hero.heroZ = room.roomBottom;
+    },
+  };
+}
+
+function heroStateEnterFromLadder(hero, room) {
+  hero.setSpeedX(0);
+  hero.setSprite(
+    room.resources.hero.makeDescendingSprite,
+    room.roomTime,
+    "down"
+  );
+  hero.heroY = LADDER_Y;
+
+  return {
+    name: "descending",
+    processStep: (room) => {
+      if (hero.sprite.isFinished()) {
+        hero.changeState(room, heroStateNormal);
+      } else {
+        hero.heroZ =
+          room.roomBottom + 0.3 * Math.min(5, 8 - hero.sprite.frameIndex());
       }
     },
     onExit: () => {
@@ -414,8 +437,14 @@ function heroStateEnterFromHatch(hero, room) {
 export function transitionInHero(transition, oldRoom, newRoom) {
   // for now always assumes a hatch
   const hero = newRoom.hero;
-  hero.heroX = oldRoom.hero.heroX;
-  hero.changeState(newRoom, heroStateEnterFromHatch);
+
+  if (transition.transitionType === "up") {
+    hero.heroX = oldRoom.hero.heroX;
+    hero.changeState(newRoom, heroStateEnterFromHatch);
+  } else {
+    hero.heroX = oldRoom.hero.heroX;
+    hero.changeState(newRoom, heroStateEnterFromLadder);
+  }
 }
 
 /**
@@ -468,6 +497,30 @@ export async function loadHeroResources(loadTexture, loadSound) {
       null,
     ],
     singleMode: "enter",
+  };
+
+  const climbingUp = {
+    name: "hero_climbing_up",
+    tex: climbingTex,
+    widthPx: 222,
+    heightPx: 412,
+    xPx: 110,
+    yPx: 412,
+    frameCount: 8,
+    loops: false,
+    frameTime: 1 / 8,
+    flareData: [
+      { tx: 128, ty: 60, bx: 65, by: 54 },
+      { tx: 329, ty: 155, bx: 277, by: 148 },
+      { tx: 579, ty: 58, bx: 518, by: 56 },
+      { tx: 772, ty: 157, bx: 721, by: 156 },
+      { tx: 95, ty: 575, bx: 65, by: 567 },
+      { tx: 337, ty: 472, bx: 286, by: 465 },
+      null,
+      null,
+    ],
+    singleMode: "up",
+    scale: 1.4,
   };
 
   return {
@@ -544,28 +597,12 @@ export async function loadHeroResources(loadTexture, loadSound) {
       ],
     }),
 
-    makeClimbingSprite: makeHeroSpriteType({
-      name: "hero_climbing_up",
-      tex: climbingTex,
-      widthPx: 222,
-      heightPx: 412,
-      xPx: 110,
-      yPx: 412,
-      frameCount: 8,
-      loops: false,
-      frameTime: 1 / 8,
-      flareData: [
-        { tx: 128, ty: 60, bx: 65, by: 54 },
-        { tx: 329, ty: 155, bx: 277, by: 148 },
-        { tx: 579, ty: 58, bx: 518, by: 56 },
-        { tx: 772, ty: 157, bx: 721, by: 156 },
-        { tx: 95, ty: 575, bx: 65, by: 567 },
-        { tx: 337, ty: 472, bx: 286, by: 465 },
-        null,
-        null,
-      ],
-      singleMode: "up",
-      scale: 1.4,
+    makeClimbingSprite: makeHeroSpriteType(climbingUp),
+    makeDescendingSprite: makeHeroSpriteType({
+      ...climbingUp,
+      name: "hero_hatch_descend",
+      singleMode: "down",
+      reverseOrder: true,
     }),
     makeEnterHatchSprite: makeHeroSpriteType(enterHatch),
     makeExitHatchSprite: makeHeroSpriteType({

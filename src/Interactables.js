@@ -53,6 +53,34 @@ export class Hatch {
   }
 }
 
+export class Ladder {
+  constructor(x, destination) {
+    /** @type {string} */
+    this.destination = destination;
+    /** @type {number} */
+    this.x = x;
+  }
+
+  getTransition() {
+    return makeTransition(this.destination, "up");
+  }
+
+  /**
+   * @param {WebGL2RenderingContext} gl
+   * @param {Program} program
+   * @param {Room} room
+   */
+  render(gl, program, room) {
+    const stack = program.stack;
+    const ladderSprite = room.resources.environ.ladderSprite;
+
+    stack.pushTranslation(this.x, 0, room.roomBottom);
+    ladderSprite.bindTo(program);
+    ladderSprite.renderSpriteDatumPrebound("main", 0);
+    stack.pop();
+  }
+}
+
 function makeTransition(roomName, type) {
   return {
     roomName,
