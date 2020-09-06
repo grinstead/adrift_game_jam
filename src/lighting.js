@@ -210,7 +210,7 @@ function renderLightingToTexture(gl, program, renderInCamera, lighting, rooms) {
         0,
         0,
         0,
-        window.lightsOn || room.lightsOn ? 1 : room.ambientLight
+        window["lightsOn"] || room.lightsOn ? 1 : room.ambientLight
       );
 
       const projection = room.resources.environ.projection;

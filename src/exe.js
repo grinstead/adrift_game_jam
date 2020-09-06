@@ -354,7 +354,7 @@ void main() {
 
     if (input.numPresses("showLights") % 2) {
       debugShowLights = !debugShowLights;
-      window.lightsOn = debugShowLights;
+      window["lightsOn"] = debugShowLights;
     }
 
     rooms.forEach((room) => processRoom(room));
