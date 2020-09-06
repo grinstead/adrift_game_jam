@@ -4,19 +4,11 @@ import {
   loadTextureFromImgUrl,
   doAnimationFrame,
 } from "./swagl.js";
-import { SpriteSet, spriteSheet } from "./sprites.js";
 import { InputManager } from "./webgames/Input.js";
 import { Lighting } from "./lighting.js";
-import {
-  TEX_PIXEL_PER_PIXEL,
-  PIXELS_PER_METER,
-  TEX_PIXELS_PER_METER,
-  ROOM_DEPTH_RADIUS,
-  ROOM_HEIGHT,
-} from "./SpriteData.js";
+import { TEX_PIXELS_PER_METER } from "./SpriteData.js";
 import {
   loadCreatureResources,
-  spawnCreature,
   renderCreatures,
   processCreatures,
 } from "./Creature.js";
@@ -32,8 +24,6 @@ import { loadEnvironResources, buildProjectionData } from "./Environ.js";
 import { AudioManager } from "./webgames/Audio.js";
 import { processFlare, makeSparkSprite, renderSparks } from "./Flare.js";
 import { initWorld, cameraPositionForRoom, updateRoomTime } from "./World.js";
-
-window.ambientLight = 0.1;
 
 async function onLoad() {
   const fpsNode = document.getElementById("fps");

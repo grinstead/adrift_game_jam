@@ -244,6 +244,10 @@ export class Creature {
   }
 }
 
+/**
+ * @param {Creature} creature
+ * @param {Room} room
+ */
 function creatureStateNormal(creature, room) {
   return {
     name: "creature_normal",
