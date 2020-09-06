@@ -102,7 +102,7 @@ function prepareStartButton() {
 }
 
 async function onLoad() {
-  const fpsNode = document.getElementById("fps");
+  // const fpsNode = document.getElementById("fps");
   const canvas = document.getElementById("canvas");
   const computedStyle = window.getComputedStyle(canvas);
 
@@ -381,7 +381,7 @@ void main() {
       const FACTOR = 1 / 8;
       avgFps = (FACTOR * 1) / (realTime - prevRun) + (1 - FACTOR) * avgFps;
     }
-    fpsNode.innerHTML = `fps=${Math.round(avgFps)}`;
+    // fpsNode.innerHTML = `fps=${Math.round(avgFps)}`;
     prevRun = realTime;
 
     // calculate the boat rocking
@@ -430,9 +430,6 @@ void main() {
       window["lightsOn"] = debugShowLights;
     }
 
-    if (room.name === "fifth") {
-      room.ambientLight = Math.max(0, 0.2 * (1 - room.roomTime / 5));
-    }
     if (room.name === "final") {
       if (!room.heroDead && room.roomTime > 32) {
         room.heroDead = true;
