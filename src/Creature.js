@@ -302,7 +302,7 @@ export function renderCreatures(gl, program, room) {
       tentacleSprite.renderSpriteDatumPrebound(
         "wiggle",
         Math.abs(
-          ((Math.floor(24 * roomTime) + tentacle.frameOffset) %
+          ((Math.floor((24 * Date.now()) / 1000) + tentacle.frameOffset) %
             (2 * TENTACLE_FRAMES - 1)) +
             1 -
             TENTACLE_FRAMES

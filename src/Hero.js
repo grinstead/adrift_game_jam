@@ -306,7 +306,6 @@ function heroStateEnterFromHatch(hero, room) {
     },
     render: (gl, program) => {
       if (room.roomTime < startTime + 1) return;
-
       hero.renderSprite(gl, program, room);
     },
     onExit: () => {
