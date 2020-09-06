@@ -9,6 +9,7 @@ import { Texture, Program } from "./swagl.js";
 import { HERO_HEIGHT, ROOM_DEPTH_RADIUS, LADDER_Y } from "./SpriteData.js";
 import { arctan } from "./webgames/math.js";
 import { Room, Transition } from "./Scene.js";
+import { deathByAxe } from "./Creature.js";
 
 // The hero's scaling is off, but it is self-consistent
 const HERO_PIXELS_PER_METER = 434 / HERO_HEIGHT;
@@ -232,6 +233,15 @@ export function heroStateNormal(hero, room) {
  * @returns {HeroState}
  */
 function heroStateAttacking(hero, room) {
+  const targetX = hero.heroX + hero.signX * (300 / HERO_PIXELS_PER_METER);
+  const enemyInRange = room.creatures.find(
+    (creature) => Math.abs(targetX - creature.x) < 0.4
+  );
+
+  if (enemyInRange) {
+    deathByAxe(enemyInRange, room);
+  }
+
   hero.setSprite(room.resources.hero.makeAttackSprite, room.roomTime);
   hero.setSpeedX(0);
 

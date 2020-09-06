@@ -13,7 +13,7 @@ import { SpriteSet } from "./sprites.js";
 /**
  * The basic resources used in the game
  * @typedef {Object} Resources
- * @property {CreatureResources} creatures
+ * @property {CreatureResources} creature
  * @property {HeroResources} hero
  * @property {EnvironResources} environ
  * @property {SpriteSet} sparkSprite

@@ -137,7 +137,7 @@ void main() {
     heroResources,
   ] = await Promise.all([
     loadEnvironResources(projection, loadTexture),
-    loadCreatureResources(loadTexture),
+    loadCreatureResources(loadTexture, loadSound),
     loadHeroResources(loadTexture, loadSound),
   ]);
 

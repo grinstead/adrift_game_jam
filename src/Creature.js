@@ -1,10 +1,16 @@
-import { TEX_PIXELS_PER_METER, TENTACLE_FRAMES } from "./SpriteData.js";
+import {
+  TEX_PIXELS_PER_METER,
+  TENTACLE_FRAMES,
+  HERO_HEIGHT,
+  ROOM_DEPTH_RADIUS,
+} from "./SpriteData.js";
 import {
   SpriteSet,
   spriteSheet,
   Sprite,
   makeSpriteType,
   SpriteBuilder,
+  characterSpriteSheet,
 } from "./sprites.js";
 import { Texture, Program } from "./swagl.js";
 import { Room } from "./Scene.js";
@@ -32,6 +38,8 @@ let Tentacle;
  * @property {SpriteSet} tentacleSprite
  * @property {SpriteBuilder} makeCreatureSprite
  * @property {SpriteBuilder} makeCreatureAttackSprite
+ * @property {AudioBuffer} enemyDyingSound
+ * @property {SpriteBuilder} makeCreatureDeathSprite
  */
 export let CreatureResources;
 
@@ -58,11 +66,19 @@ const mirrorX = new Float32Array([
  * @param {function(string,string):Promise<Texture>} loadTexture
  * @returns {CreatureResources}
  */
-export async function loadCreatureResources(loadTexture) {
-  const [creatureTex, tentacleTex, creatureAttackTex] = await Promise.all([
+export async function loadCreatureResources(loadTexture, loadSound) {
+  const [
+    creatureTex,
+    tentacleTex,
+    creatureAttackTex,
+    enemyDyingSound,
+    creatureDeathTex,
+  ] = await Promise.all([
     loadTexture("creature", "assets/Enemy.png"),
     loadTexture("tentacle", "assets/Tentacle.png"),
     loadTexture("creature_attack", "assets/enemy_bite.png"),
+    loadSound("assets/Enemy Dying.mp3"),
+    loadTexture("creature_death", "assets/Enemy Dying.png"),
   ]);
 
   const creatureSpriteSet = new SpriteSet(creatureTex, {
@@ -100,6 +116,40 @@ export async function loadCreatureResources(loadTexture) {
     modes: ["bite"],
     loops: true,
     frameTime: 1 / 12,
+  });
+
+  const makeCreatureDeathSprite = makeSpriteType({
+    name: "creature_death",
+    set: new SpriteSet(creatureDeathTex, {
+      // prettier-ignore
+      "left": spriteSheet({
+        x: 330 / (460 / HERO_HEIGHT),
+        y: ROOM_DEPTH_RADIUS / 2,
+        z: 0,
+        width: 660 / (460 / HERO_HEIGHT),
+        height: HERO_HEIGHT,
+        texWidth: 660 / creatureDeathTex.w,
+        texHeight: 460 / creatureDeathTex.h,
+        numPerRow: 3,
+        count: 12,
+      }),
+      // prettier-ignore
+      "right": spriteSheet({
+        x: 330 / (450 / HERO_HEIGHT),
+        y: ROOM_DEPTH_RADIUS / 2,
+        z: 0,
+        width: 660 / (450 / HERO_HEIGHT),
+        height: HERO_HEIGHT,
+        texWidth: 660 / creatureDeathTex.w,
+        texHeight: 450 / creatureDeathTex.h,
+        numPerRow: 3,
+        count: 12,
+        reverseX: true,
+      }),
+    }),
+    modes: ["left", "right"],
+    loops: false,
+    frameTime: 1 / 8,
   });
 
   const frameTimes = new Array(CREATURE_IDLE_FRAMES).fill(1 / 8);
@@ -159,7 +209,13 @@ export async function loadCreatureResources(loadTexture) {
     "wiggle": tentacleFrames,
   });
 
-  return { makeCreatureSprite, makeCreatureAttackSprite, tentacleSprite };
+  return {
+    makeCreatureSprite,
+    makeCreatureAttackSprite,
+    makeCreatureDeathSprite,
+    tentacleSprite,
+    enemyDyingSound,
+  };
 }
 
 /**
@@ -279,6 +335,45 @@ function creatureStateNormal(creature, room) {
   };
 }
 
+export function deathByAxe(creature, room) {
+  if (creature.state.name !== "creature_death") {
+    creature.changeState(room, creatureStateDeathByAxe);
+  }
+}
+
+/**
+ * @param {Creature} creature
+ * @param {Room} room
+ */
+function creatureStateDeathByAxe(creature, room) {
+  room.audio.playSound(creature, room.resources.creature.enemyDyingSound);
+  const sprite = room.resources.creature.makeCreatureDeathSprite(
+    room.hero.heroX < creature.x ? "left" : "right",
+    room.roomTime
+  );
+  creature.sprite = sprite;
+
+  return {
+    name: "creature_death",
+    processStep: () => {
+      if (sprite.frameIndex() > 1 && creature.tentacles.length) {
+        creature.tentacles = [];
+      }
+
+      if (sprite.isFinished()) {
+        room.creatures.splice(room.creatures.indexOf(creature), 1);
+      }
+    },
+    render: (gl, program) => {
+      console.log("DEATH");
+      const stack = program.stack;
+      stack.pushTranslation(creature.x, creature.y, room.roomBottom);
+      sprite.renderSprite(program);
+      stack.pop();
+    },
+  };
+}
+
 /**
  * Adds a creature to the room
  * @param {Room} room
@@ -289,7 +384,6 @@ export function spawnCreature(room, x) {
     new Creature(room, x, 0, room.roomBottom + 3 * CREATURE_RADIUS)
   );
 }
-
 /**
  * Moves all the creatures in the room around
  * @param {Room} room
