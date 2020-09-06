@@ -21,6 +21,15 @@ import { SpriteSet } from "./sprites.js";
 let Resources;
 
 /**
+ * @typedef {Object} Transition
+ * @property {string} roomName
+ * @property {string} transitionType
+ * @property {number} realWorldStartTime - Date.now() / 1000
+ * @property {number} seconds
+ */
+export let Transition;
+
+/**
  * A data structure containing almost everything relevant for the game
  * @typedef {Object} Room
  * @property {string} name - The name of the room
@@ -38,6 +47,7 @@ let Resources;
  * @property {Array<SparkParticle>} sparks
  * @property {boolean} lightsOn
  * @property {Hero} hero - The hero character for the room
+ * @property {?Transition} transition - Whether the room should transition to another room
  */
 export let Room;
 
@@ -87,6 +97,7 @@ export function makeRoom(options) {
       (roomRight + roomLeft) / 2,
       roomBottom
     ),
+    transition: null,
   };
 }
 

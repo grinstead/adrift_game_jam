@@ -2,6 +2,8 @@ import { RoomKernel, Room, makeRoom } from "./Scene.js";
 import { ROOM_HEIGHT } from "./SpriteData.js";
 import { spawnCreature } from "./Creature.js";
 
+const CAMERA_X_OFFSET = 1;
+
 export class World {
   constructor(kernel, startRoom) {
     /** @private {RoomKernel} */
@@ -17,15 +19,22 @@ export class World {
    */
   switchToRoom(roomName) {
     if (this.activeRoom.name === roomName) return;
+    this.activeRoom = this.getRoom(roomName);
+  }
 
+  /**
+   * Gets (or initializes) the room with the given name
+   * @param {string} roomName
+   * @returns {Room}
+   */
+  getRoom(roomName) {
     const rooms = this.rooms;
-    let newRoom = rooms.get(roomName);
-    if (!newRoom) {
-      newRoom = initRoom(this.kernel, roomName);
-      rooms.set(roomName, newRoom);
+    let room = rooms.get(roomName);
+    if (!room) {
+      room = initRoom(this.kernel, roomName);
+      rooms.set(roomName, room);
     }
-
-    this.activeRoom = newRoom;
+    return room;
   }
 }
 
@@ -64,7 +73,7 @@ function initRoom(kernel, name) {
         kernel,
         name,
         roomLeft: -12,
-        roomRight: 2,
+        roomRight: 10,
         roomBottom: ROOM_HEIGHT + 2,
       });
 
@@ -73,4 +82,19 @@ function initRoom(kernel, name) {
     default:
       throw new Error(`Unrecognized room name "${name}"`);
   }
+}
+
+/**
+ * @param {Room} room
+ * @returns {x: number, y: number, z: number}
+ */
+export function cameraPositionForRoom(room) {
+  return {
+    x: Math.min(
+      Math.max(room.hero.heroX, room.roomLeft + CAMERA_X_OFFSET),
+      room.roomRight - CAMERA_X_OFFSET
+    ),
+    y: 0,
+    z: room.roomBottom + ROOM_HEIGHT / 2,
+  };
 }

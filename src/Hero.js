@@ -21,6 +21,8 @@ const charWInM = 405 / HERO_PIXELS_PER_METER;
  * @property {SpriteBuilder} makeWalkSprite
  * @property {SpriteBuilder} makeAttackSprite
  * @property {SpriteBuilder} makeClimbingSprite
+ * @property {SpriteBuilder} makeEnterHatchSprite
+ * @property {SpriteBuilder} makeExitHatchSprite
  * @property {Array<AudioBuffer>} grunts
  */
 export let HeroResources;
@@ -249,6 +251,13 @@ function heroStateClimbing(hero, room) {
   hero.setSpeedX(0);
   hero.heroY = ROOM_DEPTH_RADIUS;
 
+  room.transition = {
+    roomName: "r1",
+    transitionType: "up",
+    realWorldStartTime: Date.now() / 1000,
+    seconds: 1,
+  };
+
   return {
     name: "climbing",
     processStep: (room) => {
@@ -266,23 +275,94 @@ function heroStateClimbing(hero, room) {
 }
 
 /**
+ * The state of entering from a hatch (climbing up into the room)
+ * @param {Hero} hero
+ * @param {Room} room
+ */
+function heroStateEnterFromHatch(hero, room) {
+  const startTime = room.roomTime;
+  hero.setSprite(
+    room.resources.hero.makeExitHatchSprite,
+    room.roomTime,
+    "exit"
+  );
+  hero.setSpeedX(0);
+
+  return {
+    name: "entering_hatch",
+    processStep: () => {
+      const sprite = hero.sprite;
+
+      if (room.roomTime < startTime + 1) {
+        // TODO: add a notion of pausing to the sprite class
+        sprite.resetSprite("exit", room.roomTime);
+      } else if (sprite.isFinished()) {
+        hero.changeState(room, heroStateNormal);
+      }
+    },
+    render: null,
+  };
+}
+
+/**
+ * @param {Transition} transition
+ * @param {Room} oldRoom
+ * @param {Room} newRoom
+ */
+export function transitionInHero(transition, oldRoom, newRoom) {
+  // for now always assumes a hatch
+  const hero = newRoom.hero;
+  hero.heroX = oldRoom.hero.heroX;
+  hero.changeState(newRoom, heroStateEnterFromHatch);
+}
+
+/**
  * Loads up all the creature resources
  * @param {function(string,string):Promise<Texture>} loadTexture
  * @param {function(string):Promise<AudioBuffer>} loadSound
  * @returns {HeroResources}
  */
 export async function loadHeroResources(loadTexture, loadSound) {
-  const [idleTex, walkTex, attackTex, climbingTex, grunts] = await Promise.all([
+  const [
+    idleTex,
+    walkTex,
+    attackTex,
+    climbingTex,
+    hatchTex,
+    grunts,
+  ] = await Promise.all([
     loadTexture("hero_idle", "assets/Hero Breathing with axe.png"),
     loadTexture("hero_walk", "assets/Hero Walking with axe.png"),
     loadTexture("hero_attack", "assets/Axe Chop.png"),
     loadTexture("hero_climbing", "assets/Climbing Up.png"),
+    loadTexture("hero_hatch", "assets/climbing_in.png"),
     Promise.all([
       loadSound("assets/Grunt1.mp3"),
       loadSound("assets/Grunt2.mp3"),
       loadSound("assets/Grunt3.mp3"),
     ]),
   ]);
+
+  const enterHatch = {
+    name: "hero_hatch_enter",
+    tex: hatchTex,
+    widthPx: 350,
+    heightPx: 406,
+    xPx: 161,
+    yPx: 479,
+    frameCount: 6,
+    loops: false,
+    frameTime: 1 / 8,
+    flareData: [
+      { tx: 201, ty: 137, bx: 172, by: 175 },
+      { tx: 422, ty: 246, bx: 461, by: 259 },
+      { tx: 67, ty: 659, bx: 113, by: 651 },
+      { tx: 419, ty: 658, bx: 462, by: 648 },
+      { tx: 80, ty: 1041, bx: 106, by: 1067 },
+      null,
+    ],
+    singleMode: "enter",
+  };
 
   return {
     grunts,
@@ -381,6 +461,13 @@ export async function loadHeroResources(loadTexture, loadSound) {
       singleMode: "up",
       scale: 1.4,
     }),
+    makeEnterHatchSprite: makeHeroSpriteType(enterHatch),
+    makeExitHatchSprite: makeHeroSpriteType({
+      ...enterHatch,
+      name: "hero_hatch_exit",
+      singleMode: "exit",
+      reverseOrder: true,
+    }),
   };
 
   // flare climbing up (reversed)
@@ -408,10 +495,14 @@ export async function loadHeroResources(loadTexture, loadSound) {
  * @param {*} options.frameTime
  * @param {number=} options.scale - If the character needs to be scaled a bit
  * @param {string=} options.singleMode
+ * @param {boolean=} options.reverseOrder
  * @param {?Array<{tx: number, ty: number, bx: number, by: number}>} options.flareData - The positions in pixels of the (T)ip and (B)ase of the flare (per frame)
  */
 function makeHeroSpriteType(options) {
   const { tex, widthPx, heightPx, xPx, yPx, frameCount } = options;
+  const maybeReverse = options.reverseOrder
+    ? (array) => [...array].reverse()
+    : (array) => array;
 
   const pxPerMeter = HERO_PIXELS_PER_METER / (options.scale || 1);
 
@@ -451,15 +542,15 @@ function makeHeroSpriteType(options) {
   if (options.singleMode) {
     modes = [options.singleMode];
     spriteSet = new SpriteSet(tex, {
-      [options.singleMode]: spriteSheet(spriteSheetOptions),
+      [options.singleMode]: maybeReverse(spriteSheet(spriteSheetOptions)),
     });
   } else {
     modes = ["left", "right"];
     spriteSet = new SpriteSet(tex, {
       // prettier-ignore
-      "right": spriteSheet(spriteSheetOptions),
+      "right": maybeReverse(spriteSheet(spriteSheetOptions)),
       // prettier-ignore
-      "left": spriteSheet({ ...spriteSheetOptions, reverseX: true }),
+      "left": maybeReverse(spriteSheet({ ...spriteSheetOptions, reverseX: true })),
     });
   }
 
@@ -469,6 +560,6 @@ function makeHeroSpriteType(options) {
     modes,
     loops: options.loops,
     frameTime: options.frameTime,
-    perFrameData,
+    perFrameData: perFrameData && maybeReverse(perFrameData),
   });
 }

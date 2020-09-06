@@ -21,13 +21,17 @@ import {
   processCreatures,
 } from "./Creature.js";
 import { makeRoom, Room, offsetAFrameFrom } from "./Scene.js";
-import { loadHeroResources, Hero, renderHero, processHero } from "./Hero.js";
+import {
+  loadHeroResources,
+  Hero,
+  renderHero,
+  processHero,
+  transitionInHero,
+} from "./Hero.js";
 import { loadEnvironResources, buildProjectionData } from "./Environ.js";
 import { AudioManager } from "./webgames/Audio.js";
 import { processFlare, makeSparkSprite, renderSparks } from "./Flare.js";
-import { initWorld } from "./World.js";
-
-const CAMERA_X_OFFSET = 1;
+import { initWorld, cameraPositionForRoom } from "./World.js";
 
 window.ambientLight = 0.1;
 
@@ -57,8 +61,6 @@ async function onLoad() {
   const canvasHeight = ratio * height;
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
-
-  let cameraZ = ROOM_HEIGHT / 2;
 
   const projection = buildProjectionData(width, height);
 
@@ -189,20 +191,23 @@ void main() {
     }
   });
 
+  // The camera, updates later
+  let cameraPosition = { x: 0, y: 0, z: 0 };
+
   const shipLength = 100;
   const wave1 = (isFar) => {
-    // const time = room.roomTime + (isFar ? 170 : 0);
-    // return Math.sin((Math.PI * time) / 8) / 2;
-    return 0;
+    const time = room.roomTime + (isFar ? 170 : 0);
+    return Math.sin((Math.PI * time) / 8) / 2;
   };
   const wave2 = (isFar) => {
-    // const time = room.roomTime + (isFar ? 130 : 0);
-    // return Math.sin((Math.PI * time) / 3) / 8;
-    return 0;
+    const time = room.roomTime + (isFar ? 130 : 0);
+    return Math.sin((Math.PI * time) / 3) / 8;
   };
 
   let shipAngle, normalX, normalZ, shipDz;
-  function movePieces() {
+
+  /** @param {Room} room */
+  function processRoom(room) {
     // calculate the boat rocking
     const bowY = wave1(false) + wave2(false);
     const sternY = wave1(true) + wave2(true);
@@ -211,20 +216,31 @@ void main() {
     normalX = Math.sin(shipAngle);
     shipDz = (bowY + sternY) / 2;
 
+    let transition = room.transition;
     processHero(room);
+
+    if (room.transition && !transition) {
+      // the hero wants to change rooms!
+
+      transition = room.transition;
+      const newRoom = world.getRoom(transition.roomName);
+      transitionInHero(transition, room, newRoom);
+    }
+
     processFlare(room);
-    processCreatures(room);
+
+    if (!transition) {
+      processCreatures(room);
+    }
   }
 
   function renderInCamera(gl, program, subcode) {
     program.stack.push(projection.matrix);
-
-    // set the camera
-    const cameraX = Math.min(
-      Math.max(room.hero.heroX, room.roomLeft + CAMERA_X_OFFSET),
-      room.roomRight - CAMERA_X_OFFSET
+    program.stack.pushTranslation(
+      -cameraPosition.x,
+      -cameraPosition.y,
+      -cameraPosition.z
     );
-    program.stack.pushTranslation(-cameraX, 0, -cameraZ);
 
     // rock the boat
     program.stack.pushYRotation(shipAngle);
@@ -305,21 +321,49 @@ void main() {
     if (room !== world.activeRoom) {
       room = world.activeRoom;
       room.roomTimeOffset = offsetAFrameFrom(room.roomTime);
-      cameraZ = room.roomBottom + ROOM_HEIGHT / 2;
     }
 
     updateTime();
+
+    // set the camera
+    cameraPosition = cameraPositionForRoom(room);
+
+    const transition = room.transition;
+    if (transition) {
+      const endRoom = world.getRoom(transition.roomName);
+      const p =
+        (Date.now() / 1000 - transition.realWorldStartTime) /
+        transition.seconds;
+
+      // if the transition is over, switch rooms and re-run the game loop
+      if (p >= 1) {
+        room.transition = null;
+        world.switchToRoom(transition.roomName);
+        gameLoop();
+        return;
+      }
+
+      const smooth = (a, b) => a * (1 - p * p) + b * p * p;
+      const targetCameraPosition = cameraPositionForRoom(endRoom);
+      console.log(cameraPosition, targetCameraPosition);
+      cameraPosition = {
+        x: smooth(cameraPosition.x, targetCameraPosition.x),
+        y: smooth(cameraPosition.y, targetCameraPosition.y),
+        z: smooth(cameraPosition.z, targetCameraPosition.z),
+      };
+    }
 
     if (input.numPresses("showLights") % 2) {
       debugShowLights = !debugShowLights;
       room.lightsOn = debugShowLights;
     }
+    room.lightsOn = true;
 
     if (!fullScreenRequest && input.isPressed("fullscreen")) {
       fullScreenRequest = canvas.requestFullscreen();
     }
 
-    movePieces();
+    processRoom(room);
 
     lighting.renderLighting(renderInCamera, room);
     doAnimationFrame(program, renderMain);
