@@ -140,7 +140,7 @@ export async function loadCreatureResources(loadTexture, loadSound) {
         width: 660 / (460 / HERO_HEIGHT),
         height: HERO_HEIGHT,
         texWidth: 660 / creatureDeathTex.w,
-        texHeight: 460 / creatureDeathTex.h,
+        texHeight: 500 / creatureDeathTex.h,
         numPerRow: 3,
         count: 12,
       }),
@@ -152,7 +152,7 @@ export async function loadCreatureResources(loadTexture, loadSound) {
         width: 660 / (450 / HERO_HEIGHT),
         height: HERO_HEIGHT,
         texWidth: 660 / creatureDeathTex.w,
-        texHeight: 450 / creatureDeathTex.h,
+        texHeight: 500 / creatureDeathTex.h,
         numPerRow: 3,
         count: 12,
         reverseX: true,
@@ -241,12 +241,10 @@ function makeDefaultCreatureSprite(room) {
 export class Creature {
   constructor(room, x, y, heightOffGround) {
     const sprite = makeDefaultCreatureSprite(room);
-
     const roomBottom = room.roomBottom;
 
-    // const sprite = room.resources.creature.makeCreatureAttackSprite();
-    // sprite.resetSprite("bite", room.roomTime);
-
+    /** @private {Sprite} Set it back to this to keep consistent blinking */
+    this.defaultSprite = sprite;
     /** @private {number} */
     this.startX = x;
     /** @private {number} */
@@ -255,6 +253,8 @@ export class Creature {
     this.y = y;
     /** @private {number} */
     this.z = heightOffGround;
+    /** @private {number} Used just to adjust tentacles */
+    this.speed = 0;
     /** @private {number} */
     this.nextTentacleMove = 0;
     /** @private {number} */
@@ -292,12 +292,16 @@ export class Creature {
     this.sprite = makeSprite(mode, time);
   }
 
-  adjustTentacles(room, speedX) {
+  adjustTentacles(room) {
+    const tentacles = this.tentacles;
+    if (tentacles.length === 0) return; // on death
+
+    const speedX = this.speed;
     const roomTime = room.roomTime;
     if (roomTime > this.nextTentacleMove) {
       let index = this.nextTentacleIndex;
-      this.nextTentacleIndex = (index + 1) % this.tentacles.length;
-      const toPlace = this.tentacles[index];
+      this.nextTentacleIndex = (index + 1) % tentacles.length;
+      const toPlace = tentacles[index];
 
       const placementX = this.x + (STEP_TIME + 0.1) * speedX + toPlace.idealX;
       if (Math.abs(placementX - toPlace.placementX) > 0.05) {
@@ -327,21 +331,23 @@ function distanceFromHero(creature, room) {
  * @param {Room} room
  */
 function creatureStateNormal(creature, room) {
+  creature.sprite = creature.defaultSprite;
+
   return {
     name: "creature_normal",
     processStep: () => {
       const roomTime = room.roomTime;
       creature.x = creature.startX + Math.sin(roomTime);
-      creature.adjustTentacles(room, 0.5 * Math.cos(roomTime));
+      creature.speed = 0.5 * Math.cos(roomTime);
 
       const heroDistance = distanceFromHero(creature, room);
       if (heroDistance < CREATURE_HUNTING_DISTANCE) {
         // Hero got too close, hunting time!
         if (heroDistance < CREATURE_ATTACK_DISTANCE) {
           // Oh my, already close enough to hurt him
-          creature.state = creatureStateAttack(creature, room);
+          creature.changeState(room, creatureStateAttack);
         } else {
-          creature.state = creatureStateHunting(creature, room);
+          creature.changeState(room, creatureStateHunting);
         }
       }
     },
@@ -384,6 +390,7 @@ function getCreatureSpeed(room, start) {
 function creatureStateHunting(creature, room) {
   const startedAt = room.roomTime;
   room.audio.playSound(creature, room.resources.creature.enemyNoticeSound);
+  creature.sprite = creature.defaultSprite;
 
   return {
     name: "creature_hunting",
@@ -393,15 +400,15 @@ function creatureStateHunting(creature, room) {
       const heroDistance = distanceFromHero(creature, room);
 
       if (heroDistance > CREATURE_ATTACK_DISTANCE / 2) {
-        creature.x +=
+        const speed =
           (heroX < creature.x ? -1 : 1) * getCreatureSpeed(room, startedAt);
+        creature.speed = speed;
+        creature.x += speed;
       }
-
-      creature.adjustTentacles(room, 0.5 * Math.cos(roomTime));
 
       if (heroDistance < CREATURE_ATTACK_DISTANCE && roomTime - startedAt > 1) {
         // Time to make someone bleed
-        creature.state = creatureStateAttack(creature, room);
+        creature.changeState(room, creatureStateAttack);
       }
     },
     render: (gl, program, heroPoint) => {
@@ -440,20 +447,24 @@ function creatureStateAttack(creature, room) {
   creature.sprite = sprite;
 
   room.audio.playSound(creature, room.resources.creature.enemyScreamSound);
+  let facingLeft = false;
 
   return {
     name: "creature_attack",
     processStep: () => {
-      if (sprite.isFinished()) {
+      const frameIndex = sprite.frameIndex();
+      if (frameIndex <= 10) {
+        facingLeft = room.hero.heroX < creature.x;
+      } else if (frameIndex < 15) {
         const heroDistance = distanceFromHero(creature, room);
 
         // TODO not sure how much space to give for the hero to avoid the attack
         if (heroDistance < 1.5) {
           console.warn("Kill / hurt the hero");
         }
+      } else if (sprite.isFinished()) {
         // Back to hunting
-        creature.state = creatureStateHunting(creature, room);
-        creature.sprite = makeDefaultCreatureSprite(room);
+        creature.changeState(room, creatureStateHunting);
       }
     },
     render: (gl, program, heroPoint) => {
@@ -463,16 +474,13 @@ function creatureStateAttack(creature, room) {
 
       stack.pushTranslation(x, creature.y, z);
 
-      let needsMirror = heroPoint.x < x;
-      let angle = arctan(heroPoint.z - z, heroPoint.x - x);
+      let needsMirror = facingLeft;
       if (needsMirror) {
         stack.push(mirrorX);
-        angle = Math.PI - angle;
       }
 
-      stack.pushYRotation(angle);
       creature.sprite.renderSprite(program);
-      stack.pop();
+      // stack.pop();
       if (needsMirror) stack.pop();
       stack.pop();
     },
@@ -536,6 +544,7 @@ export function processCreatures(room) {
   room.creatures.forEach((creature) => {
     creature.sprite.updateTime(roomTime);
     creature.state.processStep(room);
+    creature.adjustTentacles(room);
   });
 }
 

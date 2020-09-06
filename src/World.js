@@ -107,9 +107,6 @@ function initRoom(kernel, name) {
 
       return room;
     }
-    case "fourth": {
-      const room = makeRoom({});
-    }
     case "r0": {
       const room = makeRoom({
         kernel,

@@ -205,12 +205,16 @@ export function heroStateNormal(hero, room) {
               return true;
             }
           } else if (interactable instanceof Hatch) {
-            if (upDown === -1 && interactable.isOpen(room)) {
+            if (
+              upDown === -1 &&
+              Math.abs(hero.heroX - interactable.x) < 0.4 &&
+              interactable.isOpen(room)
+            ) {
               hero.changeState(room, heroStateDescending, interactable);
               return true;
             }
           } else if (interactable instanceof Ladder) {
-            if (upDown === 1) {
+            if (upDown === 1 && Math.abs(hero.heroX - interactable.x) < 0.4) {
               hero.changeState(room, heroStateClimbing, interactable);
               return true;
             }
