@@ -25,10 +25,84 @@ import { AudioManager } from "./webgames/Audio.js";
 import { processFlare, makeSparkSprite, renderSparks } from "./Flare.js";
 import { initWorld, cameraPositionForRoom, updateRoomTime } from "./World.js";
 
+function skipIntro() {
+  const intro = document.getElementById("intro");
+  intro.remove();
+
+  const skipActions = document.getElementById("skipActions");
+  skipActions.remove();
+
+  const gameActions = document.getElementById("gameActions");
+  gameActions.classList.remove("hidden");
+
+  const canvas = document.getElementById("canvas");
+  canvas.classList.add("visible");
+
+  canvas.addEventListener("dblclick", () => {
+    canvas.requestFullscreen();
+  });
+
+  const fullscreen = document.getElementById("fullscreen");
+  fullscreen.addEventListener("click", () => {
+    canvas.requestFullscreen();
+  });
+}
+
+function prepareSkipButton() {
+  const start = document.getElementById("start");
+  start.remove();
+
+  const skip = document.getElementById("skip");
+  skip.addEventListener("click", () => {
+    skipIntro();
+  });
+
+  const skipActions = document.getElementById("skipActions");
+  skipActions.classList.remove("hidden");
+}
+
+function prepareStartButton() {
+  const start = document.getElementById("start");
+  const video = document.getElementById("introVideo");
+
+  video.addEventListener(
+    "ended",
+    () => {
+      skipIntro();
+    },
+    { once: true }
+  );
+
+  start.addEventListener(
+    "click",
+    () => {
+      video.play().then(
+        () => {
+          prepareSkipButton();
+
+          video.addEventListener("click", () => {
+            if (video.paused) {
+              video.play();
+            } else {
+              video.pause();
+            }
+          });
+        },
+        (err) => {
+          console.error(err);
+        }
+      );
+    },
+    { once: true }
+  );
+}
+
 async function onLoad() {
   const fpsNode = document.getElementById("fps");
   const canvas = document.getElementById("canvas");
   const computedStyle = window.getComputedStyle(canvas);
+
+  prepareStartButton();
 
   const input = new InputManager(document.body);
   input.setKeysForAction("left", ["a", "ArrowLeft"]);
@@ -79,7 +153,7 @@ void main() {
     // vec4 result = vec4(position.x * position.w, position.y, position.z, position.w);
     vec4 result = position;
     gl_Position = result;
-    
+
     v_clipSpace = result;
     v_texturePosition = a_texturePosition;
 }`
