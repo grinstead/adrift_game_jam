@@ -10,6 +10,7 @@ import { HERO_HEIGHT, ROOM_DEPTH_RADIUS, LADDER_Y } from "./SpriteData.js";
 import { arctan } from "./webgames/math.js";
 import { Room, Transition } from "./Scene.js";
 import { deathByAxe } from "./Creature.js";
+import { LightSwitch } from "./Interactables.js";
 
 // The hero's scaling is off, but it is self-consistent
 const HERO_PIXELS_PER_METER = 434 / HERO_HEIGHT;
@@ -24,7 +25,9 @@ const charWInM = 405 / HERO_PIXELS_PER_METER;
  * @property {SpriteBuilder} makeClimbingSprite
  * @property {SpriteBuilder} makeEnterHatchSprite
  * @property {SpriteBuilder} makeExitHatchSprite
+ * @property {SpriteBuilder} makeSwitchFlipSprite
  * @property {Array<AudioBuffer>} grunts
+ * @property {AudioBuffer} lightSwitchSound
  */
 export let HeroResources;
 
@@ -132,14 +135,15 @@ export class Hero {
    * Changes the hero's state. Assumed to be done during a processStep call.
    * This will invoke processStep immediately on the new step
    * @param {Room} room - The current room
-   * @param {function(Hero,Room):HeroState} stateBuilder - The thing that
+   * @param {function(Hero,Room,?):HeroState} stateBuilder - The thing that
+   * @param {?=} arg - A per state argument
    * returns the new hero state
    */
-  changeState(room, stateBuilder) {
+  changeState(room, stateBuilder, arg) {
     const oldStateOnExit = this.state.onExit;
     if (oldStateOnExit) oldStateOnExit();
 
-    const state = stateBuilder(this, room);
+    const state = stateBuilder(this, room, arg);
     this.state = state;
     state.processStep(room);
   }
@@ -185,6 +189,21 @@ export function heroStateNormal(hero, room) {
     name: "normal",
     processStep: (/** @type {Room} */ room) => {
       const { hero, roomTime, input } = room;
+
+      if (input.isPressed("up")) {
+        const didInteract = room.interactables.some((interactable) => {
+          if (interactable instanceof LightSwitch) {
+            if (
+              !interactable.on &&
+              Math.abs(hero.heroX - interactable.x) < 0.2
+            ) {
+              hero.changeState(room, heroStateFlipSwitch, interactable);
+              return true;
+            }
+          }
+        });
+        if (didInteract) return;
+      }
 
       if (room.name === "r0" && input.isPressed("up")) {
         hero.changeState(room, heroStateClimbing);
@@ -251,6 +270,36 @@ function heroStateAttacking(hero, room) {
   return {
     name: "attacking",
     processStep: (room) => {
+      if (hero.sprite.isFinished()) {
+        hero.changeState(room, heroStateNormal);
+      }
+    },
+  };
+}
+
+/**
+ * @param {Hero} hero
+ * @param {Room} room
+ * @param {LightSwitch} light
+ */
+function heroStateFlipSwitch(hero, room, light) {
+  hero.setSprite(
+    room.resources.hero.makeSwitchFlipSprite,
+    room.roomTime,
+    "main"
+  );
+  hero.setSpeedX(0);
+  hero.heroX = light.x;
+
+  return {
+    name: "switch_on",
+    processStep: () => {
+      if (!light.on && hero.sprite.frameIndex() >= 6) {
+        room.audio.playSound(light, room.resources.hero.lightSwitchSound);
+        room.lightsOn = true;
+        light.on = true;
+      }
+
       if (hero.sprite.isFinished()) {
         hero.changeState(room, heroStateNormal);
       }
@@ -354,18 +403,22 @@ export async function loadHeroResources(loadTexture, loadSound) {
     attackTex,
     climbingTex,
     hatchTex,
+    switchTex,
     grunts,
+    lightSwitchSound,
   ] = await Promise.all([
     loadTexture("hero_idle", "assets/Hero Breathing with axe.png"),
     loadTexture("hero_walk", "assets/Hero Walking with axe.png"),
     loadTexture("hero_attack", "assets/Axe Chop.png"),
     loadTexture("hero_climbing", "assets/Climbing Up.png"),
     loadTexture("hero_hatch", "assets/climbing_in.png"),
+    loadTexture("hero_light", "assets/Hero flipping Switch.png"),
     Promise.all([
       loadSound("assets/Grunt1.mp3"),
       loadSound("assets/Grunt2.mp3"),
       loadSound("assets/Grunt3.mp3"),
     ]),
+    loadSound("assets/light.mp3"),
   ]);
 
   const enterHatch = {
@@ -493,6 +546,20 @@ export async function loadHeroResources(loadTexture, loadSound) {
       singleMode: "exit",
       reverseOrder: true,
     }),
+    makeSwitchFlipSprite: makeHeroSpriteType({
+      name: "hero_switch",
+      tex: switchTex,
+      widthPx: 274,
+      heightPx: 444,
+      xPx: 104,
+      yPx: 442,
+      frameCount: 9,
+      loops: false,
+      frameTime: 1 / 12,
+      singleMode: "main",
+      flareData: null,
+    }),
+    lightSwitchSound,
   };
 
   // flare climbing up (reversed)

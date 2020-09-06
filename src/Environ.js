@@ -5,6 +5,8 @@ import {
   LAYOUT_TARGETS,
   TEX_PIXELS_PER_METER,
   LADDER_Y,
+  HERO_HEIGHT,
+  SWITCH_HEIGHT,
 } from "./SpriteData.js";
 import { Texture } from "./swagl.js";
 
@@ -31,6 +33,7 @@ export let ProjectionData;
  * @property {SpriteSet} ladderSprite
  * @property {SpriteSet} setPieces
  * @property {ProjectionData} projection
+ * @property {SpriteSet} lightSwitches
  */
 export let EnvironResources;
 
@@ -109,6 +112,7 @@ export async function loadEnvironResources(projection, loadTexture) {
     ceilTex,
     sideTex,
     variousTex,
+    lightsTex,
   ] = await Promise.all([
     loadTexture("ladder", "assets/ladder.png"),
     loadTexture("wall", "assets/Back Wall.png"),
@@ -116,6 +120,7 @@ export async function loadEnvironResources(projection, loadTexture) {
     loadTexture("ceiling", "assets/ceiling.png"),
     loadTexture("wall", "assets/side_wall.png"),
     loadTexture("set_pieces", "assets/set_pieces.png"),
+    loadTexture("lights", "assets/Light Switch Flip.png"),
   ]);
 
   const ladderSprite = new SpriteSet(ladderTex, {
@@ -165,6 +170,31 @@ export async function loadEnvironResources(projection, loadTexture) {
 
   const setPieces = new SpriteSet(variousTex, setPieceData);
 
+  const offSwitchData = setPiece(projection, lightsTex, {
+    xPx: 316,
+    yPx: 298,
+    widthPx: 118,
+    heightPx: 152,
+    offsetY: ROOM_DEPTH_RADIUS,
+    offsetZ: SWITCH_HEIGHT,
+  });
+
+  const onSwitchData = setPiece(projection, lightsTex, {
+    xPx: 316,
+    yPx: 1110,
+    widthPx: 118,
+    heightPx: 152,
+    offsetY: ROOM_DEPTH_RADIUS,
+    offsetZ: SWITCH_HEIGHT,
+  });
+
+  const lightSwitches = new SpriteSet(lightsTex, {
+    // prettier-ignore
+    "on": [onSwitchData],
+    // prettier-ignore
+    "off": [offSwitchData],
+  });
+
   return {
     projection,
     wallTex,
@@ -173,6 +203,7 @@ export async function loadEnvironResources(projection, loadTexture) {
     sideTex,
     ladderSprite,
     setPieces,
+    lightSwitches,
   };
 }
 

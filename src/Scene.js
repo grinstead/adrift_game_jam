@@ -45,11 +45,12 @@ export let Transition;
  * @property {number} roomBottom - The z coordinate of the lowest-most portion of the room (ie. the floor)
  * @property {EnvironRoomSprites} environSprites
  * @property {Array<SparkParticle>} sparks
- * @property {boolean} lightsOn
+ * @property {boolean} lightsOn - whether the rooms lights are on
  * @property {Hero} hero - The hero character for the room
  * @property {?Transition} transition - Whether the room should transition to another room
- * @property {number} locks
- * @property {number} ambientLight
+ * @property {number} locks - non-zero if the creatures are bypassed
+ * @property {number} ambientLight - 0 to 1
+ * @property {Array<Object>} interactables - Things the hero can interact with (eg. a light switch)
  */
 export let Room;
 
@@ -102,6 +103,7 @@ export function makeRoom(options) {
     transition: null,
     locks: 0,
     ambientLight: 0,
+    interactables: [],
   };
 }
 

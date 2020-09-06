@@ -244,17 +244,20 @@ void main() {
     sideSprite.renderSpriteDatumPrebound("left", 0);
     sideSprite.renderSpriteDatumPrebound("right", 0);
 
-    stack.pushTranslation(2, 0, 0);
+    // stack.pushTranslation(2, 0, 0);
     // const ladderSprite = room.resources.environ.ladderSprite;
     // ladderSprite.bindTo(program);
     // ladderSprite.renderSpriteDatumPrebound("main", 0);
 
-    const setPieces = room.resources.environ.setPieces;
-    setPieces.bindTo(program);
-    setPieces.renderSpriteDatumPrebound("lowerHatch", 0);
-    stack.pop();
+    // const setPieces = room.resources.environ.setPieces;
+    // setPieces.bindTo(program);
+    // setPieces.renderSpriteDatumPrebound("lowerHatch", 0);
+    // stack.pop();
     stack.pop();
 
+    room.interactables.forEach((interactable) => {
+      interactable.render(gl, program, room);
+    });
     renderHero(gl, program, room);
     renderCreatures(gl, program, room);
     renderSparks(gl, program, room);

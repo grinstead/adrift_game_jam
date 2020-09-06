@@ -5,6 +5,7 @@ export const TEX_PIXELS_PER_METER = TEX_PIXEL_PER_PIXEL * PIXELS_PER_METER;
 export const ROOM_DEPTH_RADIUS = 0.75;
 export const ROOM_HEIGHT = 2.5;
 export const LADDER_Y = ROOM_DEPTH_RADIUS - 0.2;
+export const SWITCH_HEIGHT = 1.4;
 
 export const HERO_HEIGHT = 1.8;
 

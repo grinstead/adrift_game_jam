@@ -1,6 +1,7 @@
 import { RoomKernel, Room, makeRoom, Transition } from "./Scene.js";
 import { ROOM_HEIGHT } from "./SpriteData.js";
 import { spawnCreature } from "./Creature.js";
+import { LightSwitch } from "./Interactables.js";
 
 const CAMERA_X_OFFSET = 1;
 
@@ -43,7 +44,7 @@ export class World {
  * @param {RoomKernel} kernel
  */
 export function initWorld(kernel) {
-  return new World(kernel, initRoom(kernel, "r0"));
+  return new World(kernel, initRoom(kernel, "start"));
 }
 
 /**
@@ -53,6 +54,21 @@ export function initWorld(kernel) {
  */
 function initRoom(kernel, name) {
   switch (name) {
+    case "start": {
+      const room = makeRoom({
+        kernel,
+        name,
+        roomRight: 6,
+        roomLeft: -6,
+        roomBottom: 20,
+      });
+      room.ambientLight = 0.4;
+      room.hero.heroX = -1;
+
+      room.interactables.push(new LightSwitch(1));
+
+      return room;
+    }
     case "r0": {
       const room = makeRoom({
         kernel,
