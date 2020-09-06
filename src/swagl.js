@@ -93,6 +93,10 @@ export class MatrixStack {
     gl.uniformMatrix4fv(anchor, false, identityMat);
   }
 
+  depth() {
+    return this._stack.length;
+  }
+
   peek() {
     const stack = this._stack;
     return stack[stack.length - 1] || identityMat;
@@ -497,4 +501,23 @@ function createStandardTexture(loader) {
     gl.bindTexture(gl.TEXTURE_2D, null);
     return texture;
   };
+}
+
+/**
+ * Creates a 1x1 texture of the given color
+ * @param {WebGL2RenderingContext} gl
+ * @param {number} r - red channel 0-255
+ * @param {number} g - green channel 0-255
+ * @param {number} b - blue channel 0-255
+ * @param {number} a - alpha channel 0-255
+ * @returns {Texture}
+ */
+export function makeSolidTexture(gl, r, g, b, a) {
+  return loadTextureFromRawBitmap({
+    name: "solid",
+    width: 1,
+    height: 1,
+    gl,
+    bmp: new Uint8Array([r, g, b, a]),
+  });
 }

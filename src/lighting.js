@@ -6,9 +6,10 @@ import {
   doAnimationFrame,
   wrapPremadeTexture,
   loadTextureFromRawBitmap,
+  makeSolidTexture,
 } from "./swagl.js";
 import { SpriteSet, Sprite } from "./sprites.js";
-import { WALL_META } from "./SpriteData.js";
+import { WALL_META, ROOM_DEPTH_RADIUS, ROOM_HEIGHT } from "./SpriteData.js";
 import { Room } from "./Scene.js";
 
 const COMPRESSION = 4;
@@ -40,13 +41,7 @@ uniform mat4 u_projection;
 out vec2 v_texturePosition;
 
 void main() {
-  vec4 position = u_projection * vec4(a_position, 1);
-  // float inverse = 1.f / (1.f - position.z * .2f);
-
-  // vec4 result = vec4(position.x, -inverse * position.y * (1.f - .5f * position.z), inverse * position.z, inverse * position.w);
-  // gl_Position = result;
-  gl_Position = position;
-  
+  gl_Position = u_projection * vec4(a_position, 1);
   v_texturePosition = a_texturePosition;
 }`
     );
@@ -57,17 +52,23 @@ precision mediump float;
 
 uniform sampler2D u_texture;
 uniform float u_threshold;
+uniform vec4 u_color;
 
 in vec2 v_texturePosition;
 out vec4 output_color;
 
 void main() {
     vec4 color = texture(u_texture, v_texturePosition.st);
-    color.a -= u_threshold;
-    if (color.a <= u_threshold) {
-        discard;
+    if (color.a == 0.f) {
+      discard;
     }
-    output_color = color;
+
+    output_color = u_color;
+    // color.a -= u_threshold;
+    // if (color.a <= u_threshold) {
+    //     discard;
+    // }
+    // output_color = color;
 }`
     );
 
@@ -128,6 +129,8 @@ void main() {
     //   name: "porthole light",
     //   main: [[]],
     // });
+
+    /** @private {SpriteSet} */
     this._fade = new SpriteSet(fadeTexture, {
       // prettier-ignore
       "main": [[
@@ -137,6 +140,20 @@ void main() {
           -fadeRadius, 0,  fadeRadius, 0, 1,
         ]],
     });
+
+    /** @private {SpriteSet} */
+    this._whiteSquare = new SpriteSet(
+      makeSolidTexture(gl, 255, 255, 255, 255),
+      {
+        // prettier-ignore
+        "main": [[
+          0, 0, 0, 0, 0,
+          1, 0, 0, 0, 0,
+          0, 0, 1, 0, 0,
+          1, 0, 1, 0, 0,
+        ]],
+      }
+    );
   }
 
   renderLighting(renderInCamera, room) {
@@ -173,13 +190,40 @@ function renderLightingToTexture(gl, program, renderInCamera, lighting, rooms) {
 
   const mainRoom = rooms[0];
   if (mainRoom.lightsOn) {
-    gl.clearColor(0, 0, 0, 1);
+    // gl.clearColor(0, 0, 0, 1);
+    gl.clearColor(0, 0, 0, 0);
   } else {
-    gl.clearColor(0, 0, 0, window.ambientLight);
+    gl.clearColor(0, 0, 0, 0);
   }
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  renderInCamera(program.stack, () => {
+  gl.uniform4f(program.u["color"], 0, 0, 0, 1);
+
+  const stack = program.stack;
+  renderInCamera(stack, () => {
+    const whiteSquare = lighting._whiteSquare;
+
+    // mask the rooms
+    whiteSquare.bindTo(program);
+    rooms.forEach((room) => {
+      const projection = room.resources.environ.projection;
+
+      const roomLeft = room.roomLeft - projection.lipWidth;
+      const roomWidth = room.roomRight + projection.lipWidth - roomLeft;
+      const roomBottom = room.roomBottom - projection.lipHeight;
+      const roomHeight = 2 * projection.lipHeight + ROOM_HEIGHT;
+
+      // prettier-ignore
+      stack.push(new Float32Array([
+        roomWidth, 0, 0, 0,
+        0, 0, 0, 0,
+        0, 0, roomHeight, 0,
+        roomLeft, -ROOM_DEPTH_RADIUS, roomBottom, 1
+      ]));
+      whiteSquare.renderSpriteDatumPrebound("main", 0);
+      stack.pop();
+    });
+
     const fade = lighting._fade;
     fade.bindTo(program);
 
@@ -187,20 +231,20 @@ function renderLightingToTexture(gl, program, renderInCamera, lighting, rooms) {
     rooms.forEach((room) => {
       const time = room.roomTime;
 
-      room.sparks.forEach((particle) => {
-        if (!particle.dead) {
-          const startTime = particle.startTime;
-          const percentPassed =
-            (time - startTime) / (particle.deathTime - startTime);
+      // room.sparks.forEach((particle) => {
+      //   if (!particle.dead) {
+      //     const startTime = particle.startTime;
+      //     const percentPassed =
+      //       (time - startTime) / (particle.deathTime - startTime);
 
-          // set the circle to fade out
-          gl.uniform1f(thresholder, 0.5 * percentPassed * percentPassed);
+      //     // set the circle to fade out
+      //     gl.uniform1f(thresholder, 0.5 * percentPassed * percentPassed);
 
-          program.stack.pushTranslation(particle.x, particle.y, particle.z);
-          fade.renderSpriteDatumPrebound("main", 0);
-          program.stack.pop();
-        }
-      });
+      //     stack.pushTranslation(particle.x, particle.y, particle.z);
+      //     fade.renderSpriteDatumPrebound("main", 0);
+      //     stack.pop();
+      //   }
+      // });
     });
   });
 }
@@ -245,24 +289,6 @@ function makeQuadraticDropoff(width, height, brightRadius, texPixelsPerMeter) {
   }
 
   return bitmap;
-}
-
-/**
- * Creates a 1x1 texture of the given color
- * @param {WebGL2RenderingContext} gl
- * @param {number} r - red channel 0-255
- * @param {number} g - green channel 0-255
- * @param {number} b - blue channel 0-255
- * @param {number} a - alpha channel 0-255
- */
-function makeSolidTexture(gl, r, g, b, a) {
-  return loadTextureFromRawBitmap({
-    name: "solid",
-    width: 1,
-    height: 1,
-    gl,
-    bmp: new Uint8Array([r, g, b, a]),
-  });
 }
 
 function makeCircleSprite(radiusInPixels, texPixelsPerMeter) {

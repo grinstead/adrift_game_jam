@@ -74,7 +74,7 @@ function initRoom(kernel, name) {
         name,
         roomLeft: -12,
         roomRight: 10,
-        roomBottom: ROOM_HEIGHT + 2,
+        roomBottom: ROOM_HEIGHT + 6,
       });
 
       return room;

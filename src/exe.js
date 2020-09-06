@@ -65,6 +65,7 @@ async function onLoad() {
   const projection = buildProjectionData(width, height);
 
   const gl = canvas.getContext("webgl2", { antialias: false, alpha: false });
+
   gl.enable(gl.BLEND);
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
@@ -162,7 +163,6 @@ void main() {
   };
 
   const world = initWorld(kernel);
-  let room = world.activeRoom;
 
   let mouseX = 0;
   let mouseY = 0;
@@ -180,12 +180,12 @@ void main() {
   let cameraPosition = { x: 0, y: 0, z: 0 };
 
   const shipLength = 100;
-  const wave1 = (isFar) => {
-    const time = room.roomTime + (isFar ? 170 : 0);
+  const wave1 = (realTime, isFar) => {
+    const time = realTime + (isFar ? 170 : 0);
     return Math.sin((Math.PI * time) / 8) / 2;
   };
-  const wave2 = (isFar) => {
-    const time = room.roomTime + (isFar ? 130 : 0);
+  const wave2 = (realTime, isFar) => {
+    const time = realTime + (isFar ? 130 : 0);
     return Math.sin((Math.PI * time) / 3) / 8;
   };
 
@@ -195,14 +195,6 @@ void main() {
    * @param {Room} room
    */
   function processRoom(room) {
-    // calculate the boat rocking
-    const bowY = wave1(false) + wave2(false);
-    const sternY = wave1(true) + wave2(true);
-    shipAngle = Math.asin((bowY - sternY) / shipLength);
-    normalZ = Math.cos(shipAngle);
-    normalX = Math.sin(shipAngle);
-    shipDz = (bowY + sternY) / 2;
-
     let transition = room.transition;
     processHero(room);
 
@@ -231,8 +223,8 @@ void main() {
     );
 
     // rock the boat
-    stack.pushYRotation(shipAngle);
     stack.pushTranslation(0, 0, shipDz);
+    stack.pushYRotation(shipAngle);
 
     subcode();
 
@@ -272,8 +264,6 @@ void main() {
     renderHero(gl, program, room);
     renderCreatures(gl, program, room);
     renderSparks(gl, program, room);
-
-    stack.pop();
   }
 
   function renderMain(gl, program, rooms) {
@@ -291,7 +281,12 @@ void main() {
 
     renderInCamera(program.stack, () => {
       rooms.forEach((room) => {
+        const depth = program.stack.depth();
         renderInSceneContent(gl, program, room);
+        const depth2 = program.stack.depth();
+        if (depth2 !== depth) {
+          console.error("yo!");
+        }
       });
     });
 
@@ -318,6 +313,14 @@ void main() {
     }
     fpsNode.innerHTML = `fps=${Math.round(avgFps)}`;
     prevRun = realTime;
+
+    // calculate the boat rocking
+    const bowY = wave1(realTime, false) + wave2(realTime, false);
+    const sternY = wave1(realTime, true) + wave2(realTime, true);
+    shipAngle = Math.asin((bowY - sternY) / shipLength);
+    normalZ = Math.cos(shipAngle);
+    normalX = Math.sin(shipAngle);
+    shipDz = (bowY + sternY) / 2;
 
     let room = world.activeRoom;
     let nextRoom = null;
@@ -385,3 +388,63 @@ void main() {
 }
 
 window.onload = onLoad;
+
+//   const worldTex = gl.createTexture();
+//   gl.bindTexture(gl.TEXTURE_2D, worldTex);
+//   gl.texImage2D(
+//     gl.TEXTURE_2D,
+//     0,
+//     gl.RGBA,
+//     canvasWidth,
+//     canvasHeight,
+//     0,
+//     gl.RGBA,
+//     gl.UNSIGNED_BYTE,
+//     null
+//   );
+//   // set the filtering so we don't need mips
+//   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+//   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+//   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+//   const worldBuffer = gl.createFramebuffer();
+
+//   // define the framebuffer as writing to our texture
+//   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+//   gl.framebufferTexture2D(
+//     gl.FRAMEBUFFER,
+//     gl.COLOR_ATTACHMENT0,
+//     gl.TEXTURE_2D,
+//     worldTex,
+//     0
+//   );
+//   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+//   const compositingVShader = new Shader(
+//     { gl, type: "vertex" },
+//     `#version 300 es
+// in vec3 a_position;
+// in vec2 a_texturePosition;
+
+// void main() {
+//     gl_Position = vec4(a_position, 1);
+//     v_texturePosition = a_texturePosition;
+// }`
+//   );
+
+//   const compositingFShader = new Shader(
+//     {gl, type: "fragment"},
+//     `#version 300 es
+// precision mediump float;
+
+// uniform sampler2D u_texture;
+
+// in vec2 v_texturePosition;
+// out vec4 output_color;
+
+// void main() {
+//     vec4 light = texture(u_lighting, clipSpace.xy);
+//     vec3 math = min(light.xyz + color.xyz * light.a, vec3(1.f, 1.f, 1.f));
+//     output_color = vec4(math, color.a);
+// }`
+//   )
