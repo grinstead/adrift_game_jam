@@ -70,7 +70,7 @@ export class Hero {
     this.state = {
       name: "unstarted",
       processStep: (room) => this.changeState(room, heroStateNormal),
-      renderSprite: () => {
+      render: () => {
         throw new Error("Hero did not get processed before rendering!");
       },
     };

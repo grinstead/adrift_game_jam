@@ -1,5 +1,11 @@
 import { TEX_PIXELS_PER_METER, TENTACLE_FRAMES } from "./SpriteData.js";
-import { SpriteSet, spriteSheet, Sprite, makeSpriteType } from "./sprites.js";
+import {
+  SpriteSet,
+  spriteSheet,
+  Sprite,
+  makeSpriteType,
+  SpriteBuilder,
+} from "./sprites.js";
 import { Texture, Program } from "./swagl.js";
 import { Room } from "./Scene.js";
 import { arctan } from "./webgames/math.js";
@@ -24,10 +30,20 @@ let Tentacle;
 /**
  * @typedef {Object} CreatureResources
  * @property {SpriteSet} tentacleSprite
- * @property {function():Sprite} makeCreatureSprite
- * @property {function():Sprite} makeCreatureAttackSprite
+ * @property {SpriteBuilder} makeCreatureSprite
+ * @property {SpriteBuilder} makeCreatureAttackSprite
  */
 export let CreatureResources;
+
+/**
+ * All the states that the hero can be in
+ * @typedef {Object} CreatureState
+ * @property {string} name - Useful for debugging
+ * @property {function(Room):void} processStep - Perform the hero's code
+ * @property {function(WebGL2RenderingContext,Program,{x:number,y:number,z:number}):void} render - Render the hero
+ * @property {?function():void} onExit
+ */
+let CreatureState;
 
 // prettier-ignore
 const mirrorX = new Float32Array([
@@ -182,9 +198,81 @@ export class Creature {
     ];
     /** @private {Sprite} */
     this.sprite = sprite;
-    // /** @private {Sprite} */
-    // this.attackSprite = sprite;
+    /** @type {CreatureState} */
+    this.state = creatureStateNormal(this, room);
   }
+
+  /**
+   * Changes the creature's state. Assumed to be done during a processStep call.
+   * This will invoke processStep immediately on the new step
+   * @param {Room} room - The current room
+   * @param {function(Creature,Room):CreatureState} stateBuilder - The thing that
+   * returns the new creature state
+   */
+  changeState(room, stateBuilder) {
+    const oldStateOnExit = this.state.onExit;
+    if (oldStateOnExit) oldStateOnExit();
+
+    const state = stateBuilder(this, room);
+    this.state = state;
+    state.processStep(room);
+  }
+
+  setSprite(makeSprite, time, mode) {
+    this.sprite = makeSprite(mode, time);
+  }
+
+  adjustTentacles(room, speedX) {
+    const roomTime = room.roomTime;
+    if (roomTime > this.nextTentacleMove) {
+      let index = this.nextTentacleIndex;
+      this.nextTentacleIndex = (index + 1) % this.tentacles.length;
+      const toPlace = this.tentacles[index];
+
+      const placementX = this.x + (STEP_TIME + 0.1) * speedX + toPlace.idealX;
+      if (Math.abs(placementX - toPlace.placementX) > 0.05) {
+        this.nextTentacleMove = roomTime + STEP_TIME;
+        toPlace.movingUntil = roomTime + STEP_TIME;
+        toPlace.moveStartX = toPlace.placementX;
+        toPlace.moveStartY = toPlace.placementY;
+        toPlace.moveStartZ = toPlace.placementZ;
+        toPlace.placementX = placementX;
+        toPlace.placementY = this.y + toPlace.idealY;
+        toPlace.placementZ = room.roomBottom;
+      }
+    }
+  }
+}
+
+function creatureStateNormal(creature, room) {
+  return {
+    name: "creature_normal",
+    processStep: () => {
+      const roomTime = room.roomTime;
+      creature.x = creature.startX + Math.sin(roomTime);
+      creature.adjustTentacles(room, 0.5 * Math.cos(roomTime));
+    },
+    render: (gl, program, heroPoint) => {
+      const stack = program.stack;
+      const x = creature.x;
+      const z = creature.z;
+
+      stack.pushTranslation(x, creature.y, z);
+
+      let needsMirror = heroPoint.x < x;
+      let angle = arctan(heroPoint.z - z, heroPoint.x - x);
+      if (needsMirror) {
+        stack.push(mirrorX);
+        angle = Math.PI - angle;
+      }
+
+      stack.pushYRotation(angle);
+      creature.sprite.renderSprite(program);
+      stack.pop();
+      if (needsMirror) stack.pop();
+      stack.pop();
+    },
+  };
 }
 
 /**
@@ -205,29 +293,8 @@ export function spawnCreature(room, x) {
 export function processCreatures(room) {
   const roomTime = room.roomTime;
   room.creatures.forEach((creature) => {
-    creature.x = creature.startX + Math.sin(roomTime);
-    const speed = 0.5 * Math.cos(roomTime);
-
-    creature.sprite.updateTime(room.roomTime);
-
-    if (roomTime > creature.nextTentacleMove) {
-      let index = creature.nextTentacleIndex;
-      creature.nextTentacleIndex = (index + 1) % creature.tentacles.length;
-      const toPlace = creature.tentacles[index];
-
-      const placementX =
-        creature.x + (STEP_TIME + 0.1) * speed + toPlace.idealX;
-      if (Math.abs(placementX - toPlace.placementX) > 0.05) {
-        creature.nextTentacleMove = roomTime + STEP_TIME;
-        toPlace.movingUntil = roomTime + STEP_TIME;
-        toPlace.moveStartX = toPlace.placementX;
-        toPlace.moveStartY = toPlace.placementY;
-        toPlace.moveStartZ = toPlace.placementZ;
-        toPlace.placementX = placementX;
-        toPlace.placementY = creature.y + toPlace.idealY;
-        toPlace.placementZ = room.roomBottom;
-      }
-    }
+    creature.sprite.updateTime(roomTime);
+    creature.state.processStep(room);
   });
 }
 
@@ -243,26 +310,10 @@ export function renderCreatures(gl, program, room) {
   const { tentacleSprite } = room.resources.creature;
 
   const roomTime = room.roomTime;
-  const { x: focusX, z: focusZ } = room.hero.getGoodFocusPoint();
+  const heroPoint = room.hero.getGoodFocusPoint();
 
   room.creatures.forEach((creature) => {
-    const x = creature.x;
-    const z = creature.z;
-
-    stack.pushTranslation(x, creature.y, z);
-
-    let needsMirror = focusX < x;
-    let angle = arctan(focusZ - z, focusX - x);
-    if (needsMirror) {
-      stack.push(mirrorX);
-      angle = Math.PI - angle;
-    }
-
-    stack.pushYRotation(angle);
-    creature.sprite.renderSprite(program);
-    stack.pop();
-    if (needsMirror) stack.pop();
-    stack.pop();
+    creature.state.render(gl, program, heroPoint);
   });
 
   tentacleSprite.bindTo(program);

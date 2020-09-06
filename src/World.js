@@ -76,7 +76,7 @@ function initRoom(kernel, name) {
         name,
         roomLeft: -12,
         roomRight: 10,
-        roomBottom: ROOM_HEIGHT + 6,
+        roomBottom: ROOM_HEIGHT + 3,
       });
 
       spawnCreature(room, 0);
