@@ -1,9 +1,11 @@
 {
   "scripts": {
+    "start": "chokidar \"src/**/*.js\" -c \"yarn build\"",
     "build": "yarn google-closure-compiler --compilation_level=BUNDLE --js='src/**.js' --js_output_file=bin/game.js --language_out=ECMASCRIPT_2019 --strict_mode_input --assume_function_wrapper --entry_point=src/exe.js --dependency_mode=PRUNE",
     "release": "yarn google-closure-compiler --compilation_level=ADVANCED --js='src/**.js' --js_output_file=bin/game.js --language_out=ECMASCRIPT_2019 --strict_mode_input --assume_function_wrapper --entry_point=src/exe.js --dependency_mode=PRUNE"
   },
   "devDependencies": {
+    "chokidar-cli": "^2.1.0",
     "google-closure-compiler": "^20200719.0.0"
   }
 }
